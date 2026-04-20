@@ -1,0 +1,66 @@
+import mongoose from "mongoose";
+
+const postSchema = new mongoose.Schema(
+  {
+    author: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    /* ======================
+       MEDIA (POSTS + REELS)
+    ====================== */
+    mediaUrl: {
+      type: String, // Cloudinary HTTPS URL
+      default: null,
+    },
+
+    mediaType: {
+      type: String,
+      enum: ["image", "video"],
+      default: null,
+    },
+
+    /* ======================
+       POST / REEL META
+    ====================== */
+    caption: {
+      type: String,
+      maxlength: 500,
+      trim: true,
+    },
+
+    category: {
+      type: String,
+      enum: ["Funny", "Sad", "Dance", "Music", "Food", "Travel", "General"],
+      default: "General",
+    },
+
+    type: {
+      type: String,
+      enum: ["post", "reel"],
+      default: "post",
+    },
+
+    visibility: {
+      type: String,
+      enum: ["Public", "Private"],
+      default: "Public",
+    },
+
+    /* ======================
+       INTERACTIONS
+    ====================== */
+    likes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+  },
+  { timestamps: true }
+);
+
+const Post = mongoose.model("Post", postSchema);
+export default Post;
