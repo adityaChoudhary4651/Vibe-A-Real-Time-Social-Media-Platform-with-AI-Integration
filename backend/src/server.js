@@ -16,6 +16,8 @@ import conversationRoutes from "./routes/conversationRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import communityRoutes from "./routes/communityRoutes.js";
 import vibeAIRoutes from "./routes/vibeAIRoutes.js";
+import highlightRoutes from "./routes/highlightRoutes.js";
+import tipRoutes from "./routes/tipRoutes.js";
 
 
 
@@ -52,6 +54,8 @@ app.use("/api/conversations", conversationRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/communities", communityRoutes);
 app.use("/api/vibe-ai", vibeAIRoutes);
+app.use("/api/highlights", highlightRoutes);
+app.use("/api/tips", tipRoutes);
 
 
 

@@ -15,8 +15,16 @@ const messageSchema = new mongoose.Schema(
     },
     text: {
       type: String,
-      required: true,
       trim: true,
+      default: "",
+    },
+    mediaUrl: {
+      type: String,
+      default: "",
+    },
+    mediaType: {
+      type: String,
+      default: "text",
     },
     isRead: {
       type: Boolean,

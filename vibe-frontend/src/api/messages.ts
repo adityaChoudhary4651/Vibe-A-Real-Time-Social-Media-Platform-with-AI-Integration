@@ -7,10 +7,22 @@ export const getMessages = async (conversationId: string) => {
 
 export const sendMessage = async (
   conversationId: string,
-  text: string
+  text: string,
+  imageFile?: File
 ) => {
-  const res = await axios.post(`/messages/${conversationId}`, { text });
-  return res.data;
+  if (imageFile) {
+    const formData = new FormData();
+    if (text) formData.append("text", text);
+    formData.append("image", imageFile);
+
+    const res = await axios.post(`/messages/${conversationId}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  } else {
+    const res = await axios.post(`/messages/${conversationId}`, { text });
+    return res.data;
+  }
 };
 
 export const markMessageRead = async (messageId: string) => {

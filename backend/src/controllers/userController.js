@@ -109,6 +109,11 @@ export const getProfile = async (req, res) => {
     name: user.name,
     bio: user.bio || "",
     avatar: user.avatar || "",
+    gender: user.gender || "Non-binary",
+    age: user.age || 21,
+    location: user.location || "Nearby",
+    interests: user.interests || ["Vibe"],
+    tipsReceived: user.tipsReceived || 0,
     followers: user.followers.length,
     following: user.following.length,
   });
@@ -118,14 +123,29 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const user = req.user;
-    const { bio } = req.body;
+    const { name, bio, gender, age, location, interests } = req.body;
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
+    if (typeof name === "string") {
+      user.name = name;
+    }
     if (typeof bio === "string") {
       user.bio = bio;
+    }
+    if (typeof gender === "string") {
+      user.gender = gender;
+    }
+    if (typeof age === "number" || (typeof age === "string" && !isNaN(Number(age)))) {
+      user.age = Number(age);
+    }
+    if (typeof location === "string") {
+      user.location = location;
+    }
+    if (Array.isArray(interests)) {
+      user.interests = interests;
     }
 
     await user.save();
@@ -136,6 +156,11 @@ export const updateProfile = async (req, res) => {
       name: user.name,
       bio: user.bio,
       avatar: user.avatar,
+      gender: user.gender,
+      age: user.age,
+      location: user.location,
+      interests: user.interests,
+      tipsReceived: user.tipsReceived,
       followers: user.followers.length,
       following: user.following.length,
     });
@@ -206,7 +231,7 @@ export const getPublicProfile = async (req, res) => {
     const loggedInUserId = req.user._id;
 
     const user = await User.findOne({ username }).select(
-      "_id username name bio avatar followers following"
+      "_id username name bio avatar followers following gender age location interests tipsReceived"
     );
 
     if (!user) {
@@ -223,6 +248,11 @@ export const getPublicProfile = async (req, res) => {
       name: user.name,
       bio: user.bio,
       avatar: user.avatar,
+      gender: user.gender || "Non-binary",
+      age: user.age || 21,
+      location: user.location || "Nearby",
+      interests: user.interests || ["Vibe"],
+      tipsReceived: user.tipsReceived || 0,
       followers: user.followers.length,
       following: user.following.length,
       isFollowing,
@@ -236,15 +266,22 @@ export const getPublicProfile = async (req, res) => {
 export const getDiscoveryUsers = async (req, res) => {
   try {
     const currentUserId = req.user._id;
+    const { gender } = req.query;
 
     // Fetch me to get my following list
     const me = await User.findById(currentUserId);
     const followingIds = me.following || [];
 
     // Find users who are NOT me and NOT in my following list
-    const users = await User.find({
+    const filter = {
       _id: { $nin: [currentUserId, ...followingIds] }
-    }).select("_id username name bio avatar");
+    };
+
+    if (gender && gender !== "All") {
+      filter.gender = gender;
+    }
+
+    const users = await User.find(filter).select("_id username name bio avatar gender age location interests");
 
     // Randomize result
     const shuffled = users.sort(() => 0.5 - Math.random());

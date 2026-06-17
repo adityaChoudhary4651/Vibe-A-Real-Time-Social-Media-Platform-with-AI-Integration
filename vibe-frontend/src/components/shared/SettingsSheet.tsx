@@ -41,6 +41,19 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
   const navigate = useNavigate();
 
   const handleAction = (id: string) => {
+    if (id === "dark_mode") {
+      const isCurrentlyDark = document.documentElement.classList.contains("dark");
+      if (isCurrentlyDark) {
+        document.documentElement.classList.remove("dark");
+        localStorage.setItem("vibe_dark_mode", "false");
+        toast.success("Light mode enabled ☀️");
+      } else {
+        document.documentElement.classList.add("dark");
+        localStorage.setItem("vibe_dark_mode", "true");
+        toast.success("Dark mode enabled 🌙");
+      }
+      return;
+    }
     toast.success(`Opening ${id.replace("_", " ")}...`);
   };
 

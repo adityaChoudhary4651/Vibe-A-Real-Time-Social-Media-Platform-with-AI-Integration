@@ -6,6 +6,7 @@ import { DollarSign, Heart, Sparkles, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { sendTip } from "@/api/users";
 
 const tipAmounts = [1, 5, 10, 25, 50, 100];
 
@@ -13,9 +14,10 @@ interface TipModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   creatorName?: string;
+  onTipSuccess?: (newTotal: number) => void;
 }
 
-export function TipModal({ open, onOpenChange, creatorName = "Creator" }: TipModalProps) {
+export function TipModal({ open, onOpenChange, creatorName = "Creator", onTipSuccess }: TipModalProps) {
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -25,14 +27,23 @@ export function TipModal({ open, onOpenChange, creatorName = "Creator" }: TipMod
   const handleSendTip = async () => {
     if (!amount || amount <= 0) return;
     setIsSending(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSending(false);
-    toast.success(`Sent $${amount} tip to ${creatorName}!`, {
-      icon: <Heart className="h-4 w-4 fill-destructive text-destructive" />,
-    });
-    onOpenChange(false);
-    setSelectedAmount(null);
-    setCustomAmount("");
+    try {
+      const res = await sendTip(creatorName, amount);
+      toast.success(`Sent $${amount} tip to ${creatorName}!`, {
+        icon: <Heart className="h-4 w-4 fill-destructive text-destructive" />,
+      });
+      if (res && res.tipsReceived !== undefined) {
+        onTipSuccess?.(res.tipsReceived);
+      }
+      onOpenChange(false);
+      setSelectedAmount(null);
+      setCustomAmount("");
+    } catch (error: any) {
+      const errMsg = error?.response?.data?.message || "Tipping failed. Please try again.";
+      toast.error(errMsg);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (

@@ -1,8 +1,13 @@
+import { useEffect, useState } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Copy, Mail, MessageCircle, Send, Link2, Facebook, Twitter } from "lucide-react";
+import { Mail, MessageCircle, Link2, Facebook, Twitter, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { fetchFollowers } from "@/api/profile";
+import { createConversation } from "@/api/conversations";
+import { sendMessage } from "@/api/messages";
 
 const shareOptions = [
   { id: "copy", icon: Link2, label: "Copy Link", color: "bg-secondary" },
@@ -12,20 +17,26 @@ const shareOptions = [
   { id: "facebook", icon: Facebook, label: "Facebook", color: "bg-[#1877F2]" },
 ];
 
-const recentUsers = [
-  { id: "1", username: "sarah_j", avatar: "" },
-  { id: "2", username: "mike_photo", avatar: "" },
-  { id: "3", username: "travel_emma", avatar: "" },
-  { id: "4", username: "art_luna", avatar: "" },
-  { id: "5", username: "foodie_em", avatar: "" },
-];
-
 interface ShareSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function ShareSheet({ open, onOpenChange }: ShareSheetProps) {
+  const { user, token } = useAuth();
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open && user?.username && token) {
+      setLoading(true);
+      fetchFollowers(user.username, token)
+        .then(setUsers)
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    }
+  }, [open, user, token]);
+
   const handleShare = (option: string) => {
     if (option === "copy") {
       navigator.clipboard.writeText(window.location.href);
@@ -36,8 +47,15 @@ export function ShareSheet({ open, onOpenChange }: ShareSheetProps) {
     onOpenChange(false);
   };
 
-  const handleShareToUser = (username: string) => {
-    toast.success(`Sent to ${username}!`);
+  const handleShareToUser = async (targetUserId: string, username: string) => {
+    try {
+      const conv = await createConversation(targetUserId);
+      const shareLink = window.location.href;
+      await sendMessage(conv._id, `Check this out: ${shareLink}`);
+      toast.success(`Sent to ${username}!`);
+    } catch (err) {
+      toast.error("Failed to share in chat");
+    }
     onOpenChange(false);
   };
 
@@ -48,27 +66,37 @@ export function ShareSheet({ open, onOpenChange }: ShareSheetProps) {
           <SheetTitle className="text-center">Share</SheetTitle>
         </SheetHeader>
 
-        {/* Recent users */}
+        {/* Recent/Followed users */}
         <div className="mb-6">
-          <p className="text-sm text-muted-foreground mb-3">Send to</p>
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
-            {recentUsers.map((user, index) => (
-              <motion.button
-                key={user.id}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-                onClick={() => handleShareToUser(user.username)}
-                className="flex flex-col items-center gap-2 min-w-[64px]"
-              >
-                <Avatar className="h-14 w-14">
-                  <AvatarImage src={user.avatar} />
-                  <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <span className="text-xs truncate w-full text-center">{user.username}</span>
-              </motion.button>
-            ))}
-          </div>
+          <p className="text-sm text-muted-foreground mb-3">Send to followers</p>
+          {loading ? (
+            <div className="flex justify-center p-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : users.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2 italic text-center">
+              No followers found to share with
+            </p>
+          ) : (
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
+              {users.map((follower, index) => (
+                <motion.button
+                  key={follower._id}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => handleShareToUser(follower._id, follower.username)}
+                  className="flex flex-col items-center gap-2 min-w-[64px]"
+                >
+                  <Avatar className="h-14 w-14">
+                    <AvatarImage src={follower.avatar} />
+                    <AvatarFallback>{follower.username.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs truncate w-full text-center">{follower.username}</span>
+                </motion.button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Share options */}

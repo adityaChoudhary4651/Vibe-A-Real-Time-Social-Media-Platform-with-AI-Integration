@@ -11,6 +11,8 @@ import { toast } from "sonner";
 
 import { EditProfileModal } from "@/components/shared/EditProfileModal";
 import { SettingsSheet } from "@/components/shared/SettingsSheet";
+import { StoryViewer } from "@/components/shared/StoryViewer";
+import { CreateHighlightSheet } from "@/components/shared/CreateHighlightSheet";
 import {
   getMyPosts,
   getPublicProfile,
@@ -19,15 +21,21 @@ import {
 } from "@/api/posts";
 import { updateProfile } from "@/api/profile";
 import { createConversation } from "@/api/conversations";
+import { fetchHighlights, deleteHighlight } from "@/api/highlights";
 
 /* =====================
    TYPES
-===================== */
+ ===================== */
 type ProfileUser = {
   username: string;
   name: string;
   bio: string;
   avatar?: string;
+  gender?: string;
+  age?: number;
+  location?: string;
+  interests?: string[];
+  tipsReceived: number;
   followers: number;
   following: number;
   isFollowing?: boolean;
@@ -43,7 +51,7 @@ type ProfilePost = {
 
 /* =====================
    HELPERS
-===================== */
+ ===================== */
 const BASE_URL = "http://localhost:5000/";
 
 const resolveUrl = (url?: string) => {
@@ -55,7 +63,7 @@ const resolveUrl = (url?: string) => {
 
 /* =====================
    COMPONENT
-===================== */
+ ===================== */
 export default function Profile() {
   const { token, user: authUser } = useAuth();
   const { username } = useParams();
@@ -65,44 +73,53 @@ export default function Profile() {
 
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [posts, setPosts] = useState<ProfilePost[]>([]);
+  const [highlights, setHighlights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showCreateHighlight, setShowCreateHighlight] = useState(false);
+  const [showViewer, setShowViewer] = useState(false);
+  const [activeViewerStories, setActiveViewerStories] = useState<any[]>([]);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   /* =====================
      FETCH PROFILE
   ===================== */
-  useEffect(() => {
+  const loadProfile = async () => {
     if (!token) return;
 
-    const loadProfile = async () => {
-      try {
-        if (isPublicProfile && username) {
-          const profile = await getPublicProfile(token, username);
-          const allPosts = await getPostsByUsername(token, username);
+    try {
+      let profileData: ProfileUser;
+      let postData: ProfilePost[];
 
-          setUser(profile);
-          setPosts(allPosts.filter((p) => p.type === "post"));
-        } else {
-          const res = await fetch("http://localhost:5000/api/users/profile", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          const profile = await res.json();
-          const myPosts = await getMyPosts(token);
-
-          setUser(profile);
-          setPosts(myPosts.filter((p) => p.type === "post"));
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
+      if (isPublicProfile && username) {
+        profileData = await getPublicProfile(token, username);
+        const allPosts = await getPostsByUsername(token, username);
+        postData = allPosts.filter((p) => p.type === "post");
+      } else {
+        const res = await fetch("http://localhost:5000/api/users/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        profileData = await res.json();
+        const myPosts = await getMyPosts(token);
+        postData = myPosts.filter((p) => p.type === "post");
       }
-    };
 
+      setUser(profileData);
+      setPosts(postData);
+
+      // Fetch highlights
+      const h = await fetchHighlights(profileData.username);
+      setHighlights(h);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadProfile();
   }, [token, username]);
 
@@ -124,16 +141,15 @@ export default function Profile() {
      MESSAGE USER
   ===================== */
   const handleMessage = async () => {
-  if (!user?._id) return;
+    if (!user?._id) return;
 
-  try {
-    const conversation = await createConversation(user._id);
-    navigate(`/messages?conversation=${conversation._id}`);
-  } catch (err) {
-    console.error(err);
-  }
-};
-
+    try {
+      const conversation = await createConversation(user._id);
+      navigate(`/messages?conversation=${conversation._id}`);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   /* =====================
      AVATAR UPLOAD
@@ -161,6 +177,19 @@ export default function Profile() {
     }
   };
 
+  /* =====================
+     HIGHLIGHT DELETION
+  ===================== */
+  const handleDeleteHighlight = async (id: string) => {
+    try {
+      await deleteHighlight(id);
+      toast.success("Highlight deleted");
+      setHighlights((prev) => prev.filter((h) => h._id !== id));
+    } catch {
+      toast.error("Failed to delete highlight");
+    }
+  };
+
   if (loading) return <div className="p-6">Loading profile…</div>;
   if (!user) return <div className="p-6">Profile not found</div>;
 
@@ -175,7 +204,7 @@ export default function Profile() {
         <div className="px-4 pt-4">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-muted-foreground"
+            className="flex items-center gap-2 text-muted-foreground text-sm"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
@@ -184,8 +213,9 @@ export default function Profile() {
       )}
 
       <div className="p-4 space-y-4">
+        {/* AVATAR & STATS */}
         <div className="flex items-center gap-6">
-          <label className={cn("relative", isOwnProfile && "cursor-pointer")}>
+          <label className={cn("relative flex-shrink-0", isOwnProfile && "cursor-pointer")}>
             <Avatar className="h-20 w-20">
               <AvatarImage src={resolveUrl(user.avatar)} />
               <AvatarFallback>
@@ -213,41 +243,69 @@ export default function Profile() {
 
           <div className="flex justify-around flex-1">
             <div className="text-center">
-              <p className="font-bold">{posts.length}</p>
-              <p className="text-xs text-muted-foreground">posts</p>
+              <p className="font-bold text-sm sm:text-base">{posts.length}</p>
+              <p className="text-[10px] text-muted-foreground">posts</p>
             </div>
 
             <Link
               to={`/profile/${user.username}/followers`}
               className="text-center"
             >
-              <p className="font-bold">{user.followers}</p>
-              <p className="text-xs text-muted-foreground">followers</p>
+              <p className="font-bold text-sm sm:text-base">{user.followers}</p>
+              <p className="text-[10px] text-muted-foreground">followers</p>
             </Link>
 
             <Link
               to={`/profile/${user.username}/following`}
               className="text-center"
             >
-              <p className="font-bold">{user.following}</p>
-              <p className="text-xs text-muted-foreground">following</p>
+              <p className="font-bold text-sm sm:text-base">{user.following}</p>
+              <p className="text-[10px] text-muted-foreground">following</p>
             </Link>
           </div>
         </div>
 
-        <div>
-          <p className="font-semibold">{user.username}</p>
+        {/* DEMOGRAPHICS & BIO */}
+        <div className="space-y-1.5">
+          <p className="font-semibold text-base">{user.name || user.username}</p>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            <span>Age: {user.age || 21}</span>
+            <span>•</span>
+            <span>Loc: {user.location || "Nearby"}</span>
+            {user.gender && (
+              <>
+                <span>•</span>
+                <span>{user.gender}</span>
+              </>
+            )}
+            {user.tipsReceived > 0 && (
+              <>
+                <span>•</span>
+                <span className="text-emerald-500 font-bold">Tips: ${user.tipsReceived.toFixed(2)}</span>
+              </>
+            )}
+          </div>
           {user.bio && (
-            <p className="text-sm text-muted-foreground">{user.bio}</p>
+            <p className="text-sm text-foreground/85">{user.bio}</p>
+          )}
+          {user.interests && user.interests.length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-1">
+              {user.interests.map((tag) => (
+                <span key={tag} className="text-[9px] font-medium bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+                  #{tag}
+                </span>
+              ))}
+            </div>
           )}
         </div>
 
+        {/* FOLLOW / EDIT ACTIONS */}
         <div className="flex gap-2">
           {isOwnProfile ? (
             <>
               <Button
                 variant="secondary"
-                className="flex-1"
+                className="flex-1 rounded-xl"
                 onClick={() => setShowEditProfile(true)}
               >
                 <Edit className="h-4 w-4 mr-2" />
@@ -256,6 +314,7 @@ export default function Profile() {
               <Button
                 variant="secondary"
                 size="icon"
+                className="rounded-xl"
                 onClick={() => setShowSettings(true)}
               >
                 <Settings className="h-4 w-4" />
@@ -264,21 +323,66 @@ export default function Profile() {
           ) : (
             <>
               <Button
-                className="flex-1"
+                className="flex-1 rounded-xl"
                 onClick={handleFollow}
                 variant={user.isFollowing ? "secondary" : "default"}
               >
                 {user.isFollowing ? "Unfollow" : "Follow"}
               </Button>
 
-              <Button variant="secondary" onClick={handleMessage}>
+              <Button variant="secondary" className="rounded-xl" onClick={handleMessage}>
                 Message
               </Button>
             </>
           )}
         </div>
+
+        {/* HIGHLIGHTS CAROUSEL */}
+        <div className="flex gap-4 overflow-x-auto py-2 scrollbar-hide border-t border-b border-border/40">
+          {isOwnProfile && (
+            <button
+              onClick={() => setShowCreateHighlight(true)}
+              className="flex flex-col items-center flex-shrink-0"
+            >
+              <div className="h-12 w-12 rounded-full border border-dashed border-muted-foreground/60 flex items-center justify-center bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                <span className="text-lg text-muted-foreground font-bold">+</span>
+              </div>
+              <span className="text-[9px] mt-1 text-muted-foreground">New</span>
+            </button>
+          )}
+
+          {highlights.map((h) => (
+            <div key={h._id} className="flex flex-col items-center flex-shrink-0 relative group">
+              <button
+                onClick={() => {
+                  setActiveViewerStories(h.stories);
+                  setShowViewer(true);
+                }}
+                className="h-12 w-12 rounded-full border border-border overflow-hidden bg-muted flex items-center justify-center"
+              >
+                <img
+                  src={h.stories[0]?.mediaUrl || "/avatar.png"}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              </button>
+              <span className="text-[9px] mt-1 text-foreground truncate w-12 text-center font-medium">
+                {h.name}
+              </span>
+              {isOwnProfile && (
+                <button
+                  onClick={() => handleDeleteHighlight(h._id)}
+                  className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full h-3.5 w-3.5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                >
+                  <span className="text-[8px] font-bold">×</span>
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
+      {/* POST TABS */}
       <div className="border-t border-border flex">
         <button className="flex-1 py-3 border-b-2 border-primary flex justify-center">
           <Grid3X3 />
@@ -286,7 +390,7 @@ export default function Profile() {
 
         <button
           onClick={() => navigate(`/reels?user=${user.username}`)}
-          className="flex-1 py-3 border-b-2 border-transparent flex justify-center"
+          className="flex-1 py-3 border-b-2 border-transparent flex justify-center text-muted-foreground hover:text-foreground transition-colors"
         >
           <Film />
         </button>
@@ -311,13 +415,30 @@ export default function Profile() {
           currentUser={user}
           onSave={async (data) => {
             if (!token) return;
-            const updated = await updateProfile(token, { bio: data.bio });
-            setUser((u) => (u ? { ...u, bio: updated.bio } : u));
+            const updated = await updateProfile(token, data);
+            setUser((u) => (u ? { ...u, ...updated } : u));
           }}
         />
       )}
 
       <SettingsSheet open={showSettings} onOpenChange={setShowSettings} />
+
+      <CreateHighlightSheet
+        open={showCreateHighlight}
+        onOpenChange={setShowCreateHighlight}
+        onHighlightCreated={loadProfile}
+      />
+
+      {showViewer && activeViewerStories.length > 0 && (
+        <StoryViewer
+          stories={activeViewerStories}
+          canDelete={false}
+          onClose={() => {
+            setShowViewer(false);
+            setActiveViewerStories([]);
+          }}
+        />
+      )}
     </div>
   );
 }

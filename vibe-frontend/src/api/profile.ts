@@ -30,7 +30,14 @@ const API_BASE = "http://localhost:5000";
 
 export async function updateProfile(
   token: string,
-  payload: { bio: string }
+  payload: {
+    name?: string;
+    bio?: string;
+    gender?: string;
+    age?: number;
+    location?: string;
+    interests?: string[];
+  }
 ) {
   const res = await fetch(`${API_BASE}/api/users/profile`, {
     method: "PUT",

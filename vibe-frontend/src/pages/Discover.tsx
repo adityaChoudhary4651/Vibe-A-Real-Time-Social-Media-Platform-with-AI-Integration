@@ -185,13 +185,17 @@ export default function Discover() {
 
   const currentProfile = profiles[currentIndex];
 
-  const handleSwipe = async (swipeDirection: "left" | "right") => {
+  const handleSwipe = async (swipeDirection: "left" | "right", isSuper = false) => {
     if (!currentProfile) return;
 
     if (swipeDirection === "right") {
       try {
         await toggleFollow(currentProfile.username);
-        toast.success(`Followed ${currentProfile.username}`);
+        if (isSuper) {
+          toast.success(`Super Liked and Followed ${currentProfile.username}! 🌟`);
+        } else {
+          toast.success(`Followed ${currentProfile.username}`);
+        }
       } catch (err) {
         toast.error("Follow failed");
       }
@@ -210,21 +214,22 @@ export default function Discover() {
 
   useEffect(() => {
     loadDiscovery();
-  }, []);
+  }, [genderFilter]);
 
   const loadDiscovery = async () => {
     try {
       setIsLoading(true);
-      const data = await fetchDiscoveryUsers();
+      setCurrentIndex(0);
+      const data = await fetchDiscoveryUsers(genderFilter);
       const transformed: DiscoverProfile[] = data.map((u: any) => ({
         id: u._id,
         name: u.name,
         username: u.username,
-        age: 0,
-        location: "Nearby",
+        age: u.age || 21,
+        location: u.location || "Nearby",
         bio: u.bio || "No bio available",
         images: u.avatar ? [u.avatar] : ["https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=600&fit=crop"],
-        interests: ["Vibe"],
+        interests: u.interests && u.interests.length > 0 ? u.interests : ["Vibe"],
         mutualFriends: 0
       }));
       setProfiles(transformed);
@@ -310,6 +315,7 @@ export default function Discover() {
         </motion.button>
         <motion.button
           whileTap={{ scale: 0.9 }}
+          onClick={() => handleSwipe("right", true)}
           className="h-14 w-14 rounded-full bg-card border border-border shadow-card flex items-center justify-center hover:bg-secondary transition-colors min-w-[56px] min-h-[56px] touch-manipulation active:bg-secondary"
         >
           <Star className="h-7 w-7 text-accent" />

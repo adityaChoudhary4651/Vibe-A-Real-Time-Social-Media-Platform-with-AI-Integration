@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2, VolumeX, Archive, CheckCircle } from "lucide-react";
+import { Trash2, VolumeX, Archive, CheckCircle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
@@ -16,10 +16,12 @@ interface ChatEditSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   chats: Chat[];
+  onActionTriggered?: (action: "Muted" | "Archived" | "Deleted", selectedIds: string[]) => Promise<void>;
 }
 
-export function ChatEditSheet({ open, onOpenChange, chats }: ChatEditSheetProps) {
+export function ChatEditSheet({ open, onOpenChange, chats, onActionTriggered }: ChatEditSheetProps) {
   const [selectedChats, setSelectedChats] = useState<Set<string>>(new Set());
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const toggleChat = (id: string) => {
     setSelectedChats((prev) => {
@@ -33,14 +35,25 @@ export function ChatEditSheet({ open, onOpenChange, chats }: ChatEditSheetProps)
     });
   };
 
-  const handleAction = (action: string) => {
+  const handleAction = async (action: "Muted" | "Archived" | "Deleted") => {
     if (selectedChats.size === 0) {
       toast.error("Select at least one chat");
       return;
     }
-    toast.success(`${action} ${selectedChats.size} chat(s)`);
-    setSelectedChats(new Set());
-    onOpenChange(false);
+    setIsProcessing(true);
+    try {
+      const selectedIds = Array.from(selectedChats);
+      if (onActionTriggered) {
+        await onActionTriggered(action, selectedIds);
+      }
+      toast.success(`${action} ${selectedChats.size} chat(s)`);
+      setSelectedChats(new Set());
+      onOpenChange(false);
+    } catch (err) {
+      toast.error(`Action failed: ${action}`);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -56,27 +69,27 @@ export function ChatEditSheet({ open, onOpenChange, chats }: ChatEditSheetProps)
             variant="secondary"
             size="sm"
             onClick={() => handleAction("Deleted")}
-            disabled={selectedChats.size === 0}
+            disabled={selectedChats.size === 0 || isProcessing}
           >
-            <Trash2 className="h-4 w-4 mr-2" />
+            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
             Delete
           </Button>
           <Button
             variant="secondary"
             size="sm"
             onClick={() => handleAction("Muted")}
-            disabled={selectedChats.size === 0}
+            disabled={selectedChats.size === 0 || isProcessing}
           >
-            <VolumeX className="h-4 w-4 mr-2" />
+            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <VolumeX className="h-4 w-4 mr-2" />}
             Mute
           </Button>
           <Button
             variant="secondary"
             size="sm"
             onClick={() => handleAction("Archived")}
-            disabled={selectedChats.size === 0}
+            disabled={selectedChats.size === 0 || isProcessing}
           >
-            <Archive className="h-4 w-4 mr-2" />
+            {isProcessing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Archive className="h-4 w-4 mr-2" />}
             Archive
           </Button>
         </div>
@@ -90,9 +103,10 @@ export function ChatEditSheet({ open, onOpenChange, chats }: ChatEditSheetProps)
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
               onClick={() => toggleChat(chat.id)}
+              disabled={isProcessing}
               className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/50 transition-colors"
             >
-              <Checkbox checked={selectedChats.has(chat.id)} />
+              <Checkbox checked={selectedChats.has(chat.id)} disabled={isProcessing} />
               <Avatar className="h-12 w-12">
                 <AvatarImage src={chat.user.avatar} />
                 <AvatarFallback>{chat.user.username.charAt(0).toUpperCase()}</AvatarFallback>

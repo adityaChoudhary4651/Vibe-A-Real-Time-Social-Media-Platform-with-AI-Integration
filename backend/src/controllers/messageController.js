@@ -45,8 +45,9 @@ export const sendMessage = async (req, res) => {
     const { conversationId } = req.params;
     const { text } = req.body;
     const userId = req.user._id;
+    const fileUrl = req.file ? req.file.path : "";
 
-    if (!text?.trim()) {
+    if (!text?.trim() && !fileUrl) {
       return res.status(400).json({ message: "Message cannot be empty" });
     }
 
@@ -66,10 +67,14 @@ export const sendMessage = async (req, res) => {
     const message = await Message.create({
       conversation: conversationId,
       sender: userId,
-      text,
+      text: text || "",
+      mediaUrl: fileUrl,
+      mediaType: fileUrl ? "image" : "text",
     });
 
     conversation.lastMessage = message._id;
+    // Clear soft deletion flags for all participants since a new message has arrived
+    conversation.deletedBy = [];
     await conversation.save();
 
     const populatedMessage = await message.populate(
@@ -87,6 +92,7 @@ export const sendMessage = async (req, res) => {
 
     res.status(201).json(populatedMessage);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Failed to send message" });
   }
 };

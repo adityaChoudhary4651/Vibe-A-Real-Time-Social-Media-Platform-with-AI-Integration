@@ -6,17 +6,25 @@ import { Button } from "@/components/ui/button";
 import {
   Search,
   Edit,
-  Phone,
-  Video,
   MoreVertical,
   Send,
   Image,
   ArrowLeft,
+  X,
+  Settings,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ChatActionMenu } from "@/components/shared/ChatActionMenu";
-import { getConversations, createConversation } from "@/api/conversations";
+import { ChatEditSheet } from "@/components/shared/ChatEditSheet";
+import {
+  getConversations,
+  createConversation,
+  muteConversation,
+  archiveConversation,
+  favoriteConversation,
+  deleteConversation,
+} from "@/api/conversations";
 import { getMessages, sendMessage } from "@/api/messages";
 import { fetchFollowers } from "@/api/profile";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,10 +35,11 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 /* =====================
    TYPES
-===================== */
+ ===================== */
 
 type LayoutOutletContext = {
   setHideBottomNav?: (hide: boolean) => void;
@@ -45,6 +54,8 @@ type ChatUser = {
 type Message = {
   _id: string;
   text: string;
+  mediaUrl?: string;
+  mediaType?: string;
   sender: ChatUser;
   createdAt: string;
   isRead?: boolean;
@@ -58,14 +69,13 @@ type Conversation = {
 
 /* =====================
    COMPONENT
-===================== */
+ ===================== */
 
 export default function Messages() {
   const { setHideBottomNav } = useOutletContext<LayoutOutletContext>();
   const { user } = useAuth();
   const { socket } = useSocket();
 
-  /** ✅ SINGLE SOURCE OF TRUTH */
   const myUserId = user?.id ?? "";
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -76,7 +86,13 @@ export default function Messages() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [message, setMessage] = useState("");
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+  const [showEditChats, setShowEditChats] = useState(false);
   const [followers, setFollowers] = useState<ChatUser[]>([]);
+
+  // Image attachment state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -103,25 +119,20 @@ export default function Messages() {
     getConversations()
       .then(setConversations)
       .catch(console.error);
-    // Update sidebar for messages received while NOT in the chat
+
     if (!socket) return;
 
     const handleGlobalMessage = (msg: Message) => {
-      // Find which conversation this message belongs to
-      // The backend message object usually has transitionId or similar
-      // In this app, it seems Message has 'conversation' field (ID)
-      
       setConversations((prev) => {
         const convIndex = prev.findIndex(c => c._id === (msg as any).conversation);
-        if (convIndex === -1) return prev; // Should handle new conversations too but let's keep it simple
+        if (convIndex === -1) return prev;
 
         const newConversations = [...prev];
         newConversations[convIndex] = {
           ...newConversations[convIndex],
           lastMessage: msg
         };
-        
-        // Move to top if it's a new message
+
         const [movedConv] = newConversations.splice(convIndex, 1);
         return [movedConv, ...newConversations];
       });
@@ -136,40 +147,28 @@ export default function Messages() {
   useEffect(() => {
     if (!selectedChat || !socket) return;
 
-    // Join the conversation room
     socket.emit("join_conversation", selectedChat);
 
     getMessages(selectedChat)
       .then((msgs) => {
         setMessages(msgs);
 
-        // Mark as read in the sidebar list too
         setConversations(prev => prev.map(c =>
           c._id === selectedChat && c.lastMessage
             ? { ...c, lastMessage: { ...c.lastMessage, isRead: true } }
             : c
         ));
 
-        // Sync notification dots
         window.dispatchEvent(new CustomEvent("messagesRead"));
       })
       .catch(console.error);
 
-    // Listen for new messages
     const handleReceiveMessage = (msg: Message) => {
-      if (String(msg._id) === String(selectedChat)) { // Check if it belongs to current chat
-           // Actually the server sends it to the room, but good to double check if needed.
-           // However, msg.conversation might be what we need to check if we were listening globally.
-           // Since we joined a room, we only get messages for THIS room.
-      }
-      
       setMessages((prev) => {
-        // Avoid duplicates if we sent it and already added it
         if (prev.find(m => m._id === msg._id)) return prev;
         return [...prev, msg];
       });
 
-      // Update sidebar
       setConversations((prev) =>
         prev.map((c) =>
           c._id === selectedChat ? { ...c, lastMessage: msg } : c
@@ -189,13 +188,15 @@ export default function Messages() {
   ===================== */
 
   const handleSend = async () => {
-    if (!message.trim() || !selectedChat) return;
+    if ((!message.trim() && !selectedImageFile) || !selectedChat) return;
 
     try {
-      const msg = await sendMessage(selectedChat, message);
+      const msg = await sendMessage(selectedChat, message, selectedImageFile || undefined);
 
       setMessages((prev) => [...prev, msg]);
       setMessage("");
+      setSelectedImageFile(null);
+      setImagePreviewUrl(null);
 
       setConversations((prev) =>
         prev.map((c) =>
@@ -204,6 +205,15 @@ export default function Messages() {
       );
     } catch (err) {
       console.error(err);
+      toast.error("Failed to send message");
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImageFile(file);
+      setImagePreviewUrl(URL.createObjectURL(file));
     }
   };
 
@@ -239,6 +249,67 @@ export default function Messages() {
   };
 
   /* =====================
+     BATCH CHAT ACTIONS
+  ===================== */
+
+  const handleBatchChatAction = async (action: "Muted" | "Archived" | "Deleted", selectedIds: string[]) => {
+    for (const id of selectedIds) {
+      try {
+        if (action === "Deleted") {
+          await deleteConversation(id);
+          setConversations((prev) => prev.filter((c) => c._id !== id));
+          if (selectedChat === id) {
+            setSelectedChat(null);
+            setSearchParams({}, { replace: true });
+          }
+        } else if (action === "Muted") {
+          await muteConversation(id);
+        } else if (action === "Archived") {
+          await archiveConversation(id);
+          setConversations((prev) => prev.filter((c) => c._id !== id));
+          if (selectedChat === id) {
+            setSelectedChat(null);
+            setSearchParams({}, { replace: true });
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  /* =====================
+     SINGLE CHAT MENU ACTIONS
+  ===================== */
+
+  const handleChatMenuAction = async (action: string, itemId: string) => {
+    try {
+      if (action === "delete") {
+        await deleteConversation(itemId);
+        setConversations((prev) => prev.filter((c) => c._id !== itemId));
+        if (selectedChat === itemId) {
+          setSelectedChat(null);
+          setSearchParams({}, { replace: true });
+        }
+      } else if (action === "mute") {
+        await muteConversation(itemId);
+      } else if (action === "archive") {
+        await archiveConversation(itemId);
+        setConversations((prev) => prev.filter((c) => c._id !== itemId));
+        if (selectedChat === itemId) {
+          setSelectedChat(null);
+          setSearchParams({}, { replace: true });
+        }
+      } else if (action === "favorite") {
+        await favoriteConversation(itemId);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Action failed");
+    }
+  };
+
+  /* =====================
      RENDER
   ===================== */
 
@@ -262,9 +333,14 @@ export default function Messages() {
           <div className="p-4 border-b border-border space-y-4 flex-shrink-0">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">Messages</h2>
-              <Button variant="ghost" size="icon-sm" onClick={handleOpenNewChat}>
-                <Edit className="h-5 w-5" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon-sm" onClick={() => setShowEditChats(true)}>
+                  <Settings className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon-sm" onClick={handleOpenNewChat}>
+                  <Edit className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -293,14 +369,12 @@ export default function Messages() {
                     setSearchParams({ conversation: conv._id }, { replace: true });
                     setMessages([]);
 
-                    // Locally mark as read to clear highlight immediately
                     setConversations(prev => prev.map(c =>
                       c._id === conv._id && c.lastMessage
                         ? { ...c, lastMessage: { ...c.lastMessage, isRead: true } }
                         : c
                     ));
 
-                    // Dispatch event to update notification dots in Navigation
                     window.dispatchEvent(new CustomEvent("messagesRead"));
                   }}
                 >
@@ -333,9 +407,9 @@ export default function Messages() {
                         : "text-muted-foreground"
                     )}>
                       {!conv.lastMessage?.isRead && String(conv.lastMessage?.sender?._id) !== String(myUserId) && (
-                        <span className="mr-1">[sent u message]</span>
+                        <span className="mr-1">[new message]</span>
                       )}
-                      {conv.lastMessage?.text || "Start a conversation"}
+                      {conv.lastMessage?.mediaUrl ? "[Image Attachment]" : conv.lastMessage?.text || "Start a conversation"}
                     </p>
                   </div>
 
@@ -343,6 +417,7 @@ export default function Messages() {
                     type="message"
                     itemId={conv._id}
                     itemName={otherUser.username}
+                    onAction={handleChatMenuAction}
                   />
                 </motion.div>
               );
@@ -419,7 +494,14 @@ export default function Messages() {
                               : "bg-secondary rounded-bl-sm"
                           )}
                         >
-                          <p className="text-sm">{msg.text}</p>
+                          {msg.mediaUrl && (
+                            <img
+                              src={msg.mediaUrl}
+                              alt="Attachment"
+                              className="max-w-xs max-h-48 object-cover rounded-lg mb-1"
+                            />
+                          )}
+                          {msg.text && <p className="text-sm">{msg.text}</p>}
                           <p className="text-[10px] mt-1 opacity-70">
                             {new Date(msg.createdAt).toLocaleTimeString([], {
                               hour: "2-digit",
@@ -434,12 +516,46 @@ export default function Messages() {
                 <div ref={messagesEndRef} />
               </div>
 
+              {/* Image Preview Area */}
+              {imagePreviewUrl && (
+                <div className="px-4 py-2 border-t border-border bg-secondary/20 flex items-center gap-3 relative flex-shrink-0">
+                  <img
+                    src={imagePreviewUrl}
+                    alt="Preview"
+                    className="h-16 w-16 object-cover rounded-lg border border-border"
+                  />
+                  <button
+                    onClick={() => {
+                      setSelectedImageFile(null);
+                      setImagePreviewUrl(null);
+                    }}
+                    className="absolute top-1 left-16 bg-destructive text-destructive-foreground rounded-full h-4 w-4 flex items-center justify-center shadow-sm"
+                    type="button"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                  <p className="text-xs text-muted-foreground">Image selected. Press send to upload.</p>
+                </div>
+              )}
+
               {/* Input */}
               <div className="p-4 border-t border-border">
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => fileInputRef.current?.click()}
+                    type="button"
+                  >
                     <Image className="h-5 w-5" />
                   </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageSelect}
+                  />
 
                   <Input
                     value={message}
@@ -510,6 +626,23 @@ export default function Messages() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* EDIT CHATS SHEET (BATCH ACTIONS) */}
+      <ChatEditSheet
+        open={showEditChats}
+        onOpenChange={setShowEditChats}
+        chats={conversations.map((c) => {
+          const otherUser = c.participants.find((p) => p._id !== myUserId);
+          return {
+            id: c._id,
+            user: {
+              username: otherUser?.username || "Unknown",
+              avatar: otherUser?.avatar || "",
+            },
+          };
+        })}
+        onActionTriggered={handleBatchChatAction}
+      />
     </div>
   );
 }
