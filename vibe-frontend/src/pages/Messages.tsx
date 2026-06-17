@@ -12,11 +12,14 @@ import {
   ArrowLeft,
   X,
   Settings,
+  Phone,
+  Video,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { ChatActionMenu } from "@/components/shared/ChatActionMenu";
 import { ChatEditSheet } from "@/components/shared/ChatEditSheet";
+import { CallOverlay } from "@/components/shared/CallOverlay";
 import {
   getConversations,
   createConversation,
@@ -94,6 +97,11 @@ export default function Messages() {
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
+  // Call connection states
+  const [callOpen, setCallOpen] = useState(false);
+  const [callType, setCallType] = useState<"voice" | "video">("voice");
+  const [incomingCall, setIncomingCall] = useState<any | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -138,11 +146,25 @@ export default function Messages() {
       });
     };
 
+    const handleIncomingCall = (data: any) => {
+      // If caller is already in another call, reject the incoming call request
+      if (callOpen) {
+        socket.emit("reject_call", { callerId: data.callerId });
+        return;
+      }
+      setIncomingCall(data);
+      setCallType(data.callType);
+      setCallOpen(true);
+    };
+
     socket.on("receive_message", handleGlobalMessage);
+    socket.on("incoming_call", handleIncomingCall);
+
     return () => {
       socket.off("receive_message", handleGlobalMessage);
+      socket.off("incoming_call", handleIncomingCall);
     };
-  }, [socket]);
+  }, [socket, callOpen]);
 
   useEffect(() => {
     if (!selectedChat || !socket) return;
@@ -215,6 +237,22 @@ export default function Messages() {
       setSelectedImageFile(file);
       setImagePreviewUrl(URL.createObjectURL(file));
     }
+  };
+
+  /* =====================
+     CALL INITIATION
+  ===================== */
+
+  const initiateCall = (type: "voice" | "video") => {
+    const otherUser = selectedConversation?.participants.find((p) => p._id !== myUserId);
+    if (!otherUser) {
+      toast.error("Select a conversation to start a call");
+      return;
+    }
+
+    setIncomingCall(null);
+    setCallType(type);
+    setCallOpen(true);
   };
 
   /* =====================
@@ -453,6 +491,16 @@ export default function Messages() {
                     }
                   </p>
                 </div>
+
+                {/* CALL BUTTONS */}
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon-sm" onClick={() => initiateCall("voice")}>
+                    <Phone className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+                  </Button>
+                  <Button variant="ghost" size="icon-sm" onClick={() => initiateCall("video")}>
+                    <Video className="h-5 w-5 text-muted-foreground hover:text-foreground" />
+                  </Button>
+                </div>
               </div>
 
               {/* Messages */}
@@ -643,6 +691,34 @@ export default function Messages() {
         })}
         onActionTriggered={handleBatchChatAction}
       />
+
+      {/* CALL OVERLAY (voice & video) */}
+      {callOpen && (
+        <CallOverlay
+          open={callOpen}
+          onClose={() => {
+            setCallOpen(false);
+            setIncomingCall(null);
+          }}
+          recipientId={
+            incomingCall?.callerId ||
+            selectedConversation?.participants.find((p) => p._id !== myUserId)?._id ||
+            ""
+          }
+          recipientName={
+            incomingCall?.callerName ||
+            selectedConversation?.participants.find((p) => p._id !== myUserId)?.username ||
+            ""
+          }
+          recipientAvatar={
+            incomingCall?.callerAvatar ||
+            selectedConversation?.participants.find((p) => p._id !== myUserId)?.avatar ||
+            ""
+          }
+          callType={callType}
+          incomingCallData={incomingCall}
+        />
+      )}
     </div>
   );
 }

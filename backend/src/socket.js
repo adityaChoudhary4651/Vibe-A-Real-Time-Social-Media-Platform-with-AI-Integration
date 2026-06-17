@@ -65,6 +65,49 @@ export const initSocket = (server) => {
       socket.to(data.room).emit("user_stop_typing", data);
     });
 
+    // === WebRTC SIGNALING EVENTS ===
+
+    // Caller initiates call to Callee
+    socket.on("call_user", (data) => {
+      // data: { offer, calleeId, callerId, callerName, callerAvatar, callType }
+      socket.to(data.calleeId).emit("incoming_call", {
+        offer: data.offer,
+        callerId: data.callerId,
+        callerName: data.callerName,
+        callerAvatar: data.callerAvatar,
+        callType: data.callType,
+      });
+    });
+
+    // Callee accepts the call
+    socket.on("accept_call", (data) => {
+      // data: { answer, callerId }
+      socket.to(data.callerId).emit("call_accepted", {
+        answer: data.answer,
+      });
+    });
+
+    // Callee rejects the call
+    socket.on("reject_call", (data) => {
+      // data: { callerId }
+      socket.to(data.callerId).emit("call_rejected");
+    });
+
+    // Peer exchanges ICE Candidate
+    socket.on("ice_candidate", (data) => {
+      // data: { candidate, recipientId, senderId }
+      socket.to(data.recipientId).emit("ice_candidate", {
+        candidate: data.candidate,
+        senderId: data.senderId,
+      });
+    });
+
+    // Hang up or Disconnect Call
+    socket.on("end_call", (data) => {
+      // data: { recipientId }
+      socket.to(data.recipientId).emit("call_ended");
+    });
+
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);
     });
