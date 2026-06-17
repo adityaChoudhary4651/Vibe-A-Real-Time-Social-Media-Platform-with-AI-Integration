@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { API_BASE_URL, resolveUrl } from "../config";
 import PostDetailModal, {
   PostDetailPost,
 } from "@/components/post/PostDetailModal";
@@ -36,7 +37,7 @@ export default function PostDetail() {
 
     const loadPost = async () => {
       const res = await fetch(
-        `http://localhost:5000/api/posts/${postId}`,
+        `${API_BASE_URL}/api/posts/${postId}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -52,14 +53,6 @@ export default function PostDetail() {
       const data: ApiPost = await res.json();
 
       const rawImage = data.mediaUrl || data.imageUrl || data.image || "";
-      const BASE_URL = "http://localhost:5000/";
-      const resolveUrl = (url?: string) => {
-        if (!url) return "";
-        return url.startsWith("http")
-          ? url
-          : `${BASE_URL}${url.replace(/\\/g, "/")}`;
-      };
-
       const imageUrl = resolveUrl(rawImage);
 
       const username =

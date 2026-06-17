@@ -33,9 +33,11 @@ interface AuthContextType {
   logout: () => void;
 }
 
+import { API_BASE_URL } from "../config";
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE = "http://localhost:5000";
+const API_BASE = API_BASE_URL;
 
 /* =====================
    PROVIDER

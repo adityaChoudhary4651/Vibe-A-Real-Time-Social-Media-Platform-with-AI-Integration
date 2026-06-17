@@ -22,26 +22,48 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (req, file, cb) => {
-  if (
-    file.mimetype.startsWith("image/") ||
-    file.mimetype.startsWith("video/")
-  ) {
+const imageFilter = (req, file, cb) => {
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+  if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Only image/video allowed"), false);
+    cb(new Error("Only jpeg, png, and webp images are allowed"), false);
   }
 };
 
+const videoFilter = (req, file, cb) => {
+  const allowedTypes = ["video/mp4", "video/quicktime"];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only mp4 and quicktime videos are allowed"), false);
+  }
+};
+
+const storyFilter = (req, file, cb) => {
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/quicktime"];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only jpeg/png/webp images and mp4/quicktime videos are allowed for stories"), false);
+  }
+};
+
+export const avatarUpload = multer({
+  storage,
+  fileFilter: imageFilter,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+});
+
 export const uploadStory = multer({
   storage,
-  fileFilter,
-  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: storyFilter,
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
 });
 
 /* ======================
    CLOUDINARY UPLOAD
-====================== */
+   ====================== */
 export const uploadStoryToCloudinary = async (filePath) => {
   const { v2: cloudinary } = await import("cloudinary");
 
@@ -71,8 +93,8 @@ export const uploadStoryToCloudinary = async (filePath) => {
 
 export const uploadReel = multer({
   storage,
-  fileFilter,
-  limits: { fileSize: 100 * 1024 * 1024 }, // reels can be bigger
+  fileFilter: videoFilter,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
 });
 
 export const uploadReelToCloudinary = async (filePath) => {
@@ -92,10 +114,11 @@ export const uploadReelToCloudinary = async (filePath) => {
   fs.unlinkSync(filePath);
   return result.secure_url;
 };
+
 export const uploadPost = multer({
   storage,
-  fileFilter,
-  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: imageFilter,
+  limits: { fileSize: 8 * 1024 * 1024 }, // 8MB
 });
 
 export const uploadPostToCloudinary = async (filePath) => {

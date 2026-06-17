@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { uploadStory } from "@/api/stories";
+import { API_BASE_URL } from "../config";
 
 /* ======================
    TYPES
@@ -153,8 +154,8 @@ export default function Create() {
 
       const endpoint =
         mediaType === "reel"
-          ? "http://localhost:5000/api/reels"
-          : "http://localhost:5000/api/posts";
+          ? `${API_BASE_URL}/api/reels`
+          : `${API_BASE_URL}/api/posts`;
 
       await axios.post(endpoint, formData, {
         headers: {

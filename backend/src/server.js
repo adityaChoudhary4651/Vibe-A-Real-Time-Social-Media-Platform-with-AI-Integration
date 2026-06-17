@@ -1,8 +1,14 @@
 
 
+import dotenv from "dotenv";
+dotenv.config(); // Load environment variables first
+
 import express from "express";
 import cors from "cors";
 import path from "path";
+import helmet from "helmet";
+import morgan from "morgan";
+import rateLimit from "express-rate-limit";
 import connectDB from "./config/db.js";
 
 import userRoutes from "./routes/userRoutes.js";
@@ -19,17 +25,67 @@ import vibeAIRoutes from "./routes/vibeAIRoutes.js";
 import highlightRoutes from "./routes/highlightRoutes.js";
 import tipRoutes from "./routes/tipRoutes.js";
 
-
-
-
-
-
-
 console.log("SERVER.JS LOADED ✅");
 
 const app = express();
 
-app.use(cors());
+// Trust reverse proxy (Render, Vercel, etc.)
+app.set("trust proxy", 1);
+
+// HTTP request logging
+app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+
+// Security headers with adjustments for cross-origin assets (Cloudinary)
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: false,
+  })
+);
+
+// Dynamic CORS configuration
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`Blocked by CORS: ${origin}`);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
+// Rate limiting configurations
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // Limit each IP to 200 requests per window
+  message: { message: "Too many requests from this IP, please try again after 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 25, // Limit each IP to 25 attempts per window
+  message: { message: "Too many login/signup attempts, please try again after 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply global rate limiting to all api endpoints
+app.use("/api", globalLimiter);
+app.use("/api/users/login", authLimiter);
+app.post("/api/users", authLimiter);
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
@@ -57,7 +113,15 @@ app.use("/api/vibe-ai", vibeAIRoutes);
 app.use("/api/highlights", highlightRoutes);
 app.use("/api/tips", tipRoutes);
 
-
+// GLOBAL ERROR HANDLER
+app.use((err, req, res, next) => {
+  console.error("Global Error Handler ❌:", err);
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({
+    message: err.message || "An unexpected error occurred on the server.",
+    stack: process.env.NODE_ENV === "production" ? undefined : err.stack,
+  });
+});
 
 import { createServer } from "http";
 import { initSocket } from "./socket.js";

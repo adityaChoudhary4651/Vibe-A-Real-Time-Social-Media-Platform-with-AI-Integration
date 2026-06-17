@@ -1,6 +1,10 @@
+import { API_BASE_URL } from "../config";
+
+const API_BASE = API_BASE_URL;
+
 // FETCH PROFILE
 export async function fetchProfile(token: string) {
-  const res = await fetch("http://localhost:5000/api/users/profile", {
+  const res = await fetch(`${API_BASE}/api/users/profile`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -12,9 +16,10 @@ export async function fetchProfile(token: string) {
   }
   return data;
 }
+
 // DELETE POST
 export async function deletePost(token: string, postId: string) {
-  const res = await fetch(`http://localhost:5000/api/posts/${postId}`, {
+  const res = await fetch(`${API_BASE}/api/posts/${postId}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -25,9 +30,8 @@ export async function deletePost(token: string, postId: string) {
   if (!res.ok) throw new Error(data.message || "Delete failed");
   return data;
 }
-// UPDATE PROFILE
-const API_BASE = "http://localhost:5000";
 
+// UPDATE PROFILE
 export async function updateProfile(
   token: string,
   payload: {
@@ -55,12 +59,13 @@ export async function updateProfile(
 
   return res.json();
 }
+
 export const getPublicProfile = async (
   username: string,
   token: string
 ) => {
   const res = await fetch(
-    `http://localhost:5000/api/users/${username}`,
+    `${API_BASE}/api/users/${username}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -77,7 +82,7 @@ export const getPublicProfile = async (
 };
 
 export const fetchFollowers = async (username: string, token: string) => {
-  const res = await fetch(`http://localhost:5000/api/users/${username}/followers`, {
+  const res = await fetch(`${API_BASE}/api/users/${username}/followers`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -90,4 +95,3 @@ export const fetchFollowers = async (username: string, token: string) => {
 
   return res.json();
 };
-

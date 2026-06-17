@@ -1,4 +1,5 @@
-const API_BASE = "http://localhost:5000";
+import { API_BASE_URL } from "../config";
+const API_BASE = API_BASE_URL;
 
 export async function fetchComments(token: string, postId: string) {
   const res = await fetch(`${API_BASE}/api/comments/${postId}`, {

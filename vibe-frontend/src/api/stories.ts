@@ -1,6 +1,7 @@
 import { StoryGroup } from "@/types/story";
+import { API_BASE_URL } from "../config";
 
-const API_URL = "http://localhost:5000/api/stories";
+const API_URL = `${API_BASE_URL}/api/stories`;
 
 /* ======================
    FETCH STORIES

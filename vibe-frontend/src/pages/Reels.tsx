@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
+import { API_BASE_URL } from "../config";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
   Heart,
@@ -41,7 +42,7 @@ type Reel = {
 /* ======================
    CONSTANTS
 ====================== */
-const BASE_URL = "http://localhost:5000/";
+const BASE_URL = `${API_BASE_URL}/`;
 
 const reelCategories = [
   "All",
@@ -91,7 +92,7 @@ export default function Reels() {
     if (filterUser) query.set("user", filterUser);
 
     axios
-      .get(`http://localhost:5000/api/reels?${query.toString()}`, {
+      .get(`${API_BASE_URL}/api/reels?${query.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -124,7 +125,7 @@ export default function Reels() {
     if (!reel) return;
 
     const res = await axios.put(
-      `http://localhost:5000/api/posts/${reel._id}/like`,
+      `${API_BASE_URL}/api/posts/${reel._id}/like`,
       {},
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -146,7 +147,7 @@ export default function Reels() {
 
     try {
       await axios.delete(
-        `http://localhost:5000/api/posts/${reel._id}`,
+        `${API_BASE_URL}/api/posts/${reel._id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 

@@ -13,7 +13,7 @@ import {
   uploadAvatar,
 } from "../controllers/userController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
-import { uploadPost, uploadPostToCloudinary } from "../middleware/upload.js";
+import { uploadPost, uploadPostToCloudinary, avatarUpload } from "../middleware/upload.js";
 
 const router = express.Router();
 
@@ -28,7 +28,7 @@ router.put("/profile", authMiddleware, updateProfile);
 router.put(
   "/me/avatar",
   authMiddleware,
-  uploadPost.single("avatar"),
+  avatarUpload.single("avatar"),
   async (req, res, next) => {
     try {
       if (!req.file) return res.status(400).json({ message: "No image received" });

@@ -12,6 +12,7 @@ import { Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
+import { API_BASE_URL } from "../../config";
 
 interface EditProfileModalProps {
   open: boolean;
@@ -85,7 +86,7 @@ export function EditProfileModal({
       formData.append("avatar", file);
 
       const res = await axios.put(
-        "http://localhost:5000/api/users/me/avatar",
+        `${API_BASE_URL}/api/users/me/avatar`,
         formData,
         {
           headers: {

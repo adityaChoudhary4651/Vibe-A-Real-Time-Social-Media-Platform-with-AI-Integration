@@ -6,6 +6,7 @@ import { Edit, Settings, Grid3X3, Film, Camera, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
+import { API_BASE_URL, resolveUrl } from "../config";
 import axios from "axios";
 import { toast } from "sonner";
 
@@ -52,14 +53,6 @@ type ProfilePost = {
 /* =====================
    HELPERS
  ===================== */
-const BASE_URL = "http://localhost:5000/";
-
-const resolveUrl = (url?: string) => {
-  if (!url) return "";
-  return url.startsWith("http")
-    ? url
-    : `${BASE_URL}${url.replace(/\\/g, "/")}`;
-};
 
 /* =====================
    COMPONENT
@@ -98,7 +91,7 @@ export default function Profile() {
         const allPosts = await getPostsByUsername(token, username);
         postData = allPosts.filter((p) => p.type === "post");
       } else {
-        const res = await fetch("http://localhost:5000/api/users/profile", {
+        const res = await fetch(`${API_BASE_URL}/api/users/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         profileData = await res.json();
@@ -163,7 +156,7 @@ export default function Profile() {
       formData.append("avatar", file);
 
       const res = await axios.put(
-        "http://localhost:5000/api/users/me/avatar",
+        `${API_BASE_URL}/api/users/me/avatar`,
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );

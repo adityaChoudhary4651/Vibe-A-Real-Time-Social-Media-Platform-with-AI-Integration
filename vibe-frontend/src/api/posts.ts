@@ -1,14 +1,14 @@
 import { Post } from "@/types/post";
 import api from "@/lib/axios";
+import { API_BASE_URL } from "../config";
 
-
-
+const API_BASE = API_BASE_URL;
 
 /* ======================
    FETCH ALL POSTS
 ====================== */
 export async function fetchPosts(token: string) {
-  const res = await fetch("http://localhost:5000/api/posts", {
+  const res = await fetch(`${API_BASE}/api/posts`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -43,7 +43,7 @@ export async function createPost(
 ====================== */
 export async function toggleLike(token: string, postId: string) {
   const res = await fetch(
-    `http://localhost:5000/api/posts/${postId}/like`,
+    `${API_BASE}/api/posts/${postId}/like`,
     {
       method: "PUT",
       headers: {
@@ -62,7 +62,7 @@ export async function toggleLike(token: string, postId: string) {
 ====================== */
 export async function deletePost(token: string, postId: string) {
   const res = await fetch(
-    `http://localhost:5000/api/posts/${postId}`,
+    `${API_BASE}/api/posts/${postId}`,
     {
       method: "DELETE",
       headers: {
@@ -88,7 +88,7 @@ export async function editPost(
   caption: string
 ) {
   const res = await fetch(
-    `http://localhost:5000/api/posts/${postId}`,
+    `${API_BASE}/api/posts/${postId}`,
     {
       method: "PUT",
       headers: {
@@ -111,7 +111,7 @@ export async function editPost(
    GET MY POSTS
 ====================== */
 export async function getMyPosts(token: string) {
-  const res = await fetch("http://localhost:5000/api/posts/me", {
+  const res = await fetch(`${API_BASE}/api/posts/me`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -130,7 +130,7 @@ export async function toggleFollow(
   username: string
 ) {
   const res = await fetch(
-    `http://localhost:5000/api/users/${username}/follow`,
+    `${API_BASE}/api/users/${username}/follow`,
     {
       method: "PUT",
       headers: {
@@ -152,7 +152,7 @@ export const getPublicProfile = async (
   username: string
 ) => {
   const res = await fetch(
-    `http://localhost:5000/api/users/${username}`,
+    `${API_BASE}/api/users/${username}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -173,7 +173,7 @@ export const getFollowers = async (
   username: string
 ) => {
   const res = await fetch(
-    `http://localhost:5000/api/users/${username}/followers`,
+    `${API_BASE}/api/users/${username}/followers`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -194,7 +194,7 @@ export const getFollowing = async (
   username: string
 ) => {
   const res = await fetch(
-    `http://localhost:5000/api/users/${username}/following`,
+    `${API_BASE}/api/users/${username}/following`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -215,7 +215,7 @@ export const getPostsByUsername = async (
   username: string
 ) => {
   const res = await fetch(
-    `http://localhost:5000/api/posts/user/${username}`,
+    `${API_BASE}/api/posts/user/${username}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -236,7 +236,7 @@ export const getPostById = async (
   postId: string
 ): Promise<Post> => {
   const res = await fetch(
-    `http://localhost:5000/api/posts/${postId}`,
+    `${API_BASE}/api/posts/${postId}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -250,7 +250,7 @@ export const getPostById = async (
 };
 
 export const getMyReels = async (token: string) => {
-  const res = await fetch("http://localhost:5000/api/posts/me/reels", {
+  const res = await fetch(`${API_BASE}/api/posts/me/reels`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.json();
@@ -261,7 +261,7 @@ export const getReelsByUsername = async (
   username: string
 ) => {
   const res = await fetch(
-    `http://localhost:5000/api/posts/user/${username}/reels`,
+    `${API_BASE}/api/posts/user/${username}/reels`,
     {
       headers: { Authorization: `Bearer ${token}` },
     }

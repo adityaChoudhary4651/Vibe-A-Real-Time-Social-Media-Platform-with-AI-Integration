@@ -12,6 +12,7 @@ import { Heart, Send, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
+import { API_BASE_URL } from "../../config";
 
 /* ======================
    TYPES
@@ -96,7 +97,7 @@ export function CommentsSheet({
       setLoading(true);
       try {
         const res = await fetch(
-          `http://localhost:5000/api/comments/${postId}`,
+          `${API_BASE_URL}/api/comments/${postId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -121,7 +122,7 @@ export function CommentsSheet({
 
     try {
       const res = await fetch(
-        `http://localhost:5000/api/comments/${postId}`,
+        `${API_BASE_URL}/api/comments/${postId}`,
         {
           method: "POST",
           headers: {
@@ -149,7 +150,7 @@ export function CommentsSheet({
 
     try {
       const res = await fetch(
-        `http://localhost:5000/api/comments/${commentId}`,
+        `${API_BASE_URL}/api/comments/${commentId}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
@@ -172,7 +173,7 @@ const handleLikeComment = async (commentId: string) => {
 
   try {
     const res = await fetch(
-      `http://localhost:5000/api/comments/like/${commentId}`,
+      `${API_BASE_URL}/api/comments/like/${commentId}`,
       {
         method: "PATCH",
         headers: {

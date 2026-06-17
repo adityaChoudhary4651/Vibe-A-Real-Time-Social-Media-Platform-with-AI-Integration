@@ -92,7 +92,12 @@ export function DesktopSidebar() {
           <div className="h-10 w-10 rounded-xl bg-gradient-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-xl">V</span>
           </div>
-          <span className="text-2xl font-bold gradient-text">Vibe</span>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-bold gradient-text">Vibe</span>
+            <span className="text-[10px] font-semibold bg-primary/20 text-primary border border-primary/30 rounded-full px-2 py-0.5 animate-pulse">
+              Beta
+            </span>
+          </div>
         </Link>
       </div>
 
@@ -320,12 +325,19 @@ export function MobileHeader() {
   return (
     <header className="lg:hidden sticky top-0 z-40 glass border-b border-border/50">
       <div className="flex items-center justify-between h-14 px-4">
-        <h1 className={cn(
-          "font-bold",
-          location.pathname === "/" ? "text-2xl gradient-text" : "text-lg"
-        )}>
-          {getTitle()}
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className={cn(
+            "font-bold",
+            location.pathname === "/" ? "text-2xl gradient-text" : "text-lg"
+          )}>
+            {getTitle()}
+          </h1>
+          {location.pathname === "/" && (
+            <span className="text-[9px] font-semibold bg-primary/20 text-primary border border-primary/30 rounded-full px-1.5 py-0.5 animate-pulse">
+              Beta
+            </span>
+          )}
+        </div>
 
         <div className="flex items-center gap-2">
           {location.pathname === "/" && (
