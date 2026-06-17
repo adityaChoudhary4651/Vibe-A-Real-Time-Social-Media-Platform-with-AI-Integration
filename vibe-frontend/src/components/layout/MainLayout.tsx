@@ -48,7 +48,7 @@ export function MainLayout() {
 
             <div className="text-xs text-muted-foreground space-y-2">
               <p>About · Help · Press · API · Jobs · Privacy · Terms</p>
-              <p>© 2024 Vibe from Lovable</p>
+              <p>© 2026 Vibe Social Platform</p>
             </div>
           </motion.div>
         </aside>
