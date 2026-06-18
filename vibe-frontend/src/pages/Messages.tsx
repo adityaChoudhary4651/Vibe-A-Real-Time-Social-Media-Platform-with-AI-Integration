@@ -91,6 +91,7 @@ export default function Messages() {
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const [showEditChats, setShowEditChats] = useState(false);
   const [followers, setFollowers] = useState<ChatUser[]>([]);
+  const [isSending, setIsSending] = useState(false);
 
   // Image attachment state
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -210,12 +211,16 @@ export default function Messages() {
   ===================== */
 
   const handleSend = async () => {
-    if ((!message.trim() && !selectedImageFile) || !selectedChat) return;
+    if ((!message.trim() && !selectedImageFile) || !selectedChat || isSending) return;
 
+    setIsSending(true);
     try {
       const msg = await sendMessage(selectedChat, message, selectedImageFile || undefined);
 
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => {
+        if (prev.find(m => m._id === msg._id)) return prev;
+        return [...prev, msg];
+      });
       setMessage("");
       setSelectedImageFile(null);
       setImagePreviewUrl(null);
@@ -228,6 +233,8 @@ export default function Messages() {
     } catch (err) {
       console.error(err);
       toast.error("Failed to send message");
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -615,12 +622,14 @@ export default function Messages() {
                       }
                     }}
                     placeholder="Message..."
+                    disabled={isSending}
                   />
 
                   <Button
                     size="icon"
                     className="rounded-full"
                     onClick={handleSend}
+                    disabled={(!message.trim() && !selectedImageFile) || isSending}
                   >
                     <Send className="h-5 w-5" />
                   </Button>

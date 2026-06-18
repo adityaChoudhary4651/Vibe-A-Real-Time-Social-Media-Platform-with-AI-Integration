@@ -143,7 +143,10 @@ export default function Communities() {
     try {
       setIsSending(true);
       const newMsg = await sendCommunityMessage(selectedCommunityId, message);
-      setMessages(prev => [...prev, newMsg]);
+      setMessages(prev => {
+        if (prev.find(m => m._id === newMsg._id)) return prev;
+        return [...prev, newMsg];
+      });
       setMessage("");
     } catch (err) {
       toast.error("Failed to send message");

@@ -52,12 +52,13 @@ export function CommentsSheet({
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [liking, setLiking] = useState<Set<string>>(new Set());
   const [openMenuCommentId, setOpenMenuCommentId] = useState<string | null>(null);
 
   /* ======================
      REAL-TIME UPDATES
-  ====================== */
+     ====================== */
   useEffect(() => {
     if (!open || !socket || !postId) return;
 
@@ -89,7 +90,7 @@ export function CommentsSheet({
 
   /* ======================
      FETCH COMMENTS
-  ====================== */
+     ====================== */
   useEffect(() => {
     if (!open || !token) return;
 
@@ -116,10 +117,11 @@ export function CommentsSheet({
 
   /* ======================
      ADD COMMENT
-  ====================== */
+     ====================== */
   const handleSendComment = async () => {
-    if (!newComment.trim() || !token) return;
+    if (!newComment.trim() || !token || isSending) return;
 
+    setIsSending(true);
     try {
       const res = await fetch(
         `${API_BASE_URL}/api/comments/${postId}`,
@@ -134,11 +136,17 @@ export function CommentsSheet({
       );
 
       const data = await res.json();
-      setComments((prev) => [data, ...prev]);
+      setComments((prev) => {
+        // Prevent duplicate addition if socket arrived first
+        if (prev.find(c => c._id === data._id)) return prev;
+        return [data, ...prev];
+      });
       onCommentAdded?.(data.commentsCount);
       setNewComment("");
     } catch (err) {
       console.error("Failed to add comment", err);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -303,12 +311,13 @@ const handleLikeComment = async (commentId: string) => {
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Add a comment..."
               onKeyDown={(e) => e.key === "Enter" && handleSendComment()}
+              disabled={isSending}
             />
 
             <Button
               size="icon"
               variant="ghost"
-              disabled={!newComment.trim()}
+              disabled={!newComment.trim() || isSending}
               onClick={handleSendComment}
             >
               <Send className="h-5 w-5" />
