@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import dns from "dns";
 
 export const sendEmail = async ({ to, subject, html }) => {
   try {
@@ -19,8 +20,10 @@ export const sendEmail = async ({ to, subject, html }) => {
       host: SMTP_HOST,
       port: parseInt(SMTP_PORT || "587", 10),
       secure: parseInt(SMTP_PORT || "587", 10) === 465,
-      family: 4,
       connectionTimeout: 10000,
+      lookup: (hostname, options, callback) => {
+        dns.lookup(hostname, { family: 4 }, callback);
+      },
       auth: {
         user: SMTP_USER,
         pass: SMTP_PASS,
