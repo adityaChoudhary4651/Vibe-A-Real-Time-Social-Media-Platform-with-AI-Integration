@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import Notification from "../models/notification.js";
 import { getIO } from "../socket.js";
 import crypto from "crypto";
+import { sendEmail } from "../utils/sendEmail.js";
 
 // REGISTER
 export const createUser = async (req, res) => {
@@ -378,8 +379,29 @@ export const forgotPassword = async (req, res) => {
 
     console.log(`\n========================================\nPASSWORD RESET LINK FOR ${email}:\n${resetUrl}\n========================================\n`);
 
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+        <h2 style="color: #4f46e5; text-align: center;">Reset Your Vibe Password</h2>
+        <p>Hello,</p>
+        <p>We received a request to reset your password for your Vibe account. Click the button below to choose a new password:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Reset Password</a>
+        </div>
+        <p>Or copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; color: #666;"><a href="${resetUrl}">${resetUrl}</a></p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #999;">If you did not request a password reset, you can safely ignore this email. This link will expire in 1 hour.</p>
+      </div>
+    `;
+
+    await sendEmail({
+      to: email,
+      subject: "Reset Your Vibe Password",
+      html: emailHtml,
+    });
+
     res.json({
-      message: "Password reset link generated. Check console.",
+      message: "Password reset link sent to your email.",
       ...(process.env.NODE_ENV !== "production" && { devResetUrl: resetUrl, devToken: token })
     });
   } catch (error) {
