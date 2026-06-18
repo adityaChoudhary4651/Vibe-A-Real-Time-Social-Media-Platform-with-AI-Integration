@@ -19,6 +19,8 @@ export const sendEmail = async ({ to, subject, html }) => {
       host: SMTP_HOST,
       port: parseInt(SMTP_PORT || "587", 10),
       secure: parseInt(SMTP_PORT || "587", 10) === 465,
+      family: 4,
+      connectionTimeout: 10000,
       auth: {
         user: SMTP_USER,
         pass: SMTP_PASS,

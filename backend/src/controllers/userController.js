@@ -394,14 +394,23 @@ export const forgotPassword = async (req, res) => {
       </div>
     `;
 
-    await sendEmail({
-      to: email,
-      subject: "Reset Your Vibe Password",
-      html: emailHtml,
-    });
+    let emailDeliveryFailed = false;
+    try {
+      await sendEmail({
+        to: email,
+        subject: "Reset Your Vibe Password",
+        html: emailHtml,
+      });
+    } catch (emailErr) {
+      console.error("❌ Failed to send reset email via SMTP:", emailErr.message);
+      emailDeliveryFailed = true;
+    }
 
     res.json({
-      message: "Password reset link sent to your email.",
+      message: emailDeliveryFailed
+        ? "Password reset link generated. Check backend logs for the recovery URL."
+        : "Password reset link sent to your email.",
+      emailDeliveryFailed,
       ...(process.env.NODE_ENV !== "production" && { devResetUrl: resetUrl, devToken: token })
     });
   } catch (error) {
