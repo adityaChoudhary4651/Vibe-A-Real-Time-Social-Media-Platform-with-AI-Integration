@@ -11,6 +11,8 @@ import {
   getFollowers,
   getFollowing,
   uploadAvatar,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/userController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import { uploadPost, uploadPostToCloudinary, avatarUpload } from "../middleware/upload.js";
@@ -20,6 +22,8 @@ const router = express.Router();
 /* AUTH */
 router.post("/", createUser);
 router.post("/login", loginUser);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:token", resetPassword);
 
 /* 🔒 LOGGED-IN USER */
 router.get("/profile", authMiddleware, getProfile);

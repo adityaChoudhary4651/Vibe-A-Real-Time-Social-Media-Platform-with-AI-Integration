@@ -20,6 +20,8 @@ import Create from "./pages/Create";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import AuthChoice from "./pages/AuthChoice";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Followers from "./pages/Followers";
 import Following from "./pages/Following";
@@ -42,6 +44,8 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/auth" element={<AuthChoice />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
 
             {/* ===== PROTECTED ROUTES ===== */}
             <Route element={<PrivateRoute />}>
