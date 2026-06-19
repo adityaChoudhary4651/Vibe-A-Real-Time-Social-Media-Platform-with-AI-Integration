@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -7,6 +7,8 @@ import { Search as SearchIcon, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { PostCard } from "@/components/feed/PostCard";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { useSearchUsers, useSearchPosts } from "@/hooks/useSearch";
 
@@ -21,6 +23,13 @@ interface SearchUser {
 interface SearchPost {
   _id: string;
   mediaUrl: string;
+  caption?: string;
+  author?: {
+    _id?: string;
+    username?: string;
+    avatar?: string;
+  };
+  likes?: string[];
 }
 
 /* ================= DEFAULT HASHTAG ================= */
@@ -31,12 +40,14 @@ const DEFAULT_HASHTAG = "#vibe";
 
 export default function Search() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [query, setQuery] = useState<string>("#vibe");
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [activeFeedIndex, setActiveFeedIndex] = useState<number | null>(null);
 
   const isHashtag = query.startsWith("#");
+  const postRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   /* sync typed hashtag */
   useEffect(() => {
@@ -46,6 +57,14 @@ export default function Search() {
       setSelectedHashtag(null);
     }
   }, [query]);
+
+  useEffect(() => {
+    if (activeFeedIndex !== null && postRefs.current[activeFeedIndex]) {
+      setTimeout(() => {
+        postRefs.current[activeFeedIndex]?.scrollIntoView({ block: "start", behavior: "auto" });
+      }, 50);
+    }
+  }, [activeFeedIndex]);
 
   const { data: users = [] } = useSearchUsers(
     !isHashtag ? query : ""
@@ -140,7 +159,7 @@ export default function Search() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: index * 0.05 }}
-                    onClick={() => handleImageClick(post.mediaUrl)}
+                    onClick={() => setActiveFeedIndex(index)}
                     className={cn(
                       "aspect-square relative overflow-hidden bg-muted",
                       index === 0 && "col-span-2 row-span-2"
@@ -200,31 +219,36 @@ export default function Search() {
         </AnimatePresence>
       </div>
 
-      {/* Image Viewer */}
-      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
-        <DialogContent className="max-w-[100vw] max-h-[100vh] w-full h-full p-0 border-0 bg-background/95 backdrop-blur-xl">
-          <div
-            className="w-full h-full flex items-center justify-center p-4"
-            onClick={() => setSelectedImage(null)}
-          >
-            {selectedImage && (
-              <motion.img
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                src={selectedImage}
-                alt=""
-                className="max-w-full max-h-full object-contain rounded-lg"
-                onClick={(e) => e.stopPropagation()}
-              />
-            )}
+      {/* Scrollable Explore Feed */}
+      <Dialog open={activeFeedIndex !== null} onOpenChange={() => setActiveFeedIndex(null)}>
+        <DialogContent className="max-w-[100vw] max-h-[100vh] md:max-w-2xl md:max-h-[90vh] w-full h-full p-0 overflow-y-auto bg-background/95 backdrop-blur-xl">
+          <div className="flex flex-col p-4 space-y-6">
+            <div className="flex justify-between items-center sticky top-0 bg-background/95 z-10 py-2 border-b border-border">
+              <h3 className="font-bold text-lg">Explore Feed</h3>
+              <Button variant="ghost" size="icon" onClick={() => setActiveFeedIndex(null)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="space-y-8 pb-12">
+              {posts.map((post: any, idx) => (
+                <div
+                  key={post._id}
+                  ref={(el) => {
+                    postRefs.current[idx] = el;
+                  }}
+                  className="w-full border border-border/40 rounded-xl bg-card/40 overflow-hidden"
+                >
+                  <PostCard
+                    post={{
+                      ...post,
+                      likes: Array.isArray(post.likes) ? post.likes.length : 0,
+                      isLiked: user ? post.likes?.includes(user.id) : false,
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
-          <button
-            onClick={() => setSelectedImage(null)}
-            className="absolute top-4 right-4 p-2 rounded-full bg-background/50 hover:bg-background/80"
-          >
-            <X className="h-5 w-5" />
-          </button>
         </DialogContent>
       </Dialog>
     </div>

@@ -6,13 +6,14 @@ import { toggleLike } from "@/api/posts";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
 import { CommentsSheet } from "@/components/shared/CommentsSheet";
+import { resolveUrl } from "../../config";
 
-type Author = {
+export type Author = {
   username?: string;
   avatar?: string;
 };
 
-type CommentPreview = {
+export type CommentPreview = {
   _id: string;
   text: string;
   user: {
@@ -20,18 +21,21 @@ type CommentPreview = {
   };
 };
 
+export type PostDetailPost = {
+  _id: string;
+  imageUrl: string;
+  caption?: string;
+  likes: number;
+  isLiked?: boolean;
+  author?: Author;
+  user?: Author;
+  commentsPreview?: CommentPreview[];
+};
+
 type PostDetailModalProps = {
   open: boolean;
   onClose: () => void;
-  post: {
-    _id: string;
-    imageUrl: string;
-    caption?: string;
-    likes: number;
-    isLiked?: boolean;
-    author?: Author;
-    commentsPreview?: CommentPreview[];
-  };
+  post: PostDetailPost;
 };
 
 export default function PostDetailModal({
@@ -72,8 +76,8 @@ export default function PostDetailModal({
 
   if (!open) return null;
 
-  const username = post.author?.username;
-  const avatar = post.author?.avatar ?? "";
+  const username = post.author?.username || post.user?.username;
+  const avatar = post.author?.avatar ?? post.user?.avatar ?? "";
 
   const handleLike = async () => {
     if (!token) return;
@@ -126,7 +130,7 @@ export default function PostDetailModal({
               {username && username !== "unknown" ? (
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={avatar} />
+                    <AvatarImage src={resolveUrl(avatar)} />
                     <AvatarFallback>
                       {username.charAt(0).toUpperCase()}
                     </AvatarFallback>

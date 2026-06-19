@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +53,19 @@ export default function Communities() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Image attachment state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImageFile(file);
+      setImagePreviewUrl(URL.createObjectURL(file));
+    }
+  };
 
   const isInChat = selectedCommunityId !== null;
 
@@ -139,15 +152,17 @@ export default function Communities() {
   };
 
   const handleSendMessage = async () => {
-    if (!message.trim() || !selectedCommunityId || isSending) return;
+    if ((!message.trim() && !selectedImageFile) || !selectedCommunityId || isSending) return;
     try {
       setIsSending(true);
-      const newMsg = await sendCommunityMessage(selectedCommunityId, message);
+      const newMsg = await sendCommunityMessage(selectedCommunityId, message, selectedImageFile || undefined);
       setMessages(prev => {
         if (prev.find(m => m._id === newMsg._id)) return prev;
         return [...prev, newMsg];
       });
       setMessage("");
+      setSelectedImageFile(null);
+      setImagePreviewUrl(null);
     } catch (err) {
       toast.error("Failed to send message");
     } finally {
@@ -321,19 +336,23 @@ export default function Communities() {
                         )}
                       >
                         {!isMine && (
-                          <Avatar className="h-8 w-8 mb-1">
-                            <AvatarImage src={msg.sender?.avatar} />
-                            <AvatarFallback className="text-[10px]">
-                              {msg.sender?.username?.charAt(0).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
+                          <Link to={`/profile/${msg.sender?.username}`}>
+                            <Avatar className="h-8 w-8 mb-1 hover:opacity-85 transition-opacity">
+                              <AvatarImage src={msg.sender?.avatar} />
+                              <AvatarFallback className="text-[10px]">
+                                {msg.sender?.username?.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          </Link>
                         )}
 
                         <div className={cn("max-w-[75%] flex flex-col", isMine ? "items-end" : "items-start")}>
                           {!isMine && (
-                            <span className="text-[10px] text-muted-foreground ml-1 mb-1">
-                              {msg.sender?.username}
-                            </span>
+                            <Link to={`/profile/${msg.sender?.username}`}>
+                              <span className="text-[10px] text-muted-foreground ml-1 mb-1 hover:underline">
+                                {msg.sender?.username}
+                              </span>
+                            </Link>
                           )}
 
                           <div
@@ -344,7 +363,14 @@ export default function Communities() {
                                 : "bg-secondary rounded-bl-sm"
                             )}
                           >
-                            <p className="text-sm">{msg.text}</p>
+                            {msg.mediaUrl && (
+                              <img
+                                src={msg.mediaUrl}
+                                alt="Attachment"
+                                className="max-w-xs max-h-48 object-cover rounded-lg mb-1"
+                              />
+                            )}
+                            {msg.text && <p className="text-sm">{msg.text}</p>}
                             <p className="text-[10px] mt-1 opacity-70">
                               {new Date(msg.createdAt).toLocaleTimeString([], {
                                 hour: "2-digit",
@@ -360,13 +386,48 @@ export default function Communities() {
                 <div ref={messagesEndRef} />
               </div>
 
+              {/* Image Preview Area */}
+              {imagePreviewUrl && (
+                <div className="px-4 py-2 border-t border-border bg-secondary/20 flex items-center gap-3 relative flex-shrink-0">
+                  <img
+                    src={imagePreviewUrl}
+                    alt="Preview"
+                    className="h-16 w-16 object-cover rounded-lg border border-border"
+                  />
+                  <button
+                    onClick={() => {
+                      setSelectedImageFile(null);
+                      setImagePreviewUrl(null);
+                    }}
+                    className="absolute top-1 left-16 bg-destructive text-destructive-foreground rounded-full h-4 w-4 flex items-center justify-center shadow-sm"
+                    type="button"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                  <p className="text-xs text-muted-foreground">Image selected. Press send to upload.</p>
+                </div>
+              )}
+
               {/* Input */}
               <div className="p-4 border-t border-border">
                 {selectedCommunity.isJoined ? (
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" className="flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="flex-shrink-0"
+                      onClick={() => fileInputRef.current?.click()}
+                      type="button"
+                    >
                       <ImageIcon className="h-5 w-5" />
                     </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageSelect}
+                    />
                     <Input
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
@@ -378,11 +439,12 @@ export default function Communities() {
                       }}
                       placeholder="Message..."
                       className="flex-1 h-10"
+                      disabled={isSending}
                     />
                     <Button 
                       size="icon" 
                       className="rounded-full h-10 w-10 flex-shrink-0" 
-                      disabled={!message.trim() || isSending}
+                      disabled={(!message.trim() && !selectedImageFile) || isSending}
                       onClick={handleSendMessage}
                     >
                       {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}

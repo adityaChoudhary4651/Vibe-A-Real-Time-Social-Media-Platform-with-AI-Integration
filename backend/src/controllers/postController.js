@@ -2,6 +2,7 @@ import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
 import Notification from "../models/notification.js";
 import { getIO } from "../socket.js";
+import User from "../models/User.js";
 
 // CREATE POST
 export const createPost = async (req, res) => {
@@ -36,12 +37,18 @@ export const createPost = async (req, res) => {
 /// GET FEED POSTS (PUBLIC POSTS ONLY)
 export const getPosts = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     const posts = await Post.find({
       visibility: "Public",
       type: "post",
     })
       .populate("author", "username avatar")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.json(posts);
   } catch (error) {
@@ -167,8 +174,17 @@ export const getPostsByUsername = async (req, res) => {
   try {
     const { username } = req.params;
     const { type } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const skip = (page - 1) * limit;
+
+    const userObj = await User.findOne({ username });
+    if (!userObj) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     const filter = {
+      author: userObj._id,
       visibility: "Public",
       mediaUrl: { $ne: null },
     };
@@ -176,15 +192,13 @@ export const getPostsByUsername = async (req, res) => {
     if (type) filter.type = type;
 
     const posts = await Post.find(filter)
-      .populate({
-        path: "author",
-        match: { username },
-        select: "username name avatar",
-      })
-      .sort({ createdAt: -1 });
+      .populate("author", "username name avatar")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    res.json(posts.filter((p) => p.author));
-  } catch {
+    res.json(posts);
+  } catch (err) {
     res.status(500).json({ message: "Failed to fetch user posts" });
   }
 };
@@ -210,6 +224,10 @@ export const getPostById = async (req, res) => {
 // GET REELS
 export const getReels = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
+
     const filter = {
       type: "reel",
       visibility: "Public",
@@ -221,9 +239,18 @@ export const getReels = async (req, res) => {
       filter.category = req.query.category;
     }
 
+    if (req.query.user) {
+      const userObj = await User.findOne({ username: req.query.user });
+      if (userObj) {
+        filter.author = userObj._id;
+      }
+    }
+
     const reels = await Post.find(filter)
       .populate("author", "username name avatar")
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
       .lean();
 
     const reelsWithCounts = await Promise.all(

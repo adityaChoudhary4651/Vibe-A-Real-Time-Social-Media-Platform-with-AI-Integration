@@ -95,17 +95,28 @@ export const sendCommunityMessage = async (req, res) => {
     const { id } = req.params;
     const { text } = req.body;
     const senderId = req.user._id;
+    const fileUrl = req.file ? req.file.path : "";
+
+    if (!text?.trim() && !fileUrl) {
+      return res.status(400).json({ message: "Message cannot be empty" });
+    }
 
     const community = await Community.findById(id);
+    if (!community) {
+      return res.status(404).json({ message: "Community not found" });
+    }
+
     const isMember = community.members.some(m => m.toString() === senderId.toString());
-    if (!community || !isMember) {
+    if (!isMember) {
       return res.status(403).json({ message: "Not a member of this community" });
     }
 
     const message = await CommunityMessage.create({
       community: id,
       sender: senderId,
-      text,
+      text: text || "",
+      mediaUrl: fileUrl,
+      mediaType: fileUrl ? "image" : "text",
     });
 
     const populated = await message.populate("sender", "username avatar");
@@ -120,6 +131,7 @@ export const sendCommunityMessage = async (req, res) => {
 
     res.status(201).json(populated);
   } catch (error) {
+    console.error("SEND COMMUNITY MESSAGE ERROR ❌", error);
     res.status(500).json({ message: "Failed to send message" });
   }
 };

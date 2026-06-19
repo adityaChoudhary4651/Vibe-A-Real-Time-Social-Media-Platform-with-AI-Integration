@@ -15,9 +15,18 @@ interface ChatActionMenuProps {
   itemId: string;
   itemName: string;
   onAction?: (action: string, itemId: string) => void;
+  isMuted?: boolean;
+  isFavorite?: boolean;
 }
 
-export function ChatActionMenu({ type, itemId, itemName, onAction }: ChatActionMenuProps) {
+export function ChatActionMenu({
+  type,
+  itemId,
+  itemName,
+  onAction,
+  isMuted,
+  isFavorite,
+}: ChatActionMenuProps) {
   const [open, setOpen] = useState(false);
 
   const handleAction = (action: string) => {
@@ -26,8 +35,8 @@ export function ChatActionMenu({ type, itemId, itemName, onAction }: ChatActionM
     
     const actionLabels: Record<string, string> = {
       delete: type === "message" ? "Chat deleted" : "Left community",
-      favorite: "Added to favorites",
-      mute: `${itemName} muted`,
+      favorite: isFavorite ? "Removed from favorites" : "Added to favorites",
+      mute: isMuted ? `${itemName} unmuted` : `${itemName} muted`,
       leave: `Left ${itemName}`,
     };
     
@@ -50,12 +59,12 @@ export function ChatActionMenu({ type, itemId, itemName, onAction }: ChatActionM
         {type === "message" ? (
           <>
             <DropdownMenuItem onClick={() => handleAction("favorite")} className="gap-2">
-              <Star className="h-4 w-4" />
-              Set as favorite
+              <Star className={`h-4 w-4 ${isFavorite ? "fill-yellow-500 text-yellow-500" : ""}`} />
+              {isFavorite ? "Remove favorite" : "Set as favorite"}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleAction("mute")} className="gap-2">
-              <BellOff className="h-4 w-4" />
-              Mute conversation
+              <BellOff className={`h-4 w-4 ${isMuted ? "text-red-500 fill-red-500" : ""}`} />
+              {isMuted ? "Unmute conversation" : "Mute conversation"}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 

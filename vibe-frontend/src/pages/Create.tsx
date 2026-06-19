@@ -242,9 +242,22 @@ export default function Create() {
                   </button>
                 </motion.div>
               ) : (
-                <label className="aspect-[16/10] border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer">
-                  <Upload className="h-6 w-6" />
-                  <p className="text-sm mt-1">Tap to upload</p>
+                <label className="aspect-[16/10] border-2 border-dashed rounded-xl flex flex-col items-center justify-center cursor-pointer group hover:border-primary/50 transition-colors">
+                  <motion.div
+                    className="flex flex-col items-center justify-center"
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 2,
+                      ease: "easeInOut",
+                    }}
+                    whileHover={{ scale: 1.1 }}
+                  >
+                    <Upload className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <p className="text-sm mt-2 font-medium text-muted-foreground group-hover:text-primary transition-colors">
+                      Tap to upload
+                    </p>
+                  </motion.div>
                   <input
                     type="file"
                     accept={
@@ -285,7 +298,7 @@ export default function Create() {
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
                 placeholder="Write a caption..."
-                className="w-full min-h-[90px] p-3 border rounded-lg resize-none"
+                className="w-full min-h-[90px] p-3 border rounded-lg resize-none text-black bg-white placeholder:text-zinc-500"
                 disabled={isSharing}
               />
             )}
@@ -312,6 +325,32 @@ export default function Create() {
           </Button>
         </Card>
       </div>
+
+      {/* PROCESSING OVERLAY */}
+      <AnimatePresence>
+        {isSharing && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center gap-4"
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+              className="h-16 w-16 border-4 border-t-primary border-r-primary border-b-transparent border-l-transparent rounded-full"
+            />
+            <motion.h2
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+              className="text-xl font-semibold text-white tracking-wide"
+            >
+              Uploading and Processing...
+            </motion.h2>
+            <p className="text-sm text-zinc-400">Please wait while we publish your vibe</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

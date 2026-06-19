@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_BASE_URL } from "../config";
@@ -81,26 +81,85 @@ export default function Reels() {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [fetchingMore, setFetchingMore] = useState(false);
+
   /* ======================
      FETCH REELS
   ====================== */
   useEffect(() => {
     if (!token) return;
 
-    const query = new URLSearchParams();
-    query.set("category", activeCategory);
-    if (filterUser) query.set("user", filterUser);
+    const fetchInitialReels = async () => {
+      try {
+        setFetchingMore(true);
+        const query = new URLSearchParams();
+        query.set("category", activeCategory);
+        query.set("page", "1");
+        query.set("limit", "5");
+        if (filterUser) query.set("user", filterUser);
 
-    axios
-      .get(`${API_BASE_URL}/api/reels?${query.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
+        const res = await axios.get(`${API_BASE_URL}/api/reels?${query.toString()}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
         setReels(res.data);
         setCurrentReel(0);
-      })
-      .catch(() => setReels([]));
+        setPage(1);
+        setHasMore(res.data.length === 5);
+      } catch (error) {
+        console.error("Error fetching reels:", error);
+        setReels([]);
+        setHasMore(false);
+      } finally {
+        setFetchingMore(false);
+      }
+    };
+
+    fetchInitialReels();
   }, [activeCategory, filterUser, token]);
+
+  const fetchMoreReels = async () => {
+    if (!token || fetchingMore || !hasMore) return;
+
+    try {
+      setFetchingMore(true);
+      const nextPage = page + 1;
+      const query = new URLSearchParams();
+      query.set("category", activeCategory);
+      query.set("page", nextPage.toString());
+      query.set("limit", "5");
+      if (filterUser) query.set("user", filterUser);
+
+      const res = await axios.get(`${API_BASE_URL}/api/reels?${query.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.data.length > 0) {
+        setReels((prev) => {
+          const existingIds = new Set(prev.map((r) => r._id));
+          const newReels = res.data.filter((r: Reel) => !existingIds.has(r._id));
+          return [...prev, ...newReels];
+        });
+        setPage(nextPage);
+        setHasMore(res.data.length === 5);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      console.error("Error fetching more reels:", error);
+      setHasMore(false);
+    } finally {
+      setFetchingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    if (reels.length > 0 && currentReel >= reels.length - 2) {
+      fetchMoreReels();
+    }
+  }, [currentReel, reels.length]);
 
   const reel = reels[currentReel];
 
@@ -122,21 +181,37 @@ export default function Reels() {
      LIKE
   ====================== */
   const handleLike = async () => {
-    if (!reel) return;
+    if (!reel || !user) return;
 
-    const res = await axios.put(
-      `${API_BASE_URL}/api/posts/${reel._id}/like`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    try {
+      const res = await axios.put(
+        `${API_BASE_URL}/api/posts/${reel._id}/like`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-    setReels((prev) =>
-      prev.map((r, i) =>
-        i === currentReel
-          ? { ...r, likes: Array(res.data.likesCount).fill("x") }
-          : r
-      )
-    );
+      const isLikedNow = res.data.isLiked;
+
+      setReels((prev) =>
+        prev.map((r, i) => {
+          if (i !== currentReel) return r;
+
+          let updatedLikes = [...(r.likes || [])];
+          if (isLikedNow) {
+            if (!updatedLikes.includes(user.id)) {
+              updatedLikes.push(user.id);
+            }
+          } else {
+            updatedLikes = updatedLikes.filter((id) => id !== user.id);
+          }
+
+          return { ...r, likes: updatedLikes };
+        })
+      );
+    } catch (error) {
+      console.error("Failed to like reel:", error);
+      toast.error("Failed to update like status");
+    }
   };
 
   /* ======================
@@ -224,34 +299,57 @@ export default function Reels() {
           />
 
           {/* CAPTION */}
-         <div className="absolute bottom-6 left-4 right-20 space-y-2 z-20">
-
-            <div className="flex items-center gap-3">
+          <div className="absolute bottom-6 left-4 right-20 space-y-2 z-30">
+            <Link
+              to={`/profile/${reel.author.username}`}
+              className="flex items-center gap-3 hover:opacity-85 transition-opacity inline-flex"
+            >
               <Avatar className="h-10 w-10 border border-white/30">
                 <AvatarImage src={reel.author.avatar} />
                 <AvatarFallback>
-                  {reel.author.username[0].toUpperCase()}
+                  {reel.author.username[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <p className="text-white font-semibold">
                 @{reel.author.username}
               </p>
-            </div>
+            </Link>
 
-            <div className="bg-black/30 backdrop-blur-sm rounded-lg px-3 py-2">
-              <p className="text-sm text-white">{reel.caption}</p>
-            </div>
+            {reel.caption && reel.caption.trim() !== "" && (
+              <div className="bg-black/30 backdrop-blur-sm rounded-lg px-3 py-2">
+                <p className="text-sm text-white">{reel.caption}</p>
+              </div>
+            )}
           </div>
 
           {/* ACTIONS */}
-          <div className="absolute right-4 bottom-24 z-20 flex flex-col items-center gap-5">
-            <button onClick={handleLike}>
-              <Heart className="h-6 w-6 text-white" />
-            </button>
+          <div className="absolute right-4 bottom-24 z-30 flex flex-col items-center gap-5">
+            {(() => {
+              const isLiked = user && reel.likes?.includes(user.id);
+              return (
+                <div className="flex flex-col items-center gap-1">
+                  <button onClick={handleLike} aria-label="Like reel">
+                    <Heart
+                      className={`h-6 w-6 transition-colors duration-200 ${
+                        isLiked ? "fill-red-500 text-red-500 animate-pulse" : "text-white"
+                      }`}
+                    />
+                  </button>
+                  <span className="text-xs text-white font-semibold drop-shadow">
+                    {reel.likes?.length || 0}
+                  </span>
+                </div>
+              );
+            })()}
 
-            <button onClick={() => setShowComments(true)}>
-              <MessageCircle className="h-6 w-6 text-white" />
-            </button>
+            <div className="flex flex-col items-center gap-1">
+              <button onClick={() => setShowComments(true)}>
+                <MessageCircle className="h-6 w-6 text-white" />
+              </button>
+              <span className="text-xs text-white font-semibold drop-shadow">
+                {reel.commentsCount || 0}
+              </span>
+            </div>
 
             <button onClick={() => setShowShare(true)}>
               <Send className="h-6 w-6 text-white" />
@@ -335,6 +433,13 @@ export default function Reels() {
         open={showComments}
         onOpenChange={setShowComments}
         postId={reel._id}
+        onCommentAdded={(count) => {
+          setReels((prev) =>
+            prev.map((r, i) =>
+              i === currentReel ? { ...r, commentsCount: count } : r
+            )
+          );
+        }}
       />
       <ShareSheet open={showShare} onOpenChange={setShowShare} />
       <TipModal

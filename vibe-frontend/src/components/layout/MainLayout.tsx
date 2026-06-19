@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { DesktopSidebar, MobileBottomNav, MobileHeader } from "./Navigation";
 import { SuggestedUsers } from "@/components/shared/SuggestedUsers";
+import { SocketNotificationListener } from "@/components/shared/SocketNotificationListener";
 import { motion } from "framer-motion";
 import { useMemo, useState } from "react";
 
@@ -20,6 +21,7 @@ export function MainLayout() {
 
   return (
     <div className="min-h-screen bg-background w-full max-w-full">
+      <SocketNotificationListener />
       <div className="flex w-full">
         <DesktopSidebar />
 

@@ -76,31 +76,60 @@ export default function Profile() {
   const [activeViewerStories, setActiveViewerStories] = useState<any[]>([]);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
+  const [postsPage, setPostsPage] = useState(1);
+  const [postsHasMore, setPostsHasMore] = useState(true);
+  const [postsLoading, setPostsLoading] = useState(false);
+
   /* =====================
      FETCH PROFILE
   ===================== */
+  const fetchProfilePosts = async (usernameStr: string, pageNumber: number) => {
+    if (!token || postsLoading) return;
+    try {
+      setPostsLoading(true);
+      const limit = 12;
+      const res = await fetch(
+        `${API_BASE_URL}/api/posts/user/${usernameStr}?page=${pageNumber}&limit=${limit}&type=post`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await res.json();
+      if (res.ok) {
+        if (pageNumber === 1) {
+          setPosts(data);
+        } else {
+          setPosts((prev) => {
+            const existingIds = new Set(prev.map((p) => p._id));
+            const newPosts = data.filter((p: ProfilePost) => !existingIds.has(p._id));
+            return [...prev, ...newPosts];
+          });
+        }
+        setPostsHasMore(data.length === limit);
+      }
+    } catch (err) {
+      console.error("Error fetching profile posts:", err);
+    } finally {
+      setPostsLoading(false);
+    }
+  };
+
   const loadProfile = async () => {
     if (!token) return;
 
     try {
       let profileData: ProfileUser;
-      let postData: ProfilePost[];
 
       if (isPublicProfile && username) {
         profileData = await getPublicProfile(token, username);
-        const allPosts = await getPostsByUsername(token, username);
-        postData = allPosts.filter((p) => p.type === "post");
       } else {
         const res = await fetch(`${API_BASE_URL}/api/users/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         profileData = await res.json();
-        const myPosts = await getMyPosts(token);
-        postData = myPosts.filter((p) => p.type === "post");
       }
 
       setUser(profileData);
-      setPosts(postData);
 
       // Fetch highlights
       const h = await fetchHighlights(profileData.username);
@@ -115,6 +144,31 @@ export default function Profile() {
   useEffect(() => {
     loadProfile();
   }, [token, username]);
+
+  useEffect(() => {
+    if (token && user?.username) {
+      setPostsPage(1);
+      setPostsHasMore(true);
+      fetchProfilePosts(user.username, 1);
+    }
+  }, [token, user?.username]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!postsHasMore || postsLoading || !user?.username) return;
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
+        document.documentElement.offsetHeight - 150
+      ) {
+        const nextPage = postsPage + 1;
+        setPostsPage(nextPage);
+        fetchProfilePosts(user.username, nextPage);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [postsPage, postsHasMore, postsLoading, user?.username, token]);
 
   /* =====================
      FOLLOW / UNFOLLOW
@@ -346,19 +400,21 @@ export default function Profile() {
 
           {highlights.map((h) => (
             <div key={h._id} className="flex flex-col items-center flex-shrink-0 relative group">
-              <button
-                onClick={() => {
-                  setActiveViewerStories(h.stories);
-                  setShowViewer(true);
-                }}
-                className="h-12 w-12 rounded-full border border-border overflow-hidden bg-muted flex items-center justify-center"
-              >
-                <img
-                  src={h.stories[0]?.mediaUrl || "/avatar.png"}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              </button>
+              <div className="p-[2px] rounded-full bg-gradient-to-tr from-primary to-purple-500 transition-all duration-300 group-hover:scale-105 group-hover:rotate-12">
+                <button
+                  onClick={() => {
+                    setActiveViewerStories(h.stories);
+                    setShowViewer(true);
+                  }}
+                  className="h-12 w-12 rounded-full border-2 border-background overflow-hidden bg-muted flex items-center justify-center"
+                >
+                  <img
+                    src={resolveUrl(h.stories[0]?.mediaUrl) || "/avatar.png"}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                </button>
+              </div>
               <span className="text-[9px] mt-1 text-foreground truncate w-12 text-center font-medium">
                 {h.name}
               </span>
@@ -400,6 +456,12 @@ export default function Profile() {
           </Link>
         ))}
       </div>
+
+      {postsLoading && (
+        <p className="text-center py-4 text-muted-foreground text-sm bg-background">
+          Loading more posts...
+        </p>
+      )}
 
       {isOwnProfile && (
         <EditProfileModal

@@ -1,5 +1,5 @@
 import express from "express";
-import { createStory, getStories, deleteStory } from "../controllers/storyController.js";
+import { createStory, getStories, deleteStory, viewStory } from "../controllers/storyController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import { uploadStory } from "../middleware/upload.js";
 
@@ -14,5 +14,6 @@ router.post(
 
 router.get("/", authMiddleware, getStories);
 router.delete("/:id", authMiddleware, deleteStory);
+router.put("/:id/view", authMiddleware, viewStory);
 
 export default router;

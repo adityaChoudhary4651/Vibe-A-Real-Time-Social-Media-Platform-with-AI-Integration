@@ -12,6 +12,7 @@ export const createReel = async (req, res) => {
 
     const reel = await Post.create({
       author: req.user._id,
+      caption: req.body.caption,
       mediaUrl: videoUrl,   //full https
       mediaType: "video",
       type: "reel",

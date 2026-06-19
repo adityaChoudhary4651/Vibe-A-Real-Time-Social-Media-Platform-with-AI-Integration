@@ -88,6 +88,12 @@ export function CommentsSheet({
     };
   }, [open, socket, postId]);
 
+  useEffect(() => {
+    if (onCommentAdded) {
+      onCommentAdded(comments.length);
+    }
+  }, [comments.length, onCommentAdded]);
+
   /* ======================
      FETCH COMMENTS
      ====================== */

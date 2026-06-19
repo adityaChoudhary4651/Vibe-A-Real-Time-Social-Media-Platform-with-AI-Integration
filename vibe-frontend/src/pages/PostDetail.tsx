@@ -28,7 +28,7 @@ type ApiPost = {
 export default function PostDetail() {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const [post, setPost] = useState<PostDetailPost | null>(null);
 
@@ -60,11 +60,17 @@ export default function PostDetail() {
         data.author?.name ||
         "unknown";
 
+      const isLiked =
+        user && Array.isArray(data.likes)
+          ? data.likes.includes(user.id)
+          : false;
+
       setPost({
         _id: data._id,
         imageUrl,
         caption: data.caption,
         likes: Array.isArray(data.likes) ? data.likes.length : 0,
+        isLiked,
         user: {
           username,
           avatar: data.author?.avatar || "",
@@ -73,7 +79,7 @@ export default function PostDetail() {
     };
 
     loadPost();
-  }, [token, postId, navigate]);
+  }, [token, postId, navigate, user]);
 
   if (!post) return null;
 

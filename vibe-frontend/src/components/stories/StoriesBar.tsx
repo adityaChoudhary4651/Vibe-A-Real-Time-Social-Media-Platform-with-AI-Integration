@@ -23,28 +23,78 @@ export function StoriesBar() {
     enabled: !!token,
   });
 
+  const myGroup = data.find(
+    (group) => group.user._id === (user?.id || user?._id)
+  );
+
+  const otherGroups = data.filter(
+    (group) => group.user._id !== (user?.id || user?._id)
+  );
+
+  const isGroupViewed = (group: StoryGroup) => {
+    if (!user) return true;
+    const currentUserId = user.id || user._id;
+    return group.stories.every((story) => story.views?.includes(currentUserId));
+  };
+
   return (
     <>
       {/* STORIES BAR */}
       <div className="flex gap-5 px-4 py-3 overflow-x-auto scrollbar-hide">
-        {/* ADD STORY */}
-        <button
-          onClick={() => setShowAddStory(true)}
-          className="flex flex-col items-center min-w-[72px]"
-        >
-          <div className="relative">
-            <div className="h-16 w-16 rounded-full bg-zinc-800 flex items-center justify-center">
-              <span className="text-2xl text-zinc-400">+</span>
+        {/* ADD / MY STORY */}
+        {myGroup ? (
+          <button
+            onClick={() => {
+              setActiveStories(myGroup.stories);
+              setActiveOwnerId(myGroup.user._id);
+            }}
+            className="flex flex-col items-center min-w-[72px] group"
+          >
+            <div className="relative">
+              <div
+                className={`p-[2px] rounded-full border-2 transition-colors duration-300 ${
+                  isGroupViewed(myGroup) ? "border-zinc-700" : "border-blue-500 animate-pulse"
+                }`}
+              >
+                <img
+                  src={myGroup.user.avatar || "/avatar.png"}
+                  alt="My avatar"
+                  className="h-16 w-16 rounded-full object-cover"
+                />
+              </div>
+              <div className="absolute bottom-0 right-0 h-5 w-5 rounded-full bg-blue-500 flex items-center justify-center border-2 border-black group-hover:scale-110 transition-transform">
+                <span className="text-white text-xs font-bold">+</span>
+              </div>
             </div>
-            <div className="absolute bottom-0 right-0 h-5 w-5 rounded-full bg-blue-500 flex items-center justify-center border-2 border-black">
-              <span className="text-white text-xs font-bold">+</span>
+            <span className="text-xs mt-1 text-zinc-300 truncate w-16 text-center">
+              Your story
+            </span>
+          </button>
+        ) : (
+          <button
+            onClick={() => setShowAddStory(true)}
+            className="flex flex-col items-center min-w-[72px] group"
+          >
+            <div className="relative">
+              <div className="p-[2px] rounded-full border-2 border-zinc-700">
+                <img
+                  src={user?.avatar || "/avatar.png"}
+                  alt="My avatar"
+                  className="h-16 w-16 rounded-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                />
+              </div>
+              <div className="absolute bottom-0 right-0 h-5 w-5 rounded-full bg-blue-500 flex items-center justify-center border-2 border-black animate-bounce group-hover:animate-none">
+                <span className="text-white text-xs font-bold">+</span>
+              </div>
             </div>
-          </div>
-          <span className="text-xs mt-1 text-zinc-400">Add story</span>
-        </button>
+            <span className="text-xs mt-1 text-zinc-400 group-hover:text-zinc-200 transition-colors">
+              Your story
+            </span>
+          </button>
+        )}
 
         {/* USER STORIES */}
-        {data.map((group) => (
+        {otherGroups.map((group) => (
           <button
             key={group.user._id}
             onClick={() => {
@@ -53,7 +103,11 @@ export function StoriesBar() {
             }}
             className="flex flex-col items-center min-w-[72px]"
           >
-            <div className="p-[2px] rounded-full border-2 border-blue-500">
+            <div
+              className={`p-[2px] rounded-full border-2 transition-colors duration-300 ${
+                isGroupViewed(group) ? "border-zinc-700" : "border-blue-500"
+              }`}
+            >
               <img
                 src={group.user.avatar || "/avatar.png"}
                 alt="avatar"
@@ -82,7 +136,10 @@ export function StoriesBar() {
               toast.error("Failed to delete story");
             }
           }}
-          onClose={() => setActiveStories(null)}
+          onClose={() => {
+            setActiveStories(null);
+            queryClient.invalidateQueries({ queryKey: ["stories"] });
+          }}
         />
       )}
 

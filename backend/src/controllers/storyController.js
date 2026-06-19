@@ -79,3 +79,24 @@ export const deleteStory = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+/* View Story */
+export const viewStory = async (req, res) => {
+  try {
+    const story = await Story.findById(req.params.id);
+    if (!story) {
+      return res.status(404).json({ message: "Story not found" });
+    }
+    const userId = req.user._id;
+    if (!story.views) {
+      story.views = [];
+    }
+    if (!story.views.includes(userId)) {
+      story.views.push(userId);
+      await story.save();
+    }
+    res.json({ message: "Story viewed", views: story.views });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

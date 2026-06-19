@@ -93,10 +93,12 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Apply global rate limiting to all api endpoints
-app.use("/api", globalLimiter);
-app.use("/api/users/login", authLimiter);
-app.post("/api/users", authLimiter);
+// Apply global rate limiting to all api endpoints in production only
+if (process.env.NODE_ENV === "production") {
+  app.use("/api", globalLimiter);
+  app.use("/api/users/login", authLimiter);
+  app.post("/api/users", authLimiter);
+}
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));

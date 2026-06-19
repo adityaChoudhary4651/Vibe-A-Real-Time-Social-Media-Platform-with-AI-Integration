@@ -11,6 +11,7 @@ export interface BackendStory {
   mediaType: "image" | "video";
   createdAt: string;
   expiresAt: string;
+  views?: string[];
 }
 
 export interface StoryGroup {

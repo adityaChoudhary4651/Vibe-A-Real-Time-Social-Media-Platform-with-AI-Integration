@@ -20,9 +20,24 @@ export async function fetchCommunityMessages(id: string) {
   return res.data;
 }
 
-export async function sendCommunityMessage(id: string, text: string) {
-  const res = await api.post(`/communities/${id}/messages`, { text });
-  return res.data;
+export async function sendCommunityMessage(
+  id: string,
+  text: string,
+  imageFile?: File
+) {
+  if (imageFile) {
+    const formData = new FormData();
+    if (text) formData.append("text", text);
+    formData.append("image", imageFile);
+
+    const res = await api.post(`/communities/${id}/messages`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  } else {
+    const res = await api.post(`/communities/${id}/messages`, { text });
+    return res.data;
+  }
 }
 
 export async function updateCommunity(id: string, data: { description?: string; avatar?: string }) {

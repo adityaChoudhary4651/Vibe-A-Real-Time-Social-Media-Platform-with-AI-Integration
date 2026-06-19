@@ -42,9 +42,9 @@ export const searchPosts = async (req, res) => {
   }
 
   const posts = await Post.find(filter)
+    .populate("author", "username avatar")
     .sort({ createdAt: -1 })
-    .limit(30)
-    .select("_id mediaUrl");
+    .limit(30);
 
   res.json(posts);
 };

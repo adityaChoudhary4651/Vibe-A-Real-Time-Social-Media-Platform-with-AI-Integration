@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   ChevronLeft,
@@ -6,6 +6,9 @@ import {
   Trash2,
 } from "lucide-react";
 import { BackendStory } from "@/types/story";
+import { useAuth } from "@/contexts/AuthContext";
+import { API_BASE_URL } from "../../config";
+import axios from "axios";
 
 /* ======================
    TIME FORMATTER
@@ -54,8 +57,23 @@ export function StoryViewer({
   onDelete,
   onClose,
 }: Props) {
+  const { token } = useAuth();
   const [index, setIndex] = useState(0);
   const story = stories[index];
+
+  useEffect(() => {
+    if (!token || !story?._id) return;
+    axios
+      .put(
+        `${API_BASE_URL}/api/stories/${story._id}/view`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      .catch((err) => {
+        console.error("Error viewing story:", err);
+      });
+  }, [story?._id, token]);
+
   if (!story) return null;
 
   const mediaSrc = story.mediaUrl;     // 🔒 NO PREFIXING

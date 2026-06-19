@@ -20,6 +20,12 @@ const storySchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    views: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      }
+    ],
   },
   { timestamps: true }
 );

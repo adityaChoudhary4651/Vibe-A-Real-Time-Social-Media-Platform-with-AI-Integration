@@ -248,6 +248,7 @@ export function MobileBottomNav() {
     { icon: Search, path: "/search" },
     { icon: Compass, path: "/discover" },
     { icon: Film, path: "/reels" },
+    { icon: Users, path: "/communities" },
     { icon: MessageCircle, path: "/messages" },
     { icon: User, path: "/profile" },
   ];

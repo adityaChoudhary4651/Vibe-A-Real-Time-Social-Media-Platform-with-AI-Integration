@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useOutletContext, useSearchParams } from "react-router-dom";
+import { useOutletContext, useSearchParams, Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -90,6 +90,7 @@ export default function Messages() {
   const [message, setMessage] = useState("");
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const [showEditChats, setShowEditChats] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [followers, setFollowers] = useState<ChatUser[]>([]);
   const [isSending, setIsSending] = useState(false);
 
@@ -337,7 +338,19 @@ export default function Messages() {
           setSearchParams({}, { replace: true });
         }
       } else if (action === "mute") {
-        await muteConversation(itemId);
+        const res = await muteConversation(itemId);
+        setConversations((prev) =>
+          prev.map((c) =>
+            c._id === itemId
+              ? {
+                  ...c,
+                  mutedBy: res.isMuted
+                    ? [...(c.mutedBy || []), myUserId]
+                    : (c.mutedBy || []).filter((uid) => uid !== myUserId),
+                }
+              : c
+          )
+        );
       } else if (action === "archive") {
         await archiveConversation(itemId);
         setConversations((prev) => prev.filter((c) => c._id !== itemId));
@@ -346,7 +359,19 @@ export default function Messages() {
           setSearchParams({}, { replace: true });
         }
       } else if (action === "favorite") {
-        await favoriteConversation(itemId);
+        const res = await favoriteConversation(itemId);
+        setConversations((prev) =>
+          prev.map((c) =>
+            c._id === itemId
+              ? {
+                  ...c,
+                  favorites: res.isFavorite
+                    ? [...(c.favorites || []), myUserId]
+                    : (c.favorites || []).filter((uid) => uid !== myUserId),
+                }
+              : c
+          )
+        );
       }
     } catch (err) {
       console.error(err);
@@ -389,12 +414,24 @@ export default function Messages() {
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search messages" className="pl-10 h-10" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search messages"
+                className="pl-10 h-10"
+              />
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto">
-            {conversations.map((conv) => {
+            {conversations.filter((conv) => {
+              const otherUser = conv.participants.find((p) => p._id !== myUserId);
+              if (!otherUser) return false;
+              return (
+                otherUser.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (otherUser.name && otherUser.name.toLowerCase().includes(searchQuery.toLowerCase()))
+              );
+            }).map((conv) => {
               const otherUser = conv.participants.find(
                 (p) => p._id !== myUserId
               );
@@ -463,6 +500,8 @@ export default function Messages() {
                     itemId={conv._id}
                     itemName={otherUser.username}
                     onAction={handleChatMenuAction}
+                    isMuted={conv.mutedBy?.includes(myUserId)}
+                    isFavorite={conv.favorites?.includes(myUserId)}
                   />
                 </motion.div>
               );
@@ -490,13 +529,19 @@ export default function Messages() {
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
 
-                  <p className="font-semibold">
-                    {
-                      selectedConversation.participants.find(
-                        (p) => p._id !== myUserId
-                      )?.username
-                    }
-                  </p>
+                  {(() => {
+                    const otherUser = selectedConversation.participants.find(
+                      (p) => p._id !== myUserId
+                    );
+                    return otherUser ? (
+                      <Link
+                        to={`/profile/${otherUser.username}`}
+                        className="font-semibold hover:underline cursor-pointer"
+                      >
+                        {otherUser.username}
+                      </Link>
+                    ) : null;
+                  })()}
                 </div>
 
                 {/* CALL BUTTONS */}
@@ -526,19 +571,23 @@ export default function Messages() {
                       )}
                     >
                       {!isMine && (
-                        <Avatar className="h-8 w-8 mb-1">
-                          <AvatarImage src={msg.sender.avatar} />
-                          <AvatarFallback>
-                            {msg.sender.username?.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <Link to={`/profile/${msg.sender.username}`}>
+                          <Avatar className="h-8 w-8 mb-1 hover:opacity-85 transition-opacity">
+                            <AvatarImage src={msg.sender.avatar} />
+                            <AvatarFallback>
+                              {msg.sender.username?.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                        </Link>
                       )}
 
                       <div className={cn("max-w-[75%] flex flex-col", isMine ? "items-end" : "items-start")}>
                         {!isMine && (
-                          <span className="text-xs text-muted-foreground ml-1 mb-1">
-                            {msg.sender.username}
-                          </span>
+                          <Link to={`/profile/${msg.sender.username}`}>
+                            <span className="text-xs text-muted-foreground ml-1 mb-1 hover:underline cursor-pointer">
+                              {msg.sender.username}
+                            </span>
+                          </Link>
                         )}
 
                         <div
