@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { X, Heart, Star, MapPin, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Heart, Star, MapPin, Sparkles, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useTransform, PanInfo } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { fetchDiscoveryUsers, toggleFollow } from "@/api/users";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { resolveUrl } from "../config";
 
 interface DiscoverProfile {
   id: string;
@@ -181,6 +182,7 @@ export default function Discover() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [genderFilter, setGenderFilter] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [direction, setDirection] = useState<"left" | "right" | null>(null);
 
   const currentProfile = profiles[currentIndex];
@@ -213,14 +215,17 @@ export default function Discover() {
   };
 
   useEffect(() => {
-    loadDiscovery();
-  }, [genderFilter]);
+    const handler = setTimeout(() => {
+      loadDiscovery();
+    }, 450);
+    return () => clearTimeout(handler);
+  }, [genderFilter, searchQuery]);
 
   const loadDiscovery = async () => {
     try {
       setIsLoading(true);
       setCurrentIndex(0);
-      const data = await fetchDiscoveryUsers(genderFilter);
+      const data = await fetchDiscoveryUsers(genderFilter, searchQuery);
       const transformed: DiscoverProfile[] = data.map((u: any) => ({
         id: u._id,
         name: u.name,
@@ -228,7 +233,7 @@ export default function Discover() {
         age: u.age || 21,
         location: u.location || "Nearby",
         bio: u.bio || "No bio available",
-        images: u.avatar ? [u.avatar] : ["https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=600&fit=crop"],
+        images: u.avatar ? [resolveUrl(u.avatar)] : ["https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=600&fit=crop"],
         interests: u.interests && u.interests.length > 0 ? u.interests : ["Vibe"],
         mutualFriends: 0
       }));
@@ -240,34 +245,32 @@ export default function Discover() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="h-[calc(100vh-8rem)] flex items-center justify-center p-4">
-        <div className="text-center animate-pulse">
-          <Sparkles className="h-16 w-16 text-primary mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Finding Vibes...</h2>
-        </div>
-      </div>
-    );
-  }
-
-  if (!currentProfile) {
-    return (
-      <div className="h-[calc(100vh-8rem)] flex items-center justify-center p-4">
-        <div className="text-center">
-          <Sparkles className="h-16 w-16 text-primary mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">That's everyone!</h2>
-          <p className="text-muted-foreground mb-4">Check back later for new people</p>
-          <Button onClick={loadDiscovery}>Refresh Discover</Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col p-3 overflow-hidden">
+      {/* Search Input Box */}
+      <div className="relative mb-3 flex-shrink-0 max-w-[320px] mx-auto w-full">
+        <span className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none opacity-60">
+          <Search className="h-4 w-4 text-muted-foreground" />
+        </span>
+        <input
+          type="text"
+          placeholder="Search by username or name..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full pl-10 pr-9 py-2 rounded-full text-xs font-medium focus:outline-none transition-all duration-300 bg-secondary/50 border border-border focus:border-primary focus:ring-1 focus:ring-primary"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute inset-y-0 right-3.5 flex items-center opacity-65 hover:opacity-100"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+
       {/* Gender filter - Compact */}
-      <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-hide flex-shrink-0">
+      <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-hide flex-shrink-0 justify-center">
         {genderFilters.map((filter) => (
           <Button
             key={filter}
@@ -281,46 +284,73 @@ export default function Discover() {
         ))}
       </div>
 
-      {/* Card stack - Takes remaining space */}
-      <div className="flex-1 flex items-center justify-center min-h-0">
-        <div className="relative w-full max-w-[320px] h-full max-h-[420px]">
-          <AnimatePresence>
-            {currentProfile && (
-              <DiscoverCard
-                key={currentProfile.id}
-                profile={currentProfile}
-                direction={direction}
-                onSwipe={handleSwipe}
-              />
-            )}
-          </AnimatePresence>
+      {/* Main card stack or placeholder */}
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center min-h-0">
+          <div className="text-center animate-pulse">
+            <Sparkles className="h-10 w-10 text-primary mx-auto mb-4 animate-spin duration-3000" />
+            <p className="text-sm font-semibold">Finding Vibes...</p>
+          </div>
         </div>
-      </div>
+      ) : !currentProfile ? (
+        <div className="flex-1 flex items-center justify-center min-h-0">
+          <div className="text-center p-4">
+            <Sparkles className="h-10 w-10 text-primary mx-auto mb-3 opacity-60" />
+            <h3 className="text-sm font-bold mb-1">
+              {searchQuery ? "No matching profiles found" : "That's everyone!"}
+            </h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              {searchQuery ? "Try typing a different username or name" : "Check back later for new people"}
+            </p>
+            <Button size="sm" onClick={() => { searchQuery ? setSearchQuery("") : loadDiscovery(); }} className="rounded-full">
+              {searchQuery ? "Clear Search" : "Refresh Discover"}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Card stack - Takes remaining space */}
+          <div className="flex-1 flex items-center justify-center min-h-0">
+            <div className="relative w-full max-w-[320px] h-full max-h-[420px]">
+              <AnimatePresence>
+                {currentProfile && (
+                  <DiscoverCard
+                    key={currentProfile.id}
+                    profile={currentProfile}
+                    direction={direction}
+                    onSwipe={handleSwipe}
+                  />
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
 
-      {/* Action buttons - Fixed at bottom, always visible */}
-      <div className="flex items-center justify-center gap-4 py-3 flex-shrink-0">
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => handleSwipe("left")}
-          className="h-14 w-14 rounded-full bg-card border border-border shadow-card flex items-center justify-center hover:bg-secondary transition-colors min-w-[56px] min-h-[56px] touch-manipulation active:bg-secondary"
-        >
-          <X className="h-7 w-7 text-muted-foreground" />
-        </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => handleSwipe("right")}
-          className="h-16 w-16 rounded-full bg-gradient-primary shadow-glow flex items-center justify-center min-w-[64px] min-h-[64px] touch-manipulation active:opacity-90"
-        >
-          <Heart className="h-8 w-8 text-primary-foreground fill-primary-foreground" />
-        </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.9 }}
-          onClick={() => handleSwipe("right", true)}
-          className="h-14 w-14 rounded-full bg-card border border-border shadow-card flex items-center justify-center hover:bg-secondary transition-colors min-w-[56px] min-h-[56px] touch-manipulation active:bg-secondary"
-        >
-          <Star className="h-7 w-7 text-accent" />
-        </motion.button>
-      </div>
+          {/* Action buttons - Fixed at bottom, always visible */}
+          <div className="flex items-center justify-center gap-4 py-3 flex-shrink-0">
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => handleSwipe("left")}
+              className="h-14 w-14 rounded-full bg-card border border-border shadow-card flex items-center justify-center hover:bg-secondary transition-colors min-w-[56px] min-h-[56px] touch-manipulation active:bg-secondary"
+            >
+              <X className="h-7 w-7 text-muted-foreground" />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => handleSwipe("right")}
+              className="h-16 w-16 rounded-full bg-gradient-primary shadow-glow flex items-center justify-center min-w-[64px] min-h-[64px] touch-manipulation active:opacity-90"
+            >
+              <Heart className="h-8 w-8 text-primary-foreground fill-primary-foreground" />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => handleSwipe("right", true)}
+              className="h-14 w-14 rounded-full bg-card border border-border shadow-card flex items-center justify-center hover:bg-secondary transition-colors min-w-[56px] min-h-[56px] touch-manipulation active:bg-secondary"
+            >
+              <Star className="h-7 w-7 text-accent" />
+            </motion.button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

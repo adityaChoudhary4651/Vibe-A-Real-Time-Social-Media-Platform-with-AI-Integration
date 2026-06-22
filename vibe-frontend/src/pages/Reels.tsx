@@ -85,6 +85,8 @@ export default function Reels() {
   const [hasMore, setHasMore] = useState(true);
   const [fetchingMore, setFetchingMore] = useState(false);
 
+  const reelIdParam = params.get("reelId");
+
   /* ======================
      FETCH REELS
   ====================== */
@@ -104,7 +106,30 @@ export default function Reels() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        setReels(res.data);
+        let loadedReels = res.data;
+        if (reelIdParam) {
+          const exists = loadedReels.some((r: any) => r._id === reelIdParam);
+          if (!exists) {
+            try {
+              const singleRes = await axios.get(`${API_BASE_URL}/api/posts/${reelIdParam}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (singleRes.data && singleRes.data.type === "reel") {
+                loadedReels = [singleRes.data, ...loadedReels];
+              }
+            } catch (err) {
+              console.error("Error fetching single reel:", err);
+            }
+          } else {
+            const selectedIdx = loadedReels.findIndex((r: any) => r._id === reelIdParam);
+            if (selectedIdx > -1) {
+              const selectedItem = loadedReels[selectedIdx];
+              loadedReels = [selectedItem, ...loadedReels.filter((r: any) => r._id !== reelIdParam)];
+            }
+          }
+        }
+
+        setReels(loadedReels);
         setCurrentReel(0);
         setPage(1);
         setHasMore(res.data.length === 5);
@@ -118,7 +143,7 @@ export default function Reels() {
     };
 
     fetchInitialReels();
-  }, [activeCategory, filterUser, token]);
+  }, [activeCategory, filterUser, token, reelIdParam]);
 
   const fetchMoreReels = async () => {
     if (!token || fetchingMore || !hasMore) return;

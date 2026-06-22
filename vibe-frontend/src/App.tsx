@@ -49,9 +49,9 @@ const App = () => (
 
             {/* ===== PROTECTED ROUTES ===== */}
             <Route element={<PrivateRoute />}>
+              <Route path="/" element={<Index />} />
               {/* MAIN APP LAYOUT */}
               <Route element={<MainLayout />}>
-                <Route path="/" element={<Index />} />a
                 <Route path="/search" element={<Search />} />
                 <Route path="/reels" element={<Reels />} />
 

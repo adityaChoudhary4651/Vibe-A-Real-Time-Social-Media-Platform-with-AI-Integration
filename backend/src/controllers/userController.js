@@ -268,27 +268,37 @@ export const getPublicProfile = async (req, res) => {
 export const getDiscoveryUsers = async (req, res) => {
   try {
     const currentUserId = req.user._id;
-    const { gender } = req.query;
+    const { gender, q } = req.query;
 
     // Fetch me to get my following list
     const me = await User.findById(currentUserId);
     const followingIds = me.following || [];
 
-    // Find users who are NOT me and NOT in my following list
+    // Find users who are NOT me. If not searching, exclude already followed users.
     const filter = {
-      _id: { $nin: [currentUserId, ...followingIds] }
+      _id: { $ne: currentUserId }
     };
+    if (!q) {
+      filter._id = { $nin: [currentUserId, ...followingIds] };
+    }
 
     if (gender && gender !== "All") {
       filter.gender = gender;
     }
 
-    const users = await User.find(filter).select("_id username name bio avatar gender age location interests");
+    if (q) {
+      filter.$or = [
+        { username: { $regex: q, $options: "i" } },
+        { name: { $regex: q, $options: "i" } }
+      ];
+    }
 
-    // Randomize result
-    const shuffled = users.sort(() => 0.5 - Math.random());
+    const users = await User.find(filter).select("_id username name bio avatar gender age location interests followers");
 
-    res.json(shuffled);
+    // Randomize result (only if not searching for a specific query)
+    const result = q ? users : users.sort(() => 0.5 - Math.random());
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: "Discovery failed" });
   }

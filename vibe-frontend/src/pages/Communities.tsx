@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
+import { resolveUrl } from "../config";
 
 type LayoutOutletContext = {
   setHideBottomNav?: (hide: boolean) => void;
@@ -241,7 +242,7 @@ export default function Communities() {
                 onClick={() => setSelectedCommunityId(community._id)}
               >
                 <Avatar className="h-14 w-14">
-                  <AvatarImage src={community.avatar} />
+                  <AvatarImage src={resolveUrl(community.avatar)} />
                   <AvatarFallback className="text-lg">
                     {community.name.charAt(0)}
                   </AvatarFallback>
@@ -282,7 +283,7 @@ export default function Communities() {
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={selectedCommunity.avatar} />
+                    <AvatarImage src={resolveUrl(selectedCommunity.avatar)} />
                     <AvatarFallback>{selectedCommunity.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
@@ -338,7 +339,7 @@ export default function Communities() {
                         {!isMine && (
                           <Link to={`/profile/${msg.sender?.username}`}>
                             <Avatar className="h-8 w-8 mb-1 hover:opacity-85 transition-opacity">
-                              <AvatarImage src={msg.sender?.avatar} />
+                              <AvatarImage src={resolveUrl(msg.sender?.avatar)} />
                               <AvatarFallback className="text-[10px]">
                                 {msg.sender?.username?.charAt(0).toUpperCase()}
                               </AvatarFallback>
@@ -365,7 +366,7 @@ export default function Communities() {
                           >
                             {msg.mediaUrl && (
                               <img
-                                src={msg.mediaUrl}
+                                src={resolveUrl(msg.mediaUrl)}
                                 alt="Attachment"
                                 className="max-w-xs max-h-48 object-cover rounded-lg mb-1"
                               />

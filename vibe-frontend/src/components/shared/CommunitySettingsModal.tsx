@@ -5,6 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Camera, Loader2, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { updateCommunity } from "@/api/community";
+import { resolveUrl } from "@/config";
 
 interface CommunitySettingsModalProps {
   open: boolean;
@@ -77,7 +78,7 @@ export function CommunitySettingsModal({ open, onOpenChange, community, onUpdate
           <div className="flex flex-col items-center gap-3">
             <div className="relative">
               <Avatar className="h-24 w-24 border-2 border-primary/20">
-                <AvatarImage src={imagePreview} />
+                <AvatarImage src={resolveUrl(imagePreview)} />
                 <AvatarFallback className="text-3xl bg-secondary">
                   {community.name.charAt(0).toUpperCase()}
                 </AvatarFallback>

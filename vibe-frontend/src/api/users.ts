@@ -16,10 +16,11 @@ export async function uploadAvatar(
   return res.data;
 }
 
-export async function fetchDiscoveryUsers(gender?: string) {
-  const res = await api.get("/users/discovery", {
-    params: gender && gender !== "All" ? { gender } : {},
-  });
+export async function fetchDiscoveryUsers(gender?: string, search?: string) {
+  const params: any = {};
+  if (gender && gender !== "All") params.gender = gender;
+  if (search) params.q = search;
+  const res = await api.get("/users/discovery", { params });
   return res.data;
 }
 
