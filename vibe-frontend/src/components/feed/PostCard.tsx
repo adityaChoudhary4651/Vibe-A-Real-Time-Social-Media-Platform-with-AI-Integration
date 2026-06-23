@@ -15,7 +15,7 @@ import { CommentsSheet } from "@/components/shared/CommentsSheet";
 import { ShareSheet } from "@/components/shared/ShareSheet";
 import { TipModal } from "@/components/shared/TipModal";
 import { PostOptionsSheet } from "@/components/shared/PostOptionsSheet";
-import { toggleLike, deletePost, editPost } from "@/api/posts";
+import { toggleLike, deletePost, editPost, toggleSave } from "@/api/posts";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -118,6 +118,19 @@ export function PostCard({ post }: PostCardProps) {
     } catch {
       setIsLiked(isLiked);
       setLikes((p) => (isLiked ? p + 1 : p - 1));
+    }
+  };
+
+  const handleSave = async () => {
+    if (!token) return;
+    const nextSaved = !isSaved;
+    setIsSaved(nextSaved);
+
+    try {
+      const data = await toggleSave(token, post._id);
+      setIsSaved(data.isSaved);
+    } catch {
+      setIsSaved(isSaved);
     }
   };
 
@@ -225,12 +238,13 @@ export function PostCard({ post }: PostCardProps) {
               </button>
             </div>
 
-            <button onClick={() => setIsSaved(!isSaved)}>
+            <button onClick={handleSave}>
               <Bookmark
                 className={cn("h-6 w-6", isSaved && "fill-foreground")}
               />
             </button>
           </div>
+
 
           <p className="text-sm font-semibold">{likes} likes</p>
 

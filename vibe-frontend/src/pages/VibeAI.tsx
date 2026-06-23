@@ -162,7 +162,7 @@ export default function VibeAI() {
       {/* Hero Header */}
       <div className="relative overflow-hidden px-4 pt-8 pb-6 lg:px-8">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 pointer-events-none" />
-        <div className="relative max-w-2xl mx-auto text-center">
+        <div className="relative max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -193,7 +193,7 @@ export default function VibeAI() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 lg:px-8 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 lg:px-8 space-y-6">
         {/* Tool Selector Cards */}
         <div className="grid grid-cols-2 gap-3">
           {tools.map((tool, idx) => {

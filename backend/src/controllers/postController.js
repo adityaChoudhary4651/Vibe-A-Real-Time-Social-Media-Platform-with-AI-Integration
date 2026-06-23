@@ -309,3 +309,36 @@ export const getReelsByUsername = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch reels" });
   }
 };
+
+// TOGGLE SAVE POST
+export const toggleSave = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    const userId = req.user._id;
+    const userObj = await User.findById(userId);
+    if (!userObj) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!userObj.savedPosts) {
+      userObj.savedPosts = [];
+    }
+
+    const isSaved = userObj.savedPosts.includes(post._id);
+
+    if (isSaved) {
+      userObj.savedPosts = userObj.savedPosts.filter((id) => id.toString() !== post._id.toString());
+    } else {
+      userObj.savedPosts.push(post._id);
+    }
+
+    await userObj.save();
+    res.json({ isSaved: !isSaved });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to toggle save status" });
+  }
+};

@@ -448,11 +448,21 @@ export default function Profile() {
       <div className="grid grid-cols-3 gap-px bg-border">
         {posts.map((post) => (
           <Link key={post._id} to={`/post/${post._id}`}>
-            <motion.img
-              src={resolveUrl(post.mediaUrl || post.imageUrl)}
-              className="aspect-square object-cover"
-              whileHover={{ opacity: 0.85 }}
-            />
+            {post.mediaUrl && (post.mediaUrl.endsWith(".mp4") || post.mediaUrl.endsWith(".mov") || post.mediaUrl.includes("/video/upload/")) ? (
+              <video
+                src={resolveUrl(post.mediaUrl)}
+                className="aspect-square object-cover w-full h-full hover:opacity-85 transition-opacity"
+                preload="metadata"
+                muted
+                playsInline
+              />
+            ) : (
+              <motion.img
+                src={resolveUrl(post.mediaUrl || post.imageUrl)}
+                className="aspect-square object-cover w-full h-full"
+                whileHover={{ opacity: 0.85 }}
+              />
+            )}
           </Link>
         ))}
       </div>

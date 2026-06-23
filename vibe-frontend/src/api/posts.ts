@@ -268,3 +268,23 @@ export const getReelsByUsername = async (
   );
   return res.json();
 };
+
+/* ======================
+   TOGGLE SAVE
+====================== */
+export async function toggleSave(token: string, postId: string) {
+  const res = await fetch(
+    `${API_BASE}/api/posts/${postId}/save`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to toggle save post");
+  return data;
+}
+

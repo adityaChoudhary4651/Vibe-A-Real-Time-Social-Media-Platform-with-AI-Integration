@@ -8,12 +8,12 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { CreateCommunityModal } from "@/components/shared/CreateCommunityModal";
 import { CommunitySettingsModal } from "@/components/shared/CommunitySettingsModal";
-import { 
-  fetchCommunities, 
-  fetchCommunityMessages, 
-  sendCommunityMessage, 
+import {
+  fetchCommunities,
+  fetchCommunityMessages,
+  sendCommunityMessage,
   toggleCommunityJoin,
-  createCommunity 
+  createCommunity
 } from "@/api/community";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -86,7 +86,7 @@ export default function Communities() {
   useEffect(() => {
     if (selectedCommunityId && socket) {
       loadMessages();
-      
+
       // Join community room
       socket.emit("join_community", selectedCommunityId);
 
@@ -139,7 +139,7 @@ export default function Communities() {
   const toggleJoin = async (id: string) => {
     try {
       const result = await toggleCommunityJoin(id);
-      setCommunities(prev => prev.map(c => 
+      setCommunities(prev => prev.map(c =>
         c._id === id ? { ...c, isJoined: result.isJoined, memberCount: result.memberCount } : c
       ));
       if (result.isJoined) {
@@ -204,7 +204,7 @@ export default function Communities() {
           <div className="p-4 border-b border-border space-y-4 flex-shrink-0">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold">Communities</h2>
-              <Button 
+              <Button
                 onClick={() => setShowCreateModal(true)}
                 className="bg-white text-black hover:bg-white/90 rounded-full shadow-glow-sm h-9 px-4 text-xs font-bold transition-all"
               >
@@ -225,12 +225,12 @@ export default function Communities() {
 
           <div className="flex-1 overflow-y-auto">
             {loading ? (
-               <div className="flex justify-center p-8"><Loader2 className="animate-spin text-primary" /></div>
+              <div className="flex justify-center p-8"><Loader2 className="animate-spin text-primary" /></div>
             ) : communities.length === 0 ? (
-               <div className="p-8 text-center text-muted-foreground text-sm flex flex-col items-center gap-2">
-                  <Users className="h-8 w-8 opacity-20" />
-                  <p>No communities found</p>
-               </div>
+              <div className="p-8 text-center text-muted-foreground text-sm flex flex-col items-center gap-2">
+                <Users className="h-8 w-8 opacity-20" />
+                <p>No communities found</p>
+              </div>
             ) : communities.map((community) => (
               <motion.div
                 key={community._id}
@@ -304,8 +304,8 @@ export default function Communities() {
                   </Button>
                   <div className="flex items-center gap-2">
                     {selectedCommunity.creator?._id === user?.id && (
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon-sm"
                         onClick={() => setShowSettingsModal(true)}
                       >
@@ -442,9 +442,9 @@ export default function Communities() {
                       className="flex-1 h-10"
                       disabled={isSending}
                     />
-                    <Button 
-                      size="icon" 
-                      className="rounded-full h-10 w-10 flex-shrink-0" 
+                    <Button
+                      size="icon"
+                      className="rounded-full h-10 w-10 flex-shrink-0"
                       disabled={(!message.trim() && !selectedImageFile) || isSending}
                       onClick={handleSendMessage}
                     >
@@ -467,8 +467,8 @@ export default function Communities() {
               <p className="text-muted-foreground mb-6 max-w-sm">
                 Discover groups that match your interests or create your own hub for shared thoughts.
               </p>
-              <Button 
-                onClick={() => setShowCreateModal(true)} 
+              <Button
+                onClick={() => setShowCreateModal(true)}
                 className="bg-white text-black hover:bg-white/90 rounded-full shadow-glow-lg px-8 h-12 text-base font-bold transition-all"
               >
                 <Plus className="h-5 w-5 mr-2" />
@@ -491,7 +491,7 @@ export default function Communities() {
           onOpenChange={setShowSettingsModal}
           community={selectedCommunity}
           onUpdate={(updated) => {
-            setCommunities(prev => prev.map(c => 
+            setCommunities(prev => prev.map(c =>
               c._id === updated._id ? { ...c, ...updated } : c
             ));
           }}

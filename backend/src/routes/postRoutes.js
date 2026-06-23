@@ -13,6 +13,7 @@ import {
   getReels,
   getMyReels,
   getReelsByUsername,
+  toggleSave,
 } from "../controllers/postController.js";
 
 import {
@@ -73,6 +74,7 @@ router.post(
    INTERACTIONS
 ========================= */
 router.put("/:id/like", authMiddleware, toggleLike);
+router.put("/:id/save", authMiddleware, toggleSave);
 router.delete("/:id", authMiddleware, deletePost);
 router.put("/:postId", authMiddleware, editPost);
 router.get("/:id", authMiddleware, getPostById);

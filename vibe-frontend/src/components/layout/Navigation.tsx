@@ -38,20 +38,52 @@ const navItems = [
 /* ======================
    DESKTOP SIDEBAR
 ====================== */
+import { Moon, Sun, LogOut } from "lucide-react";
+import { toast } from "sonner";
+import { resolveUrl } from "../../config";
+
 export function DesktopSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, logout } = useAuth();
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const { socket } = useSocket();
 
+  // Synchronized global dark mode state
+  const [isDark, setIsDark] = useState(() => localStorage.getItem("vibe_theme") === "dark");
+
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setIsDark(localStorage.getItem("vibe_theme") === "dark");
+    };
+    window.addEventListener("themeChange", handleThemeChange);
+    return () => window.removeEventListener("themeChange", handleThemeChange);
+  }, []);
+
+  const toggleDarkMode = () => {
+    const nextDark = !isDark;
+    setIsDark(nextDark);
+    localStorage.setItem("vibe_theme", nextDark ? "dark" : "light");
+    window.dispatchEvent(new Event("themeChange"));
+  };
+
+  const theme = {
+    card: isDark ? "bg-[#2A1D16]" : "bg-[#EFE6DA]",
+    cardBorder: isDark ? "border-[#3D2A1F]" : "border-[#E3D8C8]",
+    textPrimary: isDark ? "text-[#F5F0E8]" : "text-[#4A3428]",
+    textSecondary: isDark ? "text-[#D2C5B4]" : "text-[#8B5E3C]",
+    border: isDark ? "border-[#3D2A1F]" : "border-[#E3D8C8]",
+    navActive: isDark ? "bg-[#3D2A1F]" : "bg-[#EFE6DA]",
+    navHover: isDark ? "hover:bg-[#2A1D16]/50" : "hover:bg-[#EFE6DA]/50",
+  };
+
   useEffect(() => {
     if (!isAuthenticated) return;
     const fetchCounts = () => {
-      getUnreadCount().then(setUnreadCount).catch(() => {});
-      getUnreadMessageCount().then(setUnreadMsgCount).catch(() => {});
+      getUnreadCount().then(setUnreadCount).catch(() => { });
+      getUnreadMessageCount().then(setUnreadMsgCount).catch(() => { });
     };
 
     fetchCounts();
@@ -60,7 +92,6 @@ export function DesktopSidebar() {
 
     if (socket) {
       socket.on("receive_message", () => {
-        // If not on messages page, increment count
         if (location.pathname !== "/messages") {
           setUnreadMsgCount(prev => prev + 1);
         }
@@ -80,122 +111,120 @@ export function DesktopSidebar() {
     };
   }, [isAuthenticated, socket, location.pathname]);
 
-  const handleProfileClick = () => {
-    if (isAuthenticated) navigate("/profile");
-    else navigate("/auth");
-  };
+  const sidebarNavItems = [
+    { icon: Home, label: "Home", path: "/" },
+    { icon: Search, label: "Search", path: "/search" },
+    { icon: Compass, label: "Discover", path: "/discover" },
+    { icon: Film, label: "Reels", path: "/reels" },
+    { icon: PlusSquare, label: "Create", path: "/create" },
+    { icon: MessageCircle, label: "Messages", path: "/messages", badge: unreadMsgCount },
+    { icon: Bell, label: "Notifications", path: "/notifications", badge: unreadCount },
+    { icon: Users, label: "Community", path: "/communities" },
+    { icon: Sparkles, label: "Vibe AI", path: "/vibe-ai" },
+    { icon: User, label: "Profile", path: "/profile" },
+  ];
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 xl:w-72 h-screen sticky top-0 border-r border-border bg-card/50 backdrop-blur-sm">
-      <div className="p-6">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-xl">V</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold gradient-text">Vibe</span>
-            <span className="text-[10px] font-semibold bg-primary/20 text-primary border border-primary/30 rounded-full px-2 py-0.5 animate-pulse">
-              Beta
-            </span>
-          </div>
-        </Link>
+    <aside
+      className={`w-[205px] xl:w-[220px] shrink-0 sticky top-0 h-screen flex flex-col justify-between py-5 border-r ${theme.border} pr-2 pl-2`}
+    >
+      <div className="space-y-4 flex flex-col flex-1">
+        {/* Logo */}
+        <div className="flex items-center gap-2 px-1">
+          <span className={`text-2xl font-extrabold tracking-widest font-serif ${theme.textSecondary}`}>
+            VIBE
+          </span>
+        </div>
+
+        {/* Navigation Menu */}
+        <nav className="space-y-1">
+          {sidebarNavItems.map((item) => {
+            const isActive = location.pathname === item.path;
+
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center justify-between px-2 py-2.5 rounded-[14px] transition-all duration-300 group ${isActive
+                  ? `${theme.navActive} font-semibold shadow-xs`
+                  : `${theme.navHover} text-opacity-80`
+                  }`}
+              >
+                <span className="flex items-center gap-2">
+                  <item.icon
+                    className={`h-[18px] w-[18px] transition-all duration-300 group-hover:scale-105 ${isActive
+                      ? theme.textSecondary
+                      : "opacity-75 group-hover:opacity-100"
+                      }`}
+                  />
+
+                  <span className="text-[13px] font-medium tracking-wide">
+                    {item.label}
+                  </span>
+                </span>
+
+                {!!item.badge && item.badge > 0 && (
+                  <span className="h-5 min-w-[20px] px-1.5 flex items-center justify-center text-[10px] font-bold rounded-full bg-[#8B5E3C] text-white">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          const isProfile = item.path === "/profile";
+      {/* Bottom Area: Dark Mode, Logout, and Small Footer */}
+      <div className="pt-4 border-t border-dashed border-[#C8B9A6]/30 space-y-2.5">
+        {/* Dark Mode Toggle */}
+        <div className={`flex items-center justify-between p-2 rounded-[14px] ${theme.card} border ${theme.cardBorder}`}>
+          <div className="flex items-center gap-2">
+            {isDark ? <Moon className="h-3.5 w-3.5 text-[#8B5E3C]" /> : <Sun className="h-3.5 w-3.5 text-[#8B5E3C]" />}
+            <span className="text-[11px] font-medium tracking-wide">Dark Mode</span>
+          </div>
+          <button
+            onClick={toggleDarkMode}
+            className="w-9 h-5 bg-[#C8B9A6]/50 rounded-full relative p-0.5 transition-colors duration-300 focus:outline-none"
+            style={{ backgroundColor: isDark ? "#8B5E3C" : "" }}
+            aria-label="Toggle Dark Mode"
+          >
+            <div
+              className="w-4 h-4 bg-[#F5F0E8] rounded-full shadow-xs transition-transform duration-300"
+              style={{ transform: isDark ? "translateX(16px)" : "translateX(0px)" }}
+            />
+          </button>
+        </div>
 
-          if (isProfile) {
-            return (
-              <button
-                key={item.path}
-                onClick={handleProfileClick}
-                className={cn(
-                  "nav-link relative w-full text-left transition-all duration-200 active:scale-[0.98]",
-                  isActive && "nav-link-active"
-                )}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="activeNav"
-                    className="absolute inset-0 bg-secondary rounded-xl"
-                    initial={false}
-                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                  />
-                )}
-                <span className="relative z-10 flex items-center gap-3">
-                  <item.icon
-                    className={cn("h-5 w-5 transition-colors", isActive && "text-primary")}
-                  />
-                  <span>{item.label}</span>
-                </span>
-              </button>
-            );
-          }
+        {/* Logout Button */}
+        {isAuthenticated && (
+          <button
+            onClick={() => {
+              logout();
+              toast.success("Logged out successfully");
+              navigate("/login");
+            }}
+            className="flex items-center gap-2 w-full px-2.5 py-2 rounded-[14px] text-[11px] font-semibold uppercase tracking-wider text-red-500 hover:bg-red-50/10 transition-all duration-300 text-left"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            <span>Logout</span>
+          </button>
+        )}
 
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "nav-link relative transition-all duration-200 active:scale-[0.98]",
-                isActive && "nav-link-active"
-              )}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId="activeNav"
-                  className="absolute inset-0 bg-secondary rounded-xl"
-                  initial={false}
-                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
-                />
-              )}
-
-              <span className="relative z-10 flex items-center gap-3">
-                {/* 🔔 BADGE — ONLY ADDITION */}
-                <span className="relative">
-                  <item.icon
-                    className={cn("h-5 w-5 transition-colors", isActive && "text-primary")}
-                  />
-                  {item.path === "/notifications" && unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full text-[10px] font-semibold bg-destructive text-destructive-foreground flex items-center justify-center">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </span>
-                  )}
-                  {item.path === "/messages" && unreadMsgCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full text-[10px] font-semibold bg-destructive text-destructive-foreground flex items-center justify-center">
-                      {unreadMsgCount > 7 ? "7+" : unreadMsgCount}
-                    </span>
-                  )}
-                </span>
-
-                <span>{item.label}</span>
-              </span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="p-4 border-t border-border">
-        <button
-          onClick={handleProfileClick}
-          className="flex items-center gap-3 px-3 py-2 w-full hover:bg-secondary rounded-xl transition-all duration-200 active:scale-[0.98]"
+        {/* "Made with Love" Small Footer Card */}
+        <div
+          onClick={() => isAuthenticated && navigate("/profile")}
+          className={`flex items-center gap-2 p-2 rounded-[14px] ${theme.card} border ${theme.cardBorder} cursor-pointer hover:opacity-90`}
         >
-          <div className="h-10 w-10 rounded-full bg-gradient-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-semibold text-sm">
-              {isAuthenticated ? user?.name?.charAt(0).toUpperCase() || "U" : "?"}
-            </span>
+          <img
+            src={resolveUrl(user?.avatar) || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"}
+            alt="user avatar"
+            className="h-6 w-6 rounded-full object-cover border border-[#8B5E3C]/30"
+          />
+          <div className="flex-1 min-w-0">
+            <p className="text-[9px] opacity-60">Find Your VIBE(●'◡'●)</p>
+            <p className="text-[11px] font-semibold truncate">{user?.username || "vibe_user"}</p>
           </div>
-          <div className="flex-1 min-w-0 text-left">
-            <p className="text-sm font-semibold truncate">
-              {isAuthenticated ? user?.username || "user" : "Guest"}
-            </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {isAuthenticated ? user?.name || "User" : "Tap to sign in"}
-            </p>
-          </div>
-        </button>
+        </div>
       </div>
     </aside>
   );
@@ -209,13 +238,13 @@ export function MobileBottomNav() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { socket } = useSocket();
-  
+
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
 
   useEffect(() => {
     if (!isAuthenticated) return;
     const fetchCount = () => {
-      getUnreadMessageCount().then(setUnreadMsgCount).catch(() => {});
+      getUnreadMessageCount().then(setUnreadMsgCount).catch(() => { });
     };
 
     fetchCount();

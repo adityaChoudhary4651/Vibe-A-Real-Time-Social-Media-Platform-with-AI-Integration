@@ -124,7 +124,15 @@ export default function Index() {
   const { socket } = useSocket();
 
   // Theme State
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() => localStorage.getItem("vibe_theme") === "dark");
+
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setIsDark(localStorage.getItem("vibe_theme") === "dark");
+    };
+    window.addEventListener("themeChange", handleThemeChange);
+    return () => window.removeEventListener("themeChange", handleThemeChange);
+  }, []);
 
   // Live Backend Data States
   const [posts, setPosts] = useState<FeedPost[]>([]);
@@ -315,11 +323,11 @@ export default function Index() {
   useEffect(() => {
     const storedVisibility = localStorage.getItem("vibe_visible_sections");
     if (storedVisibility) {
-      try { setVisibleSections(JSON.parse(storedVisibility)); } catch (e) {}
+      try { setVisibleSections(JSON.parse(storedVisibility)); } catch (e) { }
     }
     const storedOrder = localStorage.getItem("vibe_section_order");
     if (storedOrder) {
-      try { setSectionOrder(JSON.parse(storedOrder)); } catch (e) {}
+      try { setSectionOrder(JSON.parse(storedOrder)); } catch (e) { }
     }
   }, []);
 
@@ -447,8 +455,8 @@ export default function Index() {
       prevPosts.map(post => {
         if (post._id === postId) {
           const isLikedNow = !post.isLiked;
-          const updatedLikes = isLikedNow 
-            ? [...post.likes, user?.id || user?._id || "user_id"] 
+          const updatedLikes = isLikedNow
+            ? [...post.likes, user?.id || user?._id || "user_id"]
             : post.likes.filter(id => id !== (user?.id || user?._id || "user_id"));
           return {
             ...post,
@@ -495,7 +503,7 @@ export default function Index() {
   const handleCommunityJoinToggle = async (comm: Community | any) => {
     try {
       const res = await api.put(`/communities/${comm._id}/join`);
-      
+
       setCommunities(prev =>
         prev.map(c => (c._id === comm._id ? { ...c, members: res.data.members } : c))
       );
@@ -604,39 +612,50 @@ export default function Index() {
 
   return (
     <div className={`min-h-screen w-full font-sans transition-colors duration-500 overflow-x-hidden ${theme.bg} ${theme.textPrimary}`}>
-      
+
       {/* APP WRAPPER GRID (Left Sidebar + Main Content + Right Sidebar) */}
-      <div className="mx-auto max-w-[1440px] flex flex-row min-h-screen relative px-4 md:px-8">
+      <div className="w-full flex flex-row min-h-screen relative px-4 lg:px-6">
 
         {/* ==================== LEFT SIDEBAR ==================== */}
-        <aside className={`w-[215px] xl:w-[235px] shrink-0 sticky top-0 h-screen flex flex-col justify-between py-6 border-r ${theme.border} pr-4`}>
+        <aside
+          className={`w-[205px] xl:w-[220px] shrink-0 sticky top-0 h-screen flex flex-col justify-between py-5 border-r ${theme.border} pr-2`}
+        >
           <div className="space-y-4 flex flex-col flex-1">
-            
+
             {/* Logo */}
-            <div className="flex items-center gap-2 px-2.5">
+            <div className="flex items-center gap-2 px-1">
               <span className={`text-2xl font-extrabold tracking-widest font-serif ${theme.textSecondary}`}>
                 VIBE
               </span>
             </div>
 
             {/* Navigation Menu */}
-            <nav className="space-y-0.5">
+            <nav className="space-y-1">
               {sidebarNavItems.map((item) => {
                 const isActive = location.pathname === item.path;
+
                 return (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center justify-between px-3 py-2 rounded-[16px] transition-all duration-300 group ${
-                      isActive 
-                        ? `${theme.navActive} font-semibold shadow-xs` 
-                        : `${theme.navHover} text-opacity-80`
-                    }`}
+                    className={`flex items-center justify-between px-2 py-2.5 rounded-[14px] transition-all duration-300 group ${isActive
+                      ? `${theme.navActive} font-semibold shadow-xs`
+                      : `${theme.navHover} text-opacity-80`
+                      }`}
                   >
-                    <span className="flex items-center gap-3">
-                      <item.icon className={`h-4.5 w-4.5 transition-transform duration-300 group-hover:scale-105 ${isActive ? theme.textSecondary : "opacity-80 group-hover:opacity-100"}`} />
-                      <span className="text-[13px] tracking-wide">{item.label}</span>
+                    <span className="flex items-center gap-2">
+                      <item.icon
+                        className={`h-[18px] w-[18px] transition-all duration-300 group-hover:scale-105 ${isActive
+                          ? theme.textSecondary
+                          : "opacity-75 group-hover:opacity-100"
+                          }`}
+                      />
+
+                      <span className="text-[13px] font-medium tracking-wide">
+                        {item.label}
+                      </span>
                     </span>
+
                     {!!item.badge && item.badge > 0 && (
                       <span className="h-5 min-w-[20px] px-1.5 flex items-center justify-center text-[10px] font-bold rounded-full bg-[#8B5E3C] text-white">
                         {item.badge}
@@ -650,15 +669,20 @@ export default function Index() {
 
           {/* Bottom Area: Dark Mode, Logout, and Small Footer */}
           <div className="pt-4 border-t border-dashed border-[#C8B9A6]/30 space-y-2.5">
-            
+
             {/* Dark Mode Toggle */}
-            <div className={`flex items-center justify-between p-2.5 rounded-[16px] ${theme.card} border ${theme.cardBorder}`}>
+            <div className={`flex items-center justify-between p-2 rounded-[14px] ${theme.card} border ${theme.cardBorder}`}>
               <div className="flex items-center gap-2">
                 {isDark ? <Moon className="h-3.5 w-3.5 text-[#8B5E3C]" /> : <Sun className="h-3.5 w-3.5 text-[#8B5E3C]" />}
                 <span className="text-[11px] font-medium tracking-wide">Dark Mode</span>
               </div>
               <button
-                onClick={() => setIsDark(!isDark)}
+                onClick={() => {
+                  const nextDark = !isDark;
+                  setIsDark(nextDark);
+                  localStorage.setItem("vibe_theme", nextDark ? "dark" : "light");
+                  window.dispatchEvent(new Event("themeChange"));
+                }}
                 className="w-9 h-5 bg-[#C8B9A6]/50 rounded-full relative p-0.5 transition-colors duration-300 focus:outline-none"
                 style={{ backgroundColor: isDark ? "#8B5E3C" : "" }}
                 aria-label="Toggle Dark Mode"
@@ -677,21 +701,21 @@ export default function Index() {
                 toast.success("Logged out successfully");
                 navigate("/login");
               }}
-              className={`flex items-center gap-3 w-full px-3.5 py-2 rounded-[16px] text-[11px] font-semibold uppercase tracking-wider text-red-500 hover:bg-red-50/10 transition-all duration-300`}
+              className={`flex items-center gap-2 w-full px-2.5 py-2 rounded-[14px] text-[11px] font-semibold uppercase tracking-wider text-red-500 hover:bg-red-50/10 transition-all duration-300`}
             >
               <LogOut className="h-3.5 w-3.5" />
               <span>Logout</span>
             </button>
 
             {/* "Made with Love" Small Footer Card */}
-            <div className={`flex items-center gap-2.5 p-2.5 rounded-[16px] ${theme.card} border ${theme.cardBorder}`}>
+            <div className={`flex items-center gap-2 p-2 rounded-[14px] ${theme.card} border ${theme.cardBorder}`}>
               <img
                 src={user?.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"}
                 alt="user avatar"
                 className="h-6 w-6 rounded-full object-cover border border-[#8B5E3C]/30"
               />
               <div className="flex-1 min-w-0">
-                <p className="text-[9px] opacity-60">made with love 💜</p>
+                <p className="text-[9px] opacity-60">Find Your VIBE(●'◡'●)</p>
                 <p className="text-[11px] font-semibold truncate">{user?.username || "vibe_user"}</p>
               </div>
             </div>
@@ -700,22 +724,21 @@ export default function Index() {
 
         {/* ==================== MAIN CONTENT ==================== */}
         <main className="flex-1 py-8 px-6 md:px-10 overflow-y-auto max-h-screen scrollbar-hide space-y-8">
-          
+
           {/* Main Top Header with Layout Customizer toggle */}
           <div className="flex items-center justify-between border-b pb-4 border-[#C8B9A6]/20">
             <div>
               <p className="text-xs opacity-60 tracking-wider font-semibold uppercase">Feed</p>
               <h1 className="text-2xl font-bold tracking-wide font-serif">Vibe Dashboard</h1>
             </div>
-            
+
             {/* Custom Adjust Layout Button */}
             <button
               onClick={() => setShowLayoutAdjuster(!showLayoutAdjuster)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all duration-300 border ${
-                showLayoutAdjuster 
-                  ? "bg-[#8B5E3C] border-[#8B5E3C] text-white" 
-                  : `${theme.card} ${theme.cardBorder} hover:border-[#8B5E3C]/50`
-              }`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all duration-300 border ${showLayoutAdjuster
+                ? "bg-[#8B5E3C] border-[#8B5E3C] text-white"
+                : `${theme.card} ${theme.cardBorder} hover:border-[#8B5E3C]/50`
+                }`}
             >
               <SlidersHorizontal className="h-4 w-4" />
               <span>Adjust Sections</span>
@@ -792,7 +815,7 @@ export default function Index() {
                       <h2 className="text-lg font-bold tracking-wide font-serif">Stories</h2>
                       <button className={`text-xs font-semibold ${theme.textSecondary} hover:underline`}>View all</button>
                     </div>
-                    
+
                     <div className="flex gap-4 overflow-x-auto scrollbar-hide py-1">
                       {/* Create Story square card (Bug 1 Fix: onClick sets showAddStory to true) */}
                       <div
@@ -815,11 +838,21 @@ export default function Index() {
                               onClick={() => openStories(group)}
                               className="w-[110px] h-[110px] shrink-0 relative rounded-[20px] overflow-hidden shadow-xs group cursor-pointer border border-[#E3D8C8]/10"
                             >
-                              <img
-                                src={resolveUrl(latestStory?.mediaUrl)}
-                                alt={group.user.username}
-                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                              />
+                              {latestStory?.mediaType === "video" || (latestStory?.mediaUrl && (latestStory.mediaUrl.endsWith(".mp4") || latestStory.mediaUrl.endsWith(".mov") || latestStory.mediaUrl.includes("/video/upload/"))) ? (
+                                <video
+                                  src={resolveUrl(latestStory.mediaUrl)}
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                  preload="metadata"
+                                  muted
+                                  playsInline
+                                />
+                              ) : (
+                                <img
+                                  src={resolveUrl(latestStory?.mediaUrl)}
+                                  alt={group.user.username}
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                />
+                              )}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
                               <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center gap-1.5 min-w-0">
                                 <img
@@ -1012,9 +1045,8 @@ export default function Index() {
 
                           <button
                             onClick={() => handleFollowCreator(creator)}
-                            className={`w-full mt-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${
-                              creator.isFollowing ? theme.accentButtonSecondary : theme.accentButton
-                            }`}
+                            className={`w-full mt-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${creator.isFollowing ? theme.accentButtonSecondary : theme.accentButton
+                              }`}
                           >
                             {creator.isFollowing ? "Following" : "Follow"}
                           </button>
@@ -1045,7 +1077,7 @@ export default function Index() {
                       {reelsToDisplay.map((reel) => {
                         const isVideo = reel.mediaUrl && (reel.mediaUrl.endsWith(".mp4") || reel.mediaUrl.endsWith(".mov") || reel.mediaUrl.includes("/video/upload/"));
                         const fullMediaUrl = reel.mediaUrl?.startsWith("http") ? reel.mediaUrl : `${API_BASE_URL}/${reel.mediaUrl?.replace(/\\/g, "/")}`;
-                        
+
                         return (
                           <div
                             key={reel._id}
@@ -1071,9 +1103,9 @@ export default function Index() {
                                 }}
                               />
                             )}
-                            
+
                             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                            
+
                             {/* Play icon overlay */}
                             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                               <div className="h-10 w-10 rounded-full bg-white/25 backdrop-blur-xs flex items-center justify-center text-white scale-90 group-hover:scale-100 transition-transform duration-300">
@@ -1100,24 +1132,15 @@ export default function Index() {
 
         {/* ==================== RIGHT SIDEBAR ==================== */}
         <aside className={`w-[300px] xl:w-[320px] shrink-0 sticky top-0 h-screen py-8 border-l ${theme.border} pl-6 flex flex-col justify-between overflow-y-auto scrollbar-hide`}>
-          
+
           <div className="space-y-7">
             {/* Header Discover */}
             <div>
               <h2 className="text-xl font-bold tracking-wide font-serif">Discover</h2>
             </div>
 
-            {/* Search Input Box */}
-            <div className="relative">
-              <span className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none opacity-60">
-                <SearchIcon className="h-4 w-4" />
-              </span>
-              <input
-                type="text"
-                placeholder="Search Discover"
-                className={`w-full pl-10 pr-4 py-3 rounded-[20px] text-xs font-medium focus:outline-none transition-all duration-300 ${theme.inputBg} border ${theme.inputBorder} focus:border-[#8B5E3C] focus:ring-1 focus:ring-[#8B5E3C]`}
-              />
-            </div>
+
+
 
             {/* Tabs */}
             <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
@@ -1127,11 +1150,10 @@ export default function Index() {
                   <button
                     key={tab}
                     onClick={() => setActiveDiscoverTab(tab)}
-                    className={`px-3 py-1.5 rounded-full text-[10px] font-semibold transition-all duration-300 shrink-0 ${
-                      isTabActive 
-                        ? "bg-[#8B5E3C] text-white" 
-                        : `${theme.card} opacity-80 hover:opacity-100`
-                    }`}
+                    className={`px-3 py-1.5 rounded-full text-[10px] font-semibold transition-all duration-300 shrink-0 ${isTabActive
+                      ? "bg-[#8B5E3C] text-white"
+                      : `${theme.card} opacity-80 hover:opacity-100`
+                      }`}
                   >
                     {tab}
                   </button>
@@ -1202,11 +1224,10 @@ export default function Index() {
                       </div>
                       <button
                         onClick={() => handleCommunityJoinToggle(comm)}
-                        className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-colors duration-300 border ${
-                          isJoined 
-                            ? "bg-[#C8B9A6]/20 border-[#C8B9A6]/30 text-opacity-80" 
-                            : "border-[#8B5E3C] text-[#8B5E3C] hover:bg-[#8B5E3C] hover:text-white"
-                        }`}
+                        className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-colors duration-300 border ${isJoined
+                          ? "bg-[#C8B9A6]/20 border-[#C8B9A6]/30 text-opacity-80"
+                          : "border-[#8B5E3C] text-[#8B5E3C] hover:bg-[#8B5E3C] hover:text-white"
+                          }`}
                       >
                         {isJoined ? "Joined" : "Join"}
                       </button>
@@ -1237,18 +1258,17 @@ export default function Index() {
                       <img
                         src={resolveUrl(creator.avatar) || "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150"}
                         alt={creator.username}
-                        className="h-11 w-11 rounded-full object-cover border-2 border-[#8B5E3C] p-0.5 transition-transform group-hover/featured:scale-105"
+                        className="h-14 w-14 rounded-full object-cover border-2 border-[#8B5E3C] p-0.5 transition-transform group-hover/featured:scale-105"
                       />
                     </div>
-                    <p className="text-[8px] font-bold truncate w-full">{creator.name.split(" ")[0]}</p>
-                    <p className="text-[7px] opacity-60 truncate w-full">{creator.followers?.length || 0} followers</p>
+                    <p className="text-[10px] font-bold truncate w-full">{creator.name.split(" ")[0]}</p>
+                    <p className="text-[8px] opacity-60 truncate w-full">{creator.followers?.length || 0} followers</p>
                     <button
                       onClick={() => handleFollowCreator(creator)}
-                      className={`mt-1.5 px-2 py-0.5 rounded-full text-[6px] font-bold uppercase transition-colors duration-200 border ${
-                        creator.isFollowing 
-                          ? "bg-[#C8B9A6]/20 border-[#C8B9A6]/30 text-opacity-80" 
-                          : "border-[#8B5E3C] text-[#8B5E3C] hover:bg-[#8B5E3C] hover:text-white"
-                      }`}
+                      className={`mt-1.5 px-2 py-1 rounded-full text-[8px] font-bold uppercase transition-colors duration-200 border ${creator.isFollowing
+                        ? "bg-[#C8B9A6]/20 border-[#C8B9A6]/30 text-opacity-80"
+                        : "border-[#8B5E3C] text-[#8B5E3C] hover:bg-[#8B5E3C] hover:text-white"
+                        }`}
                     >
                       {creator.isFollowing ? "Followed" : "Follow"}
                     </button>
@@ -1308,11 +1328,10 @@ export default function Index() {
                             setTipAmount(amt);
                             setCustomTip("");
                           }}
-                          className={`py-2 rounded-[16px] text-xs font-bold transition-all border ${
-                            tipAmount === amt && !customTip
-                              ? "bg-[#8B5E3C] border-[#8B5E3C] text-white shadow-xs scale-105"
-                              : `${theme.cardBorder} hover:border-[#8B5E3C]/50`
-                          }`}
+                          className={`py-2 rounded-[16px] text-xs font-bold transition-all border ${tipAmount === amt && !customTip
+                            ? "bg-[#8B5E3C] border-[#8B5E3C] text-white shadow-xs scale-105"
+                            : `${theme.cardBorder} hover:border-[#8B5E3C]/50`
+                            }`}
                         >
                           ${amt}
                         </button>
@@ -1361,7 +1380,7 @@ export default function Index() {
         {activeStoryViewer && activeStoryViewer.stories[storyIndex] && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black">
             <div className="relative w-full max-w-md h-full max-h-[850px] md:rounded-[24px] overflow-hidden flex flex-col justify-between p-6 bg-[#1F140E]">
-              
+
               {/* Progress Bar Indicators */}
               <div className="absolute top-4 left-4 right-4 flex gap-1 z-20">
                 {activeStoryViewer.stories.map((s, idx) => (
