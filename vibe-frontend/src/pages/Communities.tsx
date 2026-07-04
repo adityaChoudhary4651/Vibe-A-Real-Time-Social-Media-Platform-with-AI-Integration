@@ -226,7 +226,7 @@ export default function Communities() {
 
   return (
     <div className={cn(
-      "w-full h-full flex flex-col lg:flex-row gap-6 p-4 md:p-6 lg:p-8 overflow-hidden select-none transition-colors duration-300",
+      "w-full h-full flex flex-col lg:flex-row gap-5 p-3 md:p-4.5 lg:p-5 overflow-hidden select-none transition-colors duration-300",
       isDark ? "bg-[#1F140E] text-[#F5F0E8]" : "bg-[#F8F4EE] text-[#5A3A22]"
     )}>
       

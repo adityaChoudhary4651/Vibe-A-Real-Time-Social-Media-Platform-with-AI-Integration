@@ -397,7 +397,7 @@ export default function Create() {
 
   return (
     <div className={cn(
-      "w-full h-screen overflow-hidden font-sans flex flex-col xl:flex-row p-4 md:p-6 lg:p-8 gap-6 transition-colors duration-300",
+      "w-full h-screen overflow-hidden font-sans flex flex-col xl:flex-row p-3 md:p-4.5 lg:p-5 gap-5 transition-colors duration-300",
       isDark ? "bg-[#1F140E] text-[#F5F0E8]" : "bg-[#F8F4EE] text-[#5A3A22]"
     )}>
       {/* ========================================================

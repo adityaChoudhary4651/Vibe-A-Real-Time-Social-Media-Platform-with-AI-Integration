@@ -75,7 +75,7 @@ export function DesktopSidebar() {
     window.dispatchEvent(new Event("themeChange"));
   };
 
-  const isCreatePage = location.pathname === "/create" || location.pathname === "/messages" || location.pathname === "/communities";
+  const isCreatePage = location.pathname === "/create" || location.pathname === "/messages" || location.pathname === "/communities" || location.pathname === "/notifications" || location.pathname === "/vibe-ai";
 
   const theme = isCreatePage ? {
     card: isDark ? "bg-[#2A1D16]" : "bg-[#FFFDF9]",

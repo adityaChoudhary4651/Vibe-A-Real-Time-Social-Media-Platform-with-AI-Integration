@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Hash, Lightbulb, MessageSquare, Copy, Check, Loader2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { generateVibeAIContent, type VibeAIType } from "@/api/vibeAI";
 import { cn } from "@/lib/utils";
 
 /* =====================
    TOOL DEFINITIONS
-===================== */
+   ===================== */
 const tools: {
   id: VibeAIType;
   label: string;
@@ -53,8 +54,24 @@ const tools: {
 
 /* =====================
    RESULT DISPLAY
-===================== */
-function ResultCard({ result, type }: { result: string; type: VibeAIType }) {
+   ===================== */
+function ResultCard({
+  result,
+  type,
+  isDark,
+  themeCard,
+  themeBorder,
+  themeTextPrimary,
+  themeTextSecondary
+}: {
+  result: string;
+  type: VibeAIType;
+  isDark: boolean;
+  themeCard: string;
+  themeBorder: string;
+  themeTextPrimary: string;
+  themeTextSecondary: string;
+}) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -64,62 +81,91 @@ function ResultCard({ result, type }: { result: string; type: VibeAIType }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Format post ideas as a list
   const lines = result.split("\n").filter(Boolean);
   const isList = type === "postIdea" && lines.length > 1;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className="relative mt-6 rounded-2xl bg-secondary/60 border border-border p-5 backdrop-blur-sm"
+      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.98 }}
+      transition={{ type: "spring", stiffness: 260, damping: 25 }}
+      className={cn(
+        "relative mt-5 rounded-[20px] border p-5 transition-colors duration-300",
+        unreadHighlightColor(isDark), themeBorder
+      )}
     >
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+      <div className="flex items-center justify-between mb-3.5">
+        <span className={cn("text-[10px] font-bold uppercase tracking-wider", themeTextSecondary)}>
           AI Generated
         </span>
-        <Button
-          size="icon-sm"
-          variant="ghost"
+        <button
           onClick={handleCopy}
-          className="h-8 w-8 rounded-full hover:bg-primary/10"
+          className={cn(
+            "w-8 h-8 rounded-full flex items-center justify-center border transition-all active:scale-95",
+            isDark
+              ? "bg-[#1F140E]/40 border-[#3D2A1F] text-[#D2C5B4]"
+              : "bg-[#F2E8DC]/40 border-[#8B5E3C]/8 text-[#8B5E3C] hover:bg-[#8B5E3C] hover:text-[#FFFDF9]"
+          )}
+          aria-label="Copy to Clipboard"
         >
           {copied ? (
             <Check className="h-3.5 w-3.5 text-emerald-500" />
           ) : (
-            <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+            <Copy className="h-3.5 w-3.5 stroke-[2.2]" />
           )}
-        </Button>
+        </button>
       </div>
 
       {isList ? (
-        <ul className="space-y-2.5">
+        <ul className="space-y-3">
           {lines.map((line, i) => (
-            <li key={i} className="flex gap-3 text-sm leading-relaxed">
-              <span className="flex-shrink-0 h-6 w-6 rounded-full bg-primary/15 text-primary text-xs font-bold flex items-center justify-center mt-0.5">
+            <li key={i} className="flex gap-3 text-xs font-semibold leading-relaxed text-left">
+              <span className={cn(
+                "flex-shrink-0 h-6 w-6 rounded-full text-[10px] font-bold flex items-center justify-center mt-0.5",
+                isDark ? "bg-[#3D2A1F] text-[#F5F0E8]" : "bg-[#8B5E3C] text-white"
+              )}>
                 {i + 1}
               </span>
-              <span className="text-foreground">{line.replace(/^\d+\.\s*/, "")}</span>
+              <span className={themeTextPrimary}>{line.replace(/^\d+\.\s*/, "")}</span>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-foreground leading-relaxed">{result}</p>
+        <p className={cn("text-xs font-semibold leading-relaxed text-left", themeTextPrimary)}>{result}</p>
       )}
     </motion.div>
   );
 }
 
+// Custom Helper colors for generated text highlights
+function unreadHighlightColor(isDark: boolean) {
+  return isDark ? "bg-[#3D2A1F]/30" : "bg-[#F2E8DC]/30";
+}
+
 /* =====================
    MAIN PAGE
-===================== */
+   ===================== */
 export default function VibeAI() {
   const [activeTool, setActiveTool] = useState<VibeAIType>("caption");
   const [prompt, setPrompt] = useState("");
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Nightmode theme tracking state
+  const isDarkState = () => localStorage.getItem("vibe_theme") === "dark";
+  const [isDark, setIsDark] = useState(isDarkState);
+
+  /* ======================
+     THEME OBSERVER
+     ====================== */
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setIsDark(isDarkState());
+    };
+    window.addEventListener("themeChange", handleThemeChange);
+    return () => window.removeEventListener("themeChange", handleThemeChange);
+  }, []);
 
   const currentTool = tools.find((t) => t.id === activeTool)!;
 
@@ -157,165 +203,181 @@ export default function VibeAI() {
     setPrompt("");
   };
 
+  // Dynamic Theme Colors
+  const themeCard = isDark ? "bg-[#2A1D16]" : "bg-[#FFFDF9]";
+  const themeBorder = isDark ? "border-[#3D2A1F]" : "border-[#E3D8C8]";
+  const themeTextPrimary = isDark ? "text-[#F5F0E8]" : "text-[#5A3A22]";
+  const themeTextSecondary = isDark ? "text-[#D2C5B4]" : "text-[#8B5E3C]";
+
   return (
-    <div className="min-h-screen pb-24 lg:pb-8">
-      {/* Hero Header */}
-      <div className="relative overflow-hidden px-4 pt-8 pb-6 lg:px-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 pointer-events-none" />
-        <div className="relative max-w-4xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold mb-4"
-          >
-            <Sparkles className="h-3 w-3" />
-            Powered by Google Gemini AI
-          </motion.div>
-          <motion.h1
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-2"
-          >
-            Vibe AI{" "}
-            <span className="bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
-              Creator Assistant
-            </span>
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="text-muted-foreground text-sm lg:text-base"
-          >
-            Generate captions, hashtags, post ideas, and comments with AI — instantly.
-          </motion.p>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 lg:px-8 space-y-6">
-        {/* Tool Selector Cards */}
-        <div className="grid grid-cols-2 gap-3">
-          {tools.map((tool, idx) => {
-            const Icon = tool.icon;
-            const isActive = activeTool === tool.id;
-            return (
-              <motion.button
-                key={tool.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.07 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => handleToolChange(tool.id)}
-                className={cn(
-                  "relative flex flex-col items-start gap-2 p-4 rounded-2xl border text-left transition-all duration-200 overflow-hidden",
-                  isActive
-                    ? "border-primary/60 bg-primary/8 shadow-md shadow-primary/10"
-                    : "border-border bg-card hover:border-border/80 hover:bg-secondary/40"
-                )}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="toolHighlight"
-                    className="absolute inset-0 bg-primary/5 rounded-2xl"
-                  />
-                )}
-                <div
-                  className={cn(
-                    "relative h-9 w-9 rounded-xl flex items-center justify-center bg-gradient-to-br",
-                    tool.color
-                  )}
-                >
-                  <Icon className="h-4 w-4 text-white" />
-                </div>
-                <div className="relative">
-                  <p className={cn("text-sm font-semibold", isActive ? "text-primary" : "text-foreground")}>
-                    {tool.label}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-                    {tool.description}
-                  </p>
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
-
-        {/* Input Area */}
-        <motion.div
-          key={activeTool}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="rounded-2xl bg-card border border-border p-5 space-y-4"
-        >
-          <div className="flex items-center gap-2">
-            {(() => {
-              const Icon = currentTool.icon;
-              return (
-                <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center bg-gradient-to-br", currentTool.color)}>
-                  <Icon className="h-4 w-4 text-white" />
-                </div>
-              );
-            })()}
-            <div>
-              <p className="text-sm font-semibold">{currentTool.label}</p>
-              <p className="text-[11px] text-muted-foreground">{currentTool.description}</p>
-            </div>
+    <div className={cn(
+      "w-full h-full flex items-center justify-center p-3 md:p-4.5 lg:p-5 overflow-hidden select-none transition-colors duration-300",
+      isDark ? "bg-[#1F140E] text-[#F5F0E8]" : "bg-[#F8F4EE] text-[#5A3A22]"
+    )}>
+      
+      {/* Centered Vibe AI Card */}
+      <Card variant="outline" className={cn(
+        "w-full rounded-[24px] border p-6 flex flex-col h-full min-h-0 overflow-hidden relative transition-colors duration-300",
+        themeCard, themeBorder
+      )}>
+        
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3.5 mb-5 flex-shrink-0">
+          <div>
+            <h1 className={cn("text-3xl font-extrabold font-serif tracking-tight leading-none mb-1.5 transition-colors duration-300", themeTextPrimary)}>
+              Vibe AI{" "}
+              <span className="bg-gradient-to-r from-[#8B5E3C] to-purple-400 dark:from-[#D2C5B4] dark:to-purple-300 bg-clip-text text-transparent">
+                Assistant
+              </span>
+            </h1>
+            <p className={cn("text-xs font-semibold opacity-90 transition-colors duration-300", themeTextSecondary)}>
+              Generate captions, hashtags, post ideas, and comments instantly.
+            </p>
           </div>
 
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleGenerate();
-            }}
-            placeholder={currentTool.placeholder}
-            rows={3}
-            className="w-full resize-none rounded-xl bg-secondary/50 border border-border p-3.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/15 outline-none transition-all duration-200"
-          />
+          <div className={cn(
+            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider",
+            isDark ? "bg-[#3D2A1F] border-[#3D2A1F] text-[#F5F0E8]" : "bg-[#F2E8DC]/30 border-[#8B5E3C]/10 text-[#8B5E3C]"
+          )}>
+            <Sparkles className="h-3 w-3 animate-pulse" />
+            Google Gemini AI
+          </div>
+        </div>
 
-          <Button
-            onClick={handleGenerate}
-            disabled={loading || !prompt.trim()}
-            className="w-full h-11 rounded-xl bg-white text-black hover:bg-white/90 font-bold text-sm transition-all shadow-lg disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                Generate with AI
-                <span className="ml-2 text-xs opacity-60 font-normal hidden sm:inline">(⌘ + Enter)</span>
-              </>
+        {/* Scrollable Workspace panel */}
+        <div className="flex-1 overflow-y-auto pr-1 space-y-5 scrollbar-none">
+          
+          {/* Tool Selector Cards */}
+          <div className="grid grid-cols-2 gap-4">
+            {tools.map((tool, idx) => {
+              const Icon = tool.icon;
+              const isActive = activeTool === tool.id;
+              return (
+                <motion.button
+                  key={tool.id}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleToolChange(tool.id)}
+                  className={cn(
+                    "relative flex flex-col items-start gap-2.5 p-4 rounded-[20px] border text-left transition-all duration-300 overflow-hidden shadow-none",
+                    isActive
+                      ? (isDark ? "bg-[#3D2A1F] border-[#3D2A1F]" : "bg-[#F2E8DC]/60 border-[#E3D8C8]")
+                      : (isDark ? "bg-transparent border-[#3D2A1F] hover:bg-[#3D2A1F]/30" : "bg-transparent border-[#E3D8C8] hover:bg-[#F2E8DC]/20")
+                  )}
+                >
+                  <div className={cn(
+                    "h-9 w-9 rounded-xl flex items-center justify-center bg-gradient-to-br",
+                    tool.color
+                  )}>
+                    <Icon className="h-4 w-4 text-white" />
+                  </div>
+                  
+                  <div className="relative">
+                    <p className={cn("text-xs font-extrabold", themeTextPrimary)}>
+                      {tool.label}
+                    </p>
+                    <p className={cn("text-[10px] leading-tight font-semibold mt-1 opacity-80", themeTextSecondary)}>
+                      {tool.description}
+                    </p>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Input Area */}
+          <div className={cn(
+            "rounded-[20px] border p-4.5 space-y-3.5 transition-colors duration-300",
+            isDark ? "bg-[#1F140E]/40 border-[#3D2A1F]" : "bg-[#F2E8DC]/10 border-[#E3D8C8]"
+          )}>
+            <div className="flex items-center gap-2.5">
+              {(() => {
+                const Icon = currentTool.icon;
+                return (
+                  <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center bg-gradient-to-br", currentTool.color)}>
+                    <Icon className="h-4 w-4 text-white" />
+                  </div>
+                );
+              })()}
+              <div className="text-left">
+                <p className={cn("text-xs font-extrabold leading-none", themeTextPrimary)}>{currentTool.label}</p>
+                <p className={cn("text-[10px] font-bold leading-none mt-1 opacity-70", themeTextSecondary)}>{currentTool.description}</p>
+              </div>
+            </div>
+
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  handleGenerate();
+                }
+              }}
+              placeholder={currentTool.placeholder}
+              rows={3}
+              className={cn(
+                "w-full resize-none rounded-xl border p-3.5 text-xs font-semibold placeholder-[#8B5E3C]/50 outline-none transition-all duration-300 shadow-none",
+                isDark
+                  ? "bg-[#1F140E]/40 border-[#3D2A1F] text-[#F5F0E8] focus:border-[#F5F0E8]/30"
+                  : "bg-[#FFFDF9] border-[#E3D8C8] text-[#5A3A22] focus:border-[#8B5E3C]/50"
+              )}
+            />
+
+            <Button
+              onClick={handleGenerate}
+              disabled={loading || !prompt.trim()}
+              className={cn(
+                "w-full h-11 rounded-full font-bold text-xs text-white border-none shadow-none active:scale-95 disabled:opacity-40",
+                isDark ? "bg-[#3D2A1F] hover:bg-[#3D2A1F]/90" : "bg-[#8B5E3C] hover:bg-[#8B5E3C]/95"
+              )}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2 stroke-[2.2]" />
+                  Generate with AI
+                  <span className="ml-1.5 opacity-65 font-normal hidden sm:inline">(⌘ + Enter)</span>
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Result displaying block */}
+          <AnimatePresence mode="wait">
+            {result && (
+              <ResultCard
+                key={result}
+                result={result}
+                type={activeTool}
+                isDark={isDark}
+                themeCard={themeCard}
+                themeBorder={themeBorder}
+                themeTextPrimary={themeTextPrimary}
+                themeTextSecondary={themeTextSecondary}
+              />
             )}
-          </Button>
-        </motion.div>
+          </AnimatePresence>
 
-        {/* Result */}
-        <AnimatePresence mode="wait">
-          {result && <ResultCard key={result} result={result} type={activeTool} />}
-        </AnimatePresence>
+          {/* Prompt Tips */}
+          <div className={cn(
+            "rounded-[16px] border p-4.5 text-left transition-colors duration-300",
+            isDark ? "bg-[#1F140E]/30 border-[#3D2A1F]/60" : "bg-[#F2E8DC]/15 border-[#E3D8C8]/60"
+          )}>
+            <p className={cn("text-[11px] font-bold mb-2.5", themeTextPrimary)}>💡 Tips for better results</p>
+            <ul className={cn("text-[10px] font-semibold space-y-1.5 opacity-80", themeTextSecondary)}>
+              <li>• Be specific: "Sunset on Santorini beach with golden light" works better than "beach"</li>
+              <li>• For hashtags, include your niche and style</li>
+              <li>• Regenerate multiple times for different variations</li>
+            </ul>
+          </div>
 
-        {/* Tips */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="rounded-xl bg-secondary/30 border border-border/50 p-4"
-        >
-          <p className="text-xs font-semibold text-muted-foreground mb-2">💡 Tips for better results</p>
-          <ul className="text-xs text-muted-foreground space-y-1">
-            <li>• Be specific: "Sunset on Santorini beach with golden light" works better than "beach"</li>
-            <li>• For hashtags, include your niche and style</li>
-            <li>• Regenerate multiple times for different variations</li>
-          </ul>
-        </motion.div>
-      </div>
+        </div>
+
+      </Card>
     </div>
   );
 }
