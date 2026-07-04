@@ -111,6 +111,7 @@ export const getProfile = async (req, res) => {
     name: user.name,
     bio: user.bio || "",
     avatar: user.avatar || "",
+    coverPhoto: user.coverPhoto || "",
     gender: user.gender || "Non-binary",
     age: user.age || 21,
     location: user.location || "Nearby",
@@ -233,7 +234,7 @@ export const getPublicProfile = async (req, res) => {
     const loggedInUserId = req.user._id;
 
     const user = await User.findOne({ username }).select(
-      "_id username name bio avatar followers following gender age location interests tipsReceived"
+      "_id username name bio avatar coverPhoto followers following gender age location interests tipsReceived"
     );
 
     if (!user) {
@@ -250,6 +251,7 @@ export const getPublicProfile = async (req, res) => {
       name: user.name,
       bio: user.bio,
       avatar: user.avatar,
+      coverPhoto: user.coverPhoto || "",
       gender: user.gender || "Non-binary",
       age: user.age || 21,
       location: user.location || "Nearby",
@@ -360,6 +362,33 @@ export const uploadAvatar = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Avatar upload failed" });
+  }
+};
+
+// UPLOAD COVER PHOTO
+export const uploadCover = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No image uploaded" });
+    }
+
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Save Cloudinary URL
+    user.coverPhoto = req.file.path;
+    await user.save();
+
+    res.json({
+      message: "Cover photo updated",
+      coverPhoto: user.coverPhoto,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Cover photo upload failed" });
   }
 };
 

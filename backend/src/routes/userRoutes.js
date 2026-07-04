@@ -11,6 +11,7 @@ import {
   getFollowers,
   getFollowing,
   uploadAvatar,
+  uploadCover,
   forgotPassword,
   resetPassword,
 } from "../controllers/userController.js";
@@ -45,6 +46,24 @@ router.put(
     }
   },
   uploadAvatar
+);
+
+router.put(
+  "/me/cover",
+  authMiddleware,
+  avatarUpload.single("cover"),
+  async (req, res, next) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: "No image received" });
+      const url = await uploadPostToCloudinary(req.file.path);
+      req.file.path = url;
+      next();
+    } catch (error) {
+      console.error("COVER UPLOAD ERROR ❌", error);
+      res.status(500).json({ message: "Image upload failed" });
+    }
+  },
+  uploadCover
 );
 
 router.get("/discovery", authMiddleware, getDiscoveryUsers);

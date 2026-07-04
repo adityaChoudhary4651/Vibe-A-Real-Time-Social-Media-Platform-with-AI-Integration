@@ -58,7 +58,7 @@ export function MainLayout() {
         </main>
 
         {/* Right sidebar for larger screens */}
-        {location.pathname !== "/search" && location.pathname !== "/discover" && location.pathname !== "/create" && location.pathname !== "/messages" && location.pathname !== "/communities" && location.pathname !== "/notifications" && location.pathname !== "/vibe-ai" && (
+        {location.pathname !== "/search" && location.pathname !== "/discover" && location.pathname !== "/create" && location.pathname !== "/messages" && location.pathname !== "/communities" && location.pathname !== "/notifications" && location.pathname !== "/vibe-ai" && !location.pathname.startsWith("/profile") && (
           <aside className="hidden xl:block w-80 h-screen sticky top-0 border-l border-border p-6">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -66,12 +66,7 @@ export function MainLayout() {
               transition={{ delay: 0.2 }}
               className="space-y-6"
             >
-              <div>
-                <h3 className="font-semibold text-sm text-muted-foreground mb-4">
-                  Suggested for you
-                </h3>
-                <SuggestedUsers />
-              </div>
+              {/* Footer info links */}
 
               <div className="text-xs text-muted-foreground space-y-2">
                 <p>About · Help · Press · API · Jobs · Privacy · Terms</p>

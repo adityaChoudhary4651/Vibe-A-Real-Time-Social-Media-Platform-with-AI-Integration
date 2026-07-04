@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema(
 
     bio: { type: String, default: "" },
     avatar: { type: String, default: "" },
+    coverPhoto: { type: String, default: "" },
 
     gender: { type: String, default: "Non-binary" },
     age: { type: Number, default: 21 },

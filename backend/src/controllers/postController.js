@@ -342,3 +342,21 @@ export const toggleSave = async (req, res) => {
     res.status(500).json({ message: "Failed to toggle save status" });
   }
 };
+
+// GET SAVED POSTS
+export const getSavedPosts = async (req, res) => {
+  try {
+    const userObj = await User.findById(req.user._id).populate({
+      path: "savedPosts",
+      populate: { path: "author", select: "username avatar" }
+    });
+    if (!userObj) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const saved = (userObj.savedPosts || []).filter(p => p !== null);
+    res.json(saved);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch saved posts" });
+  }
+};

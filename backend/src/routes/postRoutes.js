@@ -14,6 +14,7 @@ import {
   getMyReels,
   getReelsByUsername,
   toggleSave,
+  getSavedPosts,
 } from "../controllers/postController.js";
 
 import {
@@ -33,6 +34,7 @@ router.get("/user/:username/reels", authMiddleware, getReelsByUsername);
 /* =========================
    POSTS (FEED)
 ========================= */
+router.get("/saved", authMiddleware, getSavedPosts);
 router.get("/", authMiddleware, getPosts);
 router.get("/me", authMiddleware, getMyPosts);
 router.get("/user/:username", authMiddleware, getPostsByUsername);
