@@ -3,8 +3,23 @@ import { useOutletContext, Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Users, Settings, Send, MoreVertical, Loader2, ArrowLeft, Image as ImageIcon } from "lucide-react";
-import { motion } from "framer-motion";
+import { Card } from "@/components/ui/card";
+import {
+  Plus,
+  Search,
+  Users,
+  Settings,
+  Send,
+  MoreVertical,
+  Loader2,
+  ArrowLeft,
+  Image as ImageIcon,
+  Smile,
+  Mic,
+  X,
+  CheckCheck
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { CreateCommunityModal } from "@/components/shared/CreateCommunityModal";
 import { CommunitySettingsModal } from "@/components/shared/CommunitySettingsModal";
@@ -60,6 +75,10 @@ export default function Communities() {
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
+  // Dark Mode state tracking
+  const isDarkState = () => localStorage.getItem("vibe_theme") === "dark";
+  const [isDark, setIsDark] = useState(isDarkState);
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -69,6 +88,17 @@ export default function Communities() {
   };
 
   const isInChat = selectedCommunityId !== null;
+
+  /* =====================
+     THEME OBSERVER
+     ===================== */
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setIsDark(isDarkState());
+    };
+    window.addEventListener("themeChange", handleThemeChange);
+    return () => window.removeEventListener("themeChange", handleThemeChange);
+  }, []);
 
   useEffect(() => {
     setHideBottomNav?.(isInChat);
@@ -188,248 +218,300 @@ export default function Communities() {
 
   const selectedCommunity = communities.find((c) => c._id === selectedCommunityId);
 
+  // Dynamic Theme Colors
+  const themeCard = isDark ? "bg-[#2A1D16]" : "bg-[#FFFDF9]";
+  const themeBorder = isDark ? "border-[#3D2A1F]" : "border-[#E3D8C8]";
+  const themeTextPrimary = isDark ? "text-[#F5F0E8]" : "text-[#5A3A22]";
+  const themeTextSecondary = isDark ? "text-[#D2C5B4]" : "text-[#8B5E3C]";
+
   return (
     <div className={cn(
-      "flex flex-col w-full max-w-full overflow-hidden",
-      isInChat
-        ? "fixed inset-0 z-50 bg-background"
-        : "h-[calc(100vh-8rem)] lg:h-screen"
+      "w-full h-full flex flex-col lg:flex-row gap-6 p-4 md:p-6 lg:p-8 overflow-hidden select-none transition-colors duration-300",
+      isDark ? "bg-[#1F140E] text-[#F5F0E8]" : "bg-[#F8F4EE] text-[#5A3A22]"
     )}>
-      <div className="flex flex-1 h-full overflow-hidden">
-        {/* Communities list */}
-        <div className={cn(
-          "w-full lg:w-80 xl:w-96 border-r border-border flex flex-col h-full",
-          selectedCommunityId && "hidden lg:flex"
-        )}>
-          <div className="p-4 border-b border-border space-y-4 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold">Communities</h2>
-              <Button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-white text-black hover:bg-white/90 rounded-full shadow-glow-sm h-9 px-4 text-xs font-bold transition-all"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                New
-              </Button>
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search communities"
-                className="pl-10 h-10"
-              />
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto">
-            {loading ? (
-              <div className="flex justify-center p-8"><Loader2 className="animate-spin text-primary" /></div>
-            ) : communities.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground text-sm flex flex-col items-center gap-2">
-                <Users className="h-8 w-8 opacity-20" />
-                <p>No communities found</p>
-              </div>
-            ) : communities.map((community) => (
-              <motion.div
-                key={community._id}
-                whileTap={{ scale: 0.98 }}
-                className={cn(
-                  "w-full flex items-center gap-3 p-4 hover:bg-secondary/50 transition-colors cursor-pointer group",
-                  selectedCommunityId === community._id && "bg-secondary"
-                )}
-                onClick={() => setSelectedCommunityId(community._id)}
-              >
-                <Avatar className="h-14 w-14">
-                  <AvatarImage src={resolveUrl(community.avatar)} />
-                  <AvatarFallback className="text-lg">
-                    {community.name.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold truncate">{community.name}</p>
-                    {community.isJoined && (
-                      <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-medium">Joined</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground truncate">{community.description}</p>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                    <Users className="h-3 w-3" />
-                    <span>{(community.memberCount || 0).toLocaleString()} members</span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+      
+      {/* ========================================================
+          1. LEFT COLUMN: Communities list card
+          ======================================================== */}
+      <Card variant="outline" className={cn(
+        "w-full lg:w-[360px] shrink-0 rounded-[24px] border p-4 flex flex-col h-full min-h-0 overflow-hidden relative transition-colors duration-300",
+        themeCard, themeBorder,
+        selectedCommunityId && "hidden lg:flex" // Hide on mobile when chat is active
+      )}>
+        
+        {/* Header */}
+        <div className="flex justify-between items-center mb-4 flex-shrink-0">
+          <h2 className={cn("text-3xl font-extrabold font-serif tracking-tight transition-colors duration-300", themeTextPrimary)}>
+            Communities
+          </h2>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className={cn(
+              "text-xs font-bold py-2 px-4 rounded-full border transition-all active:scale-95 flex items-center gap-1.5",
+              isDark
+                ? "bg-[#3D2A1F] border-[#3D2A1F] text-[#F5F0E8]"
+                : "bg-[#FFFDF9] border-[#8B5E3C]/15 text-[#8B5E3C] hover:bg-[#8B5E3C] hover:text-[#FFFDF9] hover:border-[#8B5E3C]"
+            )}
+          >
+            <Plus className="h-3.5 w-3.5 stroke-[2.5]" />
+            New
+          </button>
         </div>
 
-        {/* Community view */}
-        <div className={cn(
-          "flex-1 flex flex-col h-full bg-background",
-          !selectedCommunityId && "hidden lg:flex"
-        )}>
-          {selectedCommunityId && selectedCommunity ? (
-            <>
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => setSelectedCommunityId(null)}
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                  </Button>
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={resolveUrl(selectedCommunity.avatar)} />
-                    <AvatarFallback>{selectedCommunity.name.charAt(0)}</AvatarFallback>
+        {/* Search Input */}
+        <div className="relative mb-3 flex-shrink-0">
+          <Search className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4", themeTextSecondary)} />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search communities..."
+            className={cn(
+              "pl-9 h-10 border rounded-[16px] text-xs placeholder-[#8B5E3C]/50 outline-none w-full shadow-none focus-visible:ring-0 focus-visible:ring-offset-0",
+              isDark ? "bg-[#1F140E]/40 border-[#3D2A1F]" : "bg-[#F2E8DC]/20 border-[#8B5E3C]/12"
+            )}
+          />
+        </div>
+
+        {/* Scrollable list */}
+        <div className="flex-1 overflow-y-auto pr-1 mt-2 space-y-2 scrollbar-none">
+          {loading ? (
+            <div className="flex justify-center p-8"><Loader2 className={cn("animate-spin", themeTextSecondary)} /></div>
+          ) : communities.length === 0 ? (
+            <div className={cn("p-8 text-center text-xs font-bold flex flex-col items-center gap-2", themeTextSecondary)}>
+              <Users className="h-8 w-8 opacity-20" />
+              <p>No communities found</p>
+            </div>
+          ) : (
+            communities.map((community) => {
+              const isSelected = selectedCommunityId === community._id;
+              return (
+                <motion.div
+                  key={community._id}
+                  whileTap={{ scale: 0.98 }}
+                  className={cn(
+                    "flex items-center gap-3 p-3 rounded-[20px] transition-colors cursor-pointer group",
+                    isSelected
+                      ? (isDark ? "bg-[#3D2A1F]" : "bg-[#F2E8DC]/60")
+                      : (isDark ? "hover:bg-[#3D2A1F]/30" : "hover:bg-[#F2E8DC]/20")
+                  )}
+                  onClick={() => setSelectedCommunityId(community._id)}
+                >
+                  <Avatar className="h-11 w-11 border border-[#8B5E3C]/10 flex-shrink-0">
+                    <AvatarImage src={resolveUrl(community.avatar)} />
+                    <AvatarFallback className={themeTextSecondary}>
+                      {community.name.charAt(0)}
+                    </AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p className="font-semibold">{selectedCommunity.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(selectedCommunity.memberCount || 0).toLocaleString()} members
-                    </p>
+                  
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="flex items-center justify-between">
+                      <p className={cn("text-xs font-extrabold truncate", themeTextPrimary)}>{community.name}</p>
+                      {community.isJoined && (
+                        <span className={cn(
+                          "text-[9px] font-bold px-2 py-0.5 rounded-full border",
+                          isDark ? "bg-[#3D2A1F] border-[#3D2A1F] text-[#D2C5B4]" : "bg-[#F2E8DC]/40 border-[#8B5E3C]/10 text-[#8B5E3C]"
+                        )}>
+                          Joined
+                        </span>
+                      )}
+                    </div>
+                    <p className={cn("text-[11px] truncate mt-0.5 leading-tight opacity-80", themeTextSecondary)}>{community.description}</p>
+                    <div className={cn("flex items-center gap-1 text-[10px] font-bold mt-1.5", themeTextSecondary)}>
+                      <Users className="h-3 w-3 stroke-[2.2]" />
+                      <span>{(community.memberCount || 0).toLocaleString()} members</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={selectedCommunity.isJoined ? "secondary" : "default"}
-                    size="sm"
-                    onClick={() => toggleJoin(selectedCommunity._id)}
-                    className="rounded-full"
-                  >
-                    {selectedCommunity.isJoined ? "Joined" : "Join"}
-                  </Button>
-                  <div className="flex items-center gap-2">
-                    {selectedCommunity.creator?._id === user?.id && (
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => setShowSettingsModal(true)}
-                      >
-                        <Settings className="h-5 w-5" />
-                      </Button>
-                    )}
-                  </div>
+                </motion.div>
+              );
+            })
+          )}
+        </div>
+      </Card>
+
+      {/* ========================================================
+          2. RIGHT COLUMN: Chat view card
+          ======================================================== */}
+      <Card variant="outline" className={cn(
+        "flex-1 rounded-[24px] border flex flex-col h-full min-h-0 overflow-hidden relative transition-colors duration-300",
+        themeCard, themeBorder,
+        !selectedCommunityId && "hidden lg:flex" // Hide on mobile if no active community
+      )}>
+        {selectedCommunityId && selectedCommunity ? (
+          <>
+            {/* Chat Header */}
+            <div className={cn("flex justify-between items-center p-3.5 border-b flex-shrink-0", themeBorder)}>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setSelectedCommunityId(null)}
+                  className={cn(
+                    "w-9 h-9 rounded-full flex items-center justify-center transition-colors border active:scale-95 lg:hidden",
+                    isDark ? "bg-[#1F140E]/40 hover:bg-[#1F140E]/80 border-[#3D2A1F] text-[#D2C5B4]" : "bg-[#F2E8DC]/40 hover:bg-[#F2E8DC]/80 border-[#8B5E3C]/8 text-[#8B5E3C]"
+                  )}
+                  aria-label="Back to communities list"
+                >
+                  <ArrowLeft className="h-4.5 w-4.5 stroke-[2.5]" />
+                </button>
+
+                <Avatar className="h-9 w-9 border border-[#8B5E3C]/10 flex-shrink-0">
+                  <AvatarImage src={resolveUrl(selectedCommunity.avatar)} />
+                  <AvatarFallback>{selectedCommunity.name.charAt(0)}</AvatarFallback>
+                </Avatar>
+                
+                <div className="text-left">
+                  <p className={cn("text-sm font-extrabold leading-none", themeTextPrimary)}>{selectedCommunity.name}</p>
+                  <p className={cn("text-[10px] font-bold leading-none mt-1", themeTextSecondary)}>
+                    {(selectedCommunity.memberCount || 0).toLocaleString()} members
+                  </p>
                 </div>
               </div>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-2 opacity-50">
-                    <Send className="h-8 w-8" />
-                    <p className="text-sm">Start the conversation</p>
-                  </div>
-                ) : (
-                  messages.map((msg) => {
-                    const isMine = String(msg.sender?._id) === String(user?.id);
-                    return (
-                      <motion.div
-                        key={msg._id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={cn(
-                          "flex items-end gap-2",
-                          isMine ? "justify-end" : "justify-start"
-                        )}
-                      >
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => toggleJoin(selectedCommunity._id)}
+                  className={cn(
+                    "text-xs font-bold py-1.5 px-4 rounded-full border transition-all active:scale-95",
+                    selectedCommunity.isJoined
+                      ? (isDark ? "bg-[#3D2A1F] border-[#3D2A1F] text-[#F5F0E8]" : "bg-[#F2E8DC]/50 border-[#8B5E3C]/15 text-[#8B5E3C]")
+                      : (isDark ? "bg-[#F5F0E8] border-none text-[#1F140E] hover:bg-[#F5F0E8]/90" : "bg-[#8B5E3C] border-none text-white hover:bg-[#8B5E3C]/90")
+                  )}
+                >
+                  {selectedCommunity.isJoined ? "Joined" : "Join"}
+                </button>
+
+                {selectedCommunity.creator?._id === user?.id && (
+                  <button
+                    onClick={() => setShowSettingsModal(true)}
+                    className={cn(
+                      "w-9 h-9 rounded-full flex items-center justify-center transition-colors border active:scale-95",
+                      isDark ? "bg-[#1F140E]/40 hover:bg-[#1F140E]/80 border-[#3D2A1F] text-[#D2C5B4]" : "bg-[#F2E8DC]/40 hover:bg-[#F2E8DC]/80 border-[#8B5E3C]/8 text-[#8B5E3C]"
+                    )}
+                    aria-label="Community Settings"
+                  >
+                    <Settings className="h-4.5 w-4.5 stroke-[2.2]" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Message Pane */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-none bg-[#FFFDF9]/10">
+              
+              {/* Central mock date separator */}
+              <div className="flex justify-center flex-shrink-0 my-2">
+                <span className={cn(
+                  "py-1 px-3.5 rounded-full text-[10px] font-bold border",
+                  isDark ? "bg-[#3D2A1F] border-[#3D2A1F] text-[#D2C5B4]" : "bg-[#F2E8DC]/30 border-[#8B5E3C]/8 text-[#8B5E3C]"
+                )}>
+                  Today
+                </span>
+              </div>
+
+              {messages.length === 0 ? (
+                <div className={cn("h-full flex flex-col items-center justify-center gap-2 opacity-50", themeTextSecondary)}>
+                  <Send className="h-8 w-8 stroke-[2]" />
+                  <p className="text-xs font-bold">Start the conversation</p>
+                </div>
+              ) : (
+                messages.map((msg) => {
+                  const isMine = String(msg.sender?._id) === String(user?.id);
+                  return (
+                    <motion.div
+                      key={msg._id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cn(
+                        "flex items-end gap-2.5",
+                        isMine ? "justify-end" : "justify-start"
+                      )}
+                    >
+                      {!isMine && (
+                        <Link to={`/profile/${msg.sender?.username}`} className="flex-shrink-0">
+                          <Avatar className="h-8 w-8 mb-1 border border-[#8B5E3C]/10 flex-shrink-0 hover:opacity-85 transition-opacity">
+                            <AvatarImage src={resolveUrl(msg.sender?.avatar)} />
+                            <AvatarFallback>{msg.sender?.username?.charAt(0).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                        </Link>
+                      )}
+
+                      <div className={cn("max-w-[70%] flex flex-col", isMine ? "items-end" : "items-start")}>
                         {!isMine && (
-                          <Link to={`/profile/${msg.sender?.username}`}>
-                            <Avatar className="h-8 w-8 mb-1 hover:opacity-85 transition-opacity">
-                              <AvatarImage src={resolveUrl(msg.sender?.avatar)} />
-                              <AvatarFallback className="text-[10px]">
-                                {msg.sender?.username?.charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
+                          <Link to={`/profile/${msg.sender?.username}`} className="hover:underline">
+                            <span className={cn("text-[9px] font-bold ml-1.5 mb-1 block", themeTextSecondary)}>
+                              {msg.sender?.username}
+                            </span>
                           </Link>
                         )}
 
-                        <div className={cn("max-w-[75%] flex flex-col", isMine ? "items-end" : "items-start")}>
-                          {!isMine && (
-                            <Link to={`/profile/${msg.sender?.username}`}>
-                              <span className="text-[10px] text-muted-foreground ml-1 mb-1 hover:underline">
-                                {msg.sender?.username}
-                              </span>
-                            </Link>
+                        <div className={cn(
+                          "rounded-[20px] px-4 py-2.5 text-xs font-semibold leading-relaxed border transition-colors duration-300",
+                          isMine
+                            ? (isDark ? "bg-[#3D2A1F] border-[#3D2A1F] text-[#F5F0E8] rounded-br-sm" : "bg-[#8B5E3C] border-[#8B5E3C] text-[#FFFDF9] rounded-br-sm")
+                            : (isDark ? "bg-[#2A1D16] border-[#3D2A1F] text-[#F5F0E8] rounded-bl-sm" : "bg-[#FFFDF9] border-[#E3D8C8] text-[#5A3A22] rounded-bl-sm")
+                        )}>
+                          {msg.mediaUrl && (
+                            <img
+                              src={resolveUrl(msg.mediaUrl)}
+                              alt="Attachment"
+                              className="max-w-xs max-h-48 object-cover rounded-lg mb-1.5 border border-transparent"
+                            />
                           )}
-
-                          <div
-                            className={cn(
-                              "rounded-2xl px-4 py-2.5 w-fit",
-                              isMine
-                                ? "bg-primary text-primary-foreground rounded-br-sm"
-                                : "bg-secondary rounded-bl-sm"
-                            )}
-                          >
-                            {msg.mediaUrl && (
-                              <img
-                                src={resolveUrl(msg.mediaUrl)}
-                                alt="Attachment"
-                                className="max-w-xs max-h-48 object-cover rounded-lg mb-1"
-                              />
-                            )}
-                            {msg.text && <p className="text-sm">{msg.text}</p>}
-                            <p className="text-[10px] mt-1 opacity-70">
-                              {new Date(msg.createdAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
-                            </p>
-                          </div>
+                          {msg.text && <span className="inline">{msg.text}</span>}
+                          
+                          {/* Inline Time stamp and checkmarks */}
+                          <span className={cn(
+                            "text-[9px] font-bold ml-2 whitespace-nowrap inline-flex items-center gap-0.5 opacity-70",
+                            isMine ? "text-white/80" : themeTextSecondary
+                          )}>
+                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            {isMine && <CheckCheck className="h-3 w-3 stroke-[2.2] ml-0.5 text-white/90" />}
+                          </span>
                         </div>
-                      </motion.div>
-                    );
-                  })
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Image Preview Area */}
-              {imagePreviewUrl && (
-                <div className="px-4 py-2 border-t border-border bg-secondary/20 flex items-center gap-3 relative flex-shrink-0">
-                  <img
-                    src={imagePreviewUrl}
-                    alt="Preview"
-                    className="h-16 w-16 object-cover rounded-lg border border-border"
-                  />
-                  <button
-                    onClick={() => {
-                      setSelectedImageFile(null);
-                      setImagePreviewUrl(null);
-                    }}
-                    className="absolute top-1 left-16 bg-destructive text-destructive-foreground rounded-full h-4 w-4 flex items-center justify-center shadow-sm"
-                    type="button"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                  <p className="text-xs text-muted-foreground">Image selected. Press send to upload.</p>
-                </div>
+                      </div>
+                    </motion.div>
+                  );
+                })
               )}
+              <div ref={messagesEndRef} />
+            </div>
 
-              {/* Input */}
-              <div className="p-4 border-t border-border">
-                {selectedCommunity.isJoined ? (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="flex-shrink-0"
-                      onClick={() => fileInputRef.current?.click()}
-                      type="button"
-                    >
-                      <ImageIcon className="h-5 w-5" />
-                    </Button>
+            {/* Image Preview Block */}
+            {imagePreviewUrl && (
+              <div className={cn("px-4 py-2 border-t flex items-center gap-3 relative flex-shrink-0", themeBorder, isDark ? "bg-[#3D2A1F]/30" : "bg-[#F2E8DC]/20")}>
+                <img
+                  src={imagePreviewUrl}
+                  alt="Preview"
+                  className={cn("h-16 w-16 object-cover rounded-lg border", themeBorder)}
+                />
+                <button
+                  onClick={() => {
+                    setSelectedImageFile(null);
+                    setImagePreviewUrl(null);
+                  }}
+                  className="absolute top-1 left-16 bg-[#8B5E3C] text-white rounded-full h-4.5 w-4.5 flex items-center justify-center"
+                  type="button"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+                <p className={cn("text-xs font-semibold", themeTextSecondary)}>Image attachment selected.</p>
+              </div>
+            )}
+
+            {/* Chat Input Bar */}
+            <div className={cn("p-4 border-t flex items-center gap-3.5 flex-shrink-0 bg-transparent", themeBorder)}>
+              {selectedCommunity.isJoined ? (
+                <>
+                  {/* Pill Container */}
+                  <div className={cn(
+                    "flex-1 border rounded-full px-4.5 py-2.5 flex items-center gap-2.5 transition-colors duration-300",
+                    themeBorder, isDark ? "bg-[#1F140E]/40" : "bg-[#F2E8DC]/10"
+                  )}>
+                    <button type="button" className={cn("opacity-70 hover:opacity-100", themeTextSecondary)}>
+                      <Smile className="h-5 w-5 stroke-[2]" />
+                    </button>
+                    
                     <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImageSelect}
-                    />
-                    <Input
+                      type="text"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       onKeyDown={(e) => {
@@ -438,46 +520,78 @@ export default function Communities() {
                           handleSendMessage();
                         }
                       }}
-                      placeholder="Message..."
-                      className="flex-1 h-10"
+                      placeholder="Type a message..."
+                      className={cn(
+                        "flex-1 bg-transparent border-none outline-none focus:ring-0 text-sm placeholder-[#8B5E3C]/50 font-medium",
+                        themeTextPrimary
+                      )}
                       disabled={isSending}
                     />
-                    <Button
-                      size="icon"
-                      className="rounded-full h-10 w-10 flex-shrink-0"
-                      disabled={(!message.trim() && !selectedImageFile) || isSending}
-                      onClick={handleSendMessage}
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className={cn("opacity-70 hover:opacity-100", themeTextSecondary)}
                     >
-                      {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-                    </Button>
+                      <ImageIcon className="h-5 w-5 stroke-[2]" />
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageSelect}
+                    />
+
+                    <button type="button" className={cn("opacity-70 hover:opacity-100", themeTextSecondary)}>
+                      <Mic className="h-5 w-5 stroke-[2]" />
+                    </button>
                   </div>
-                ) : (
-                  <div className="text-center p-2 text-sm text-muted-foreground">
-                    Join this community to participate in the chat
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-              <div className="h-24 w-24 rounded-full bg-secondary flex items-center justify-center mb-4">
-                <Users className="h-10 w-10 text-muted-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Vibe Communities</h3>
-              <p className="text-muted-foreground mb-6 max-w-sm">
-                Discover groups that match your interests or create your own hub for shared thoughts.
-              </p>
-              <Button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-white text-black hover:bg-white/90 rounded-full shadow-glow-lg px-8 h-12 text-base font-bold transition-all"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Start New Community
-              </Button>
+
+                  {/* Send Button */}
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={(!message.trim() && !selectedImageFile) || isSending}
+                    className={cn(
+                      "w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition-all border-none active:scale-95 text-white disabled:opacity-40",
+                      isDark ? "bg-[#3D2A1F] hover:bg-[#3D2A1F]/90" : "bg-[#8B5E3C] hover:bg-[#8B5E3C]/90"
+                    )}
+                  >
+                    {isSending ? (
+                      <Loader2 className="h-4.5 w-4.5 animate-spin" />
+                    ) : (
+                      <Send className="h-4.5 w-4.5 fill-white/10 stroke-[2]" />
+                    )}
+                  </button>
+                </>
+              ) : (
+                <div className={cn("text-center w-full py-2.5 text-xs font-bold block", themeTextSecondary)}>
+                  Join this community to participate in the chat
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+            <div className={cn("h-24 w-24 rounded-full flex items-center justify-center mb-4 border border-dashed", themeBorder)}>
+              <Users className={cn("h-10 w-10 text-muted-foreground", themeTextSecondary)} />
+            </div>
+            <h3 className={cn("text-xl font-extrabold font-serif mb-2", themeTextPrimary)}>Vibe Communities</h3>
+            <p className={cn("text-xs font-semibold mb-6 leading-normal max-w-xs", themeTextSecondary)}>
+              Discover groups that match your interests or create your own hub for shared thoughts.
+            </p>
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              className={cn(
+                "rounded-full px-6 font-bold text-xs text-white",
+                isDark ? "bg-[#3D2A1F] hover:bg-[#3D2A1F]/90" : "bg-[#8B5E3C] hover:bg-[#8B5E3C]/95"
+              )}
+            >
+              Start New Community
+            </Button>
+          </div>
+        )}
+      </Card>
 
       <CreateCommunityModal
         open={showCreateModal}
