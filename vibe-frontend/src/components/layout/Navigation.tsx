@@ -66,10 +66,26 @@ export function DesktopSidebar() {
     const nextDark = !isDark;
     setIsDark(nextDark);
     localStorage.setItem("vibe_theme", nextDark ? "dark" : "light");
+    localStorage.setItem("vibe_dark_mode", nextDark ? "true" : "false");
+    if (nextDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
     window.dispatchEvent(new Event("themeChange"));
   };
 
-  const theme = {
+  const isCreatePage = location.pathname === "/create";
+
+  const theme = isCreatePage ? {
+    card: isDark ? "bg-[#2A1D16]" : "bg-[#FFFDF9]",
+    cardBorder: isDark ? "border-[#3D2A1F]" : "border-[#E3D8C8]",
+    textPrimary: isDark ? "text-[#F5F0E8]" : "text-[#5A3A22]",
+    textSecondary: isDark ? "text-[#D2C5B4]" : "text-[#8B5E3C]",
+    border: isDark ? "border-[#3D2A1F]" : "border-[#E3D8C8]",
+    navActive: isDark ? "bg-[#3D2A1F] text-[#F5F0E8]" : "bg-[#8B5E3C] text-[#FFFDF9]",
+    navHover: isDark ? "hover:bg-[#2A1D16]/50 text-[#F5F0E8]" : "hover:bg-[#8B5E3C]/8 text-[#5A3A22]",
+  } : {
     card: isDark ? "bg-[#2A1D16]" : "bg-[#EFE6DA]",
     cardBorder: isDark ? "border-[#3D2A1F]" : "border-[#E3D8C8]",
     textPrimary: isDark ? "text-[#F5F0E8]" : "text-[#4A3428]",
@@ -126,12 +142,22 @@ export function DesktopSidebar() {
 
   return (
     <aside
-      className={`w-[205px] xl:w-[220px] shrink-0 sticky top-0 h-screen flex flex-col justify-between py-5 border-r ${theme.border} pr-2 pl-2`}
+      className={cn(
+        "w-[205px] xl:w-[220px] shrink-0 sticky top-0 h-screen flex flex-col justify-between py-5 border-r pr-2 pl-2 transition-all duration-300",
+        isCreatePage
+          ? (isDark ? "bg-[#1F140E] border-[#3D2A1F]" : "bg-[#F8F4EE] border-[#8B5E3C]/12")
+          : theme.border
+      )}
     >
       <div className="space-y-4 flex flex-col flex-1">
         {/* Logo */}
         <div className="flex items-center gap-2 px-1">
-          <span className={`text-2xl font-extrabold tracking-widest font-serif ${theme.textSecondary}`}>
+          <span className={cn(
+            "text-2xl font-extrabold tracking-widest font-serif transition-colors duration-300",
+            isCreatePage
+              ? (isDark ? "text-[#F5F0E8]" : "text-[#8B5E3C]")
+              : theme.textSecondary
+          )}>
             VIBE
           </span>
         </div>
@@ -145,26 +171,38 @@ export function DesktopSidebar() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center justify-between px-2 py-2.5 rounded-[14px] transition-all duration-300 group ${isActive
-                  ? `${theme.navActive} font-semibold shadow-xs`
-                  : `${theme.navHover} text-opacity-80`
-                  }`}
+                className={cn(
+                  "flex items-center justify-between px-2 py-2.5 rounded-[14px] transition-all duration-300 group",
+                  isActive
+                    ? `${isCreatePage ? (isDark ? "bg-[#3D2A1F] text-[#F5F0E8]" : "bg-[#8B5E3C] text-[#FFFDF9]") : theme.navActive} font-semibold`
+                    : `${theme.navHover} ${isCreatePage ? (isDark ? "text-[#F5F0E8]" : "text-[#5A3A22]") : "text-opacity-80"}`
+                )}
               >
                 <span className="flex items-center gap-2">
                   <item.icon
-                    className={`h-[18px] w-[18px] transition-all duration-300 group-hover:scale-105 ${isActive
-                      ? theme.textSecondary
-                      : "opacity-75 group-hover:opacity-100"
-                      }`}
+                    className={cn(
+                      "h-[18px] w-[18px] transition-all duration-300 group-hover:scale-105",
+                      isActive
+                        ? (isCreatePage ? (isDark ? "text-[#F5F0E8]" : "text-[#FFFDF9]") : theme.textSecondary)
+                        : (isCreatePage ? (isDark ? "text-[#D2C5B4]" : "text-[#8B5E3C]") : "opacity-75 group-hover:opacity-100")
+                    )}
                   />
 
-                  <span className="text-[13px] font-medium tracking-wide">
+                  <span className={cn(
+                    "text-[13px] font-medium tracking-wide",
+                    isActive && isCreatePage && (isDark ? "text-[#F5F0E8]" : "text-[#FFFDF9]")
+                  )}>
                     {item.label}
                   </span>
                 </span>
 
                 {!!item.badge && item.badge > 0 && (
-                  <span className="h-5 min-w-[20px] px-1.5 flex items-center justify-center text-[10px] font-bold rounded-full bg-[#8B5E3C] text-white">
+                  <span className={cn(
+                    "h-5 min-w-[20px] px-1.5 flex items-center justify-center text-[10px] font-bold rounded-full",
+                    isCreatePage
+                      ? (isDark ? "bg-[#2A1D16] text-[#F5F0E8]" : "bg-[#5A3A22] text-[#FFFDF9]")
+                      : "bg-[#8B5E3C] text-white"
+                  )}>
                     {item.badge}
                   </span>
                 )}
@@ -180,16 +218,19 @@ export function DesktopSidebar() {
         <div className={`flex items-center justify-between p-2 rounded-[14px] ${theme.card} border ${theme.cardBorder}`}>
           <div className="flex items-center gap-2">
             {isDark ? <Moon className="h-3.5 w-3.5 text-[#8B5E3C]" /> : <Sun className="h-3.5 w-3.5 text-[#8B5E3C]" />}
-            <span className="text-[11px] font-medium tracking-wide">Dark Mode</span>
+            <span className={`text-[11px] font-medium tracking-wide ${isCreatePage ? (isDark ? "text-[#F5F0E8]" : "text-[#5A3A22]") : ""}`}>Dark Mode</span>
           </div>
           <button
             onClick={toggleDarkMode}
             className="w-9 h-5 bg-[#C8B9A6]/50 rounded-full relative p-0.5 transition-colors duration-300 focus:outline-none"
-            style={{ backgroundColor: isDark ? "#8B5E3C" : "" }}
+            style={{ backgroundColor: isDark ? "#8B5E3C" : (isCreatePage ? "#E6D3BE" : "") }}
             aria-label="Toggle Dark Mode"
           >
             <div
-              className="w-4 h-4 bg-[#F5F0E8] rounded-full shadow-xs transition-transform duration-300"
+              className={cn(
+                "w-4 h-4 rounded-full transition-transform duration-300",
+                isCreatePage ? (isDark ? "bg-[#2A1D16]" : "bg-[#FFFDF9]") : "bg-[#F5F0E8]"
+              )}
               style={{ transform: isDark ? "translateX(16px)" : "translateX(0px)" }}
             />
           </button>
@@ -210,7 +251,7 @@ export function DesktopSidebar() {
           </button>
         )}
 
-        {/* "Made with Love" Small Footer Card */}
+        {/* User profile card */}
         <div
           onClick={() => isAuthenticated && navigate("/profile")}
           className={`flex items-center gap-2 p-2 rounded-[14px] ${theme.card} border ${theme.cardBorder} cursor-pointer hover:opacity-90`}
@@ -221,8 +262,8 @@ export function DesktopSidebar() {
             className="h-6 w-6 rounded-full object-cover border border-[#8B5E3C]/30"
           />
           <div className="flex-1 min-w-0">
-            <p className="text-[9px] opacity-60">Find Your VIBE(●'◡'●)</p>
-            <p className="text-[11px] font-semibold truncate">{user?.username || "vibe_user"}</p>
+            <p className={`text-[9px] ${isCreatePage ? (isDark ? "text-[#D2C5B4]" : "text-[#8B5E3C]") : "opacity-60"}`}>Find Your VIBE(●'◡'●)</p>
+            <p className={`text-[11px] font-semibold truncate ${isCreatePage ? (isDark ? "text-[#F5F0E8]" : "text-[#5A3A22]") : ""}`}>{user?.username || "vibe_user"}</p>
           </div>
         </div>
       </div>
