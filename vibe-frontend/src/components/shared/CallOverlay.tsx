@@ -155,7 +155,7 @@ export function CallOverlay({
         socket.emit("ice_candidate", {
           candidate: event.candidate,
           recipientId: targetId,
-          senderId: user?.id
+          senderId: user?.id || user?._id
         });
       }
     };
