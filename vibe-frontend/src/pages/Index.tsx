@@ -897,8 +897,9 @@ export default function Index() {
                               </div>
                               <h4 className="text-xs font-bold truncate max-w-[130px] group-hover/suggested:underline">{creator.name}</h4>
                               <p className="text-[9px] opacity-65 font-medium mt-0.5 truncate max-w-[130px]">{creator.bio || "Content Creator"}</p>
+                            </div>
 
-                              <button
+                            <button
                                 onClick={() => handleFollowCreator(creator)}
                                 className={`w-full mt-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${creator.isFollowing ? theme.accentButtonSecondary : theme.accentButton
                                   }`}
