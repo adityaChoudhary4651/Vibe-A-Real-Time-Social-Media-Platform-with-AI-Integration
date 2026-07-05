@@ -100,23 +100,26 @@ export function DesktopSidebar() {
 
     window.addEventListener("messagesRead", fetchCounts);
 
-    if (socket) {
-      socket.on("receive_message", () => {
-        if (location.pathname !== "/messages") {
-          setUnreadMsgCount(prev => prev + 1);
-        }
-      });
+    const handleMsg = () => {
+      if (location.pathname !== "/messages") {
+        setUnreadMsgCount(prev => prev + 1);
+      }
+    };
 
-      socket.on("notification", () => {
-        setUnreadCount(prev => prev + 1);
-      });
+    const handleNotif = () => {
+      setUnreadCount(prev => prev + 1);
+    };
+
+    if (socket) {
+      socket.on("receive_message", handleMsg);
+      socket.on("notification", handleNotif);
     }
 
     return () => {
       window.removeEventListener("messagesRead", fetchCounts);
       if (socket) {
-        socket.off("receive_message");
-        socket.off("notification");
+        socket.off("receive_message", handleMsg);
+        socket.off("notification", handleNotif);
       }
     };
   }, [isAuthenticated, socket, location.pathname]);
@@ -269,18 +272,20 @@ export function MobileBottomNav() {
 
     window.addEventListener("messagesRead", fetchCount);
 
+    const handleMsg = () => {
+      if (location.pathname !== "/messages") {
+        setUnreadMsgCount(prev => prev + 1);
+      }
+    };
+
     if (socket) {
-      socket.on("receive_message", () => {
-        if (location.pathname !== "/messages") {
-          setUnreadMsgCount(prev => prev + 1);
-        }
-      });
+      socket.on("receive_message", handleMsg);
     }
 
     return () => {
       window.removeEventListener("messagesRead", fetchCount);
       if (socket) {
-        socket.off("receive_message");
+        socket.off("receive_message", handleMsg);
       }
     };
   }, [isAuthenticated, socket, location.pathname]);
@@ -411,22 +416,26 @@ export function MobileHeader() {
 
     window.addEventListener("messagesRead", fetchCounts);
     
+    const handleMsg = () => {
+      if (location.pathname !== "/messages") {
+        setUnreadMsgCount(prev => prev + 1);
+      }
+    };
+
+    const handleNewNotif = () => {
+      setUnreadCount(prev => prev + 1);
+    };
+
     if (socket) {
-      socket.on("receive_message", () => {
-        if (location.pathname !== "/messages") {
-          setUnreadMsgCount(prev => prev + 1);
-        }
-      });
-      socket.on("new_notification", () => {
-        setUnreadCount(prev => prev + 1);
-      });
+      socket.on("receive_message", handleMsg);
+      socket.on("new_notification", handleNewNotif);
     }
 
     return () => {
       window.removeEventListener("messagesRead", fetchCounts);
       if (socket) {
-        socket.off("receive_message");
-        socket.off("new_notification");
+        socket.off("receive_message", handleMsg);
+        socket.off("new_notification", handleNewNotif);
       }
     };
   }, [isAuthenticated, socket, location.pathname]);
