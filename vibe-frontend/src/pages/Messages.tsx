@@ -19,7 +19,8 @@ import {
   Mic,
   PlusSquare,
   Sparkles,
-  CheckCheck
+  CheckCheck,
+  Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
