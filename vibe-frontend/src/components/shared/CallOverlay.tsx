@@ -68,6 +68,7 @@ export function CallOverlay({
   const [isPip, setIsPip] = useState(false);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
+  const localHiddenVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -94,6 +95,24 @@ export function CallOverlay({
   }, [callStatus]);
 
   /* =====================
+     STREAM BINDING EFFECTS
+  ===================== */
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+    if (localHiddenVideoRef.current && localStream) {
+      localHiddenVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream, callStatus, isVideoOff, isPip]);
+
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream, callStatus]);
+
+  /* =====================
      LOCAL STREAM CAPTURE
   ===================== */
   const startLocalStream = async (type: "voice" | "video"): Promise<MediaStream> => {
@@ -104,9 +123,6 @@ export function CallOverlay({
       };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setLocalStream(stream);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
       return stream;
     } catch (err) {
       toast.error("Failed to access camera or microphone");
@@ -131,9 +147,6 @@ export function CallOverlay({
     pc.ontrack = (event) => {
       const rStream = event.streams[0];
       setRemoteStream(rStream);
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = rStream;
-      }
     };
 
     // Gather ICE Candidates
@@ -520,7 +533,7 @@ export function CallOverlay({
 
       {/* HIDDEN INLINE LOCAL PREVIEW VIDEO ELEMENT FOR TRACK ATTACHMENT */}
       <video
-        ref={localVideoRef}
+        ref={localHiddenVideoRef}
         autoPlay
         muted
         playsInline
