@@ -303,7 +303,13 @@ export default function Notifications() {
                       )}
                     >
                       {/* User profile picture with type indicator badge */}
-                      <div className="relative flex-shrink-0">
+                      <div 
+                        className="relative flex-shrink-0 cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/profile/${n.sender.username}`);
+                        }}
+                      >
                         <Avatar className="h-11 w-11 border border-[#8B5E3C]/10">
                           <AvatarImage src={resolveUrl(n.sender.avatar)} />
                           <AvatarFallback className={themeTextSecondary}>
@@ -321,7 +327,13 @@ export default function Notifications() {
                       {/* Text description */}
                       <div className="flex-1 min-w-0 text-left">
                         <p className="text-xs font-semibold">
-                          <span className={cn("font-extrabold hover:underline", themeTextPrimary)}>
+                          <span 
+                            className={cn("font-extrabold hover:underline cursor-pointer", themeTextPrimary)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/profile/${n.sender.username}`);
+                            }}
+                          >
                             {n.sender.username}
                           </span>{" "}
                           <span className={cn("opacity-80", themeTextPrimary)}>

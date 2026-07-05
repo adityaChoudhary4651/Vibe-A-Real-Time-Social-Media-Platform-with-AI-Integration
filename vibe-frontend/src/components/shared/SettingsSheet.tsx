@@ -1,4 +1,4 @@
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { User, Lock, Bell, Moon, HelpCircle, LogOut, LogIn, UserPlus, ChevronRight, Shield, Palette } from "lucide-react";
 import { motion } from "framer-motion";
@@ -26,7 +26,7 @@ const settingsGroups = [
   {
     title: "Support",
     items: [
-      { id: "help", icon: HelpCircle, label: "Help Center" },
+      { id: "help", icon: HelpCircle, label: "Help & Support" },
     ],
   },
 ];
@@ -64,7 +64,6 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
     logout();
     toast.success("Logged out successfully");
     onOpenChange(false);
-    navigate("/auth");
   };
 
   const handleLogin = () => {
@@ -82,6 +81,7 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
       <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader className="pb-6">
           <SheetTitle>Settings</SheetTitle>
+          <SheetDescription className="hidden">Manage your account settings and preferences.</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-6">

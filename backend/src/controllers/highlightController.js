@@ -17,7 +17,10 @@ export const createHighlight = async (req, res) => {
       stories: storyIds,
     });
 
-    const populated = await highlight.populate("stories");
+    const populated = await highlight.populate({
+      path: "stories",
+      populate: { path: "user", select: "username avatar name" }
+    });
     res.status(201).json(populated);
   } catch (err) {
     res.status(500).json({ message: "Failed to create highlight" });
@@ -34,7 +37,10 @@ export const getUserHighlights = async (req, res) => {
     }
 
     const highlights = await Highlight.find({ user: user._id })
-      .populate("stories")
+      .populate({
+        path: "stories",
+        populate: { path: "user", select: "username avatar name" }
+      })
       .sort({ createdAt: -1 });
 
     res.json(highlights);

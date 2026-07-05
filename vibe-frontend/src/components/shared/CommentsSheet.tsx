@@ -55,6 +55,13 @@ export function CommentsSheet({
   const [isSending, setIsSending] = useState(false);
   const [liking, setLiking] = useState<Set<string>>(new Set());
   const [openMenuCommentId, setOpenMenuCommentId] = useState<string | null>(null);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 640);
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 640);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   /* ======================
      REAL-TIME UPDATES
@@ -92,7 +99,8 @@ export function CommentsSheet({
     if (onCommentAdded) {
       onCommentAdded(comments.length);
     }
-  }, [comments.length, onCommentAdded]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comments.length]);
 
   /* ======================
      FETCH COMMENTS
@@ -218,7 +226,13 @@ const handleLikeComment = async (commentId: string) => {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[70vh] rounded-t-3xl px-0">
+      <SheetContent 
+        side={isDesktop ? "right" : "bottom"} 
+        className={cn(
+          "px-0 flex flex-col",
+          isDesktop ? "w-[33vw] min-w-[320px] max-w-[400px] sm:max-w-none h-full border-l border-border" : "h-[70vh] rounded-t-3xl"
+        )}
+      >
         <SheetHeader className="px-4 pb-4 border-b border-border">
           <SheetTitle className="text-center">Comments</SheetTitle>
         </SheetHeader>

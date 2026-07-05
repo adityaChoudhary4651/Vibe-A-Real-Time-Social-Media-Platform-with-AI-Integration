@@ -37,11 +37,16 @@ import { EditProfileModal } from "@/components/shared/EditProfileModal";
 import { SettingsSheet } from "@/components/shared/SettingsSheet";
 import { StoryViewer } from "@/components/shared/StoryViewer";
 import { CreateHighlightSheet } from "@/components/shared/CreateHighlightSheet";
+import { CommentsSheet } from "@/components/shared/CommentsSheet";
+import { ShareSheet } from "@/components/shared/ShareSheet";
+import { ProfileFeedViewer } from "@/components/profile/ProfileFeedViewer";
+import { FeedPost } from "@/components/post/FeedPostCard";
 import {
   getMyPosts,
   getPublicProfile,
   getPostsByUsername,
   toggleFollow,
+  toggleLike,
 } from "@/api/posts";
 import { updateProfile } from "@/api/profile";
 import { createConversation } from "@/api/conversations";
@@ -67,12 +72,9 @@ type ProfileUser = {
   _id?: string;
 };
 
-type ProfilePost = {
-  _id: string;
+type ProfilePost = FeedPost & {
   mediaUrl?: string;
-  imageUrl?: string;
   type: "post";
-  likes?: string[];
 };
 
 export default function Profile() {
@@ -97,6 +99,10 @@ export default function Profile() {
   const [activeViewerStories, setActiveViewerStories] = useState<any[]>([]);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [feedViewerPostId, setFeedViewerPostId] = useState<string | null>(null);
+  
+  const [activeCommentsPostId, setActiveCommentsPostId] = useState<string | null>(null);
+  const [showShare, setShowShare] = useState(false);
 
   const [postsPage, setPostsPage] = useState(1);
   const [postsHasMore, setPostsHasMore] = useState(true);
@@ -420,7 +426,7 @@ export default function Profile() {
 
   return (
     <div className={cn(
-      "w-full h-full flex flex-col lg:flex-row gap-5 p-3 md:p-4.5 lg:p-5 overflow-hidden select-none transition-colors duration-300",
+      "w-full h-auto lg:h-full flex flex-col lg:flex-row gap-5 p-3 md:p-4.5 lg:p-5 overflow-y-auto lg:overflow-hidden select-none transition-colors duration-300",
       isDark ? "bg-[#1F140E] text-[#F5F0E8]" : "bg-[#F8F4EE] text-[#5A3A22]"
     )}>
       
@@ -429,16 +435,16 @@ export default function Profile() {
           ======================================================== */}
       <div
         id="profile-center-scroll"
-        className="flex-1 flex flex-col gap-6 overflow-y-auto pr-1 h-full scrollbar-none"
+        className="w-full lg:flex-1 flex flex-col gap-6 h-auto lg:h-full lg:overflow-y-auto pr-0 lg:pr-1 scrollbar-none"
       >
         
         {/* Profile Card Header */}
         <Card variant="outline" className={cn(
-          "rounded-[24px] border p-5 flex flex-col transition-colors duration-300",
+          "rounded-[24px] border p-3.5 sm:p-4.5 lg:p-5 flex flex-col transition-colors duration-300",
           themeCard, themeBorder
         )}>
           {/* Banner cover Image */}
-          <div className="relative h-[200px] w-full rounded-[20px] overflow-hidden flex-shrink-0 border border-transparent group/banner">
+          <div className="relative h-[130px] sm:h-[165px] lg:h-[190px] w-full rounded-[20px] overflow-hidden flex-shrink-0 border border-transparent group/banner">
             <img
               src={resolveUrl(user.coverPhoto) || "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&q=80"}
               alt="Banner cover"
@@ -664,61 +670,61 @@ export default function Profile() {
           themeCard, themeBorder
         )}>
           <div className="grid grid-cols-4 divide-x divide-[#8B5E3C]/12 dark:divide-[#3D2A1F]">
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3">
               <div className={cn(
-                "h-8.5 w-8.5 rounded-full flex items-center justify-center",
+                "h-8 w-8 sm:h-8.5 sm:w-8.5 rounded-full flex items-center justify-center",
                 isDark ? "bg-[#3D2A1F]" : "bg-[#F2E8DC]/60"
               )}>
-                <Grid3X3 className={cn("h-4.5 w-4.5 stroke-[2.2]", themeTextSecondary)} />
+                <Grid3X3 className={cn("h-4 w-4 sm:h-4.5 sm:w-4.5 stroke-[2.2]", themeTextSecondary)} />
               </div>
-              <div className="text-left">
+              <div className="text-center sm:text-left">
                 <p className={cn("text-sm font-extrabold leading-none", themeTextPrimary)}>{posts.length}</p>
-                <p className={cn("text-[9px] font-bold uppercase tracking-wider leading-none mt-1", themeTextSecondary)}>Posts</p>
+                <p className={cn("text-[8px] sm:text-[9px] font-bold uppercase tracking-wider leading-none mt-1 sm:mt-1.5", themeTextSecondary)}>Posts</p>
               </div>
             </div>
 
             <Link
               to={`/profile/${user.username}/followers`}
-              className="flex items-center justify-center gap-3 hover:opacity-85 active:scale-95 transition-all cursor-pointer"
+              className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 hover:opacity-85 active:scale-95 transition-all cursor-pointer"
             >
               <div className={cn(
-                "h-8.5 w-8.5 rounded-full flex items-center justify-center",
+                "h-8 w-8 sm:h-8.5 sm:w-8.5 rounded-full flex items-center justify-center",
                 isDark ? "bg-[#3D2A1F]" : "bg-[#F2E8DC]/60"
               )}>
-                <Users className={cn("h-4.5 w-4.5 stroke-[2.2]", themeTextSecondary)} />
+                <Users className={cn("h-4 w-4 sm:h-4.5 sm:w-4.5 stroke-[2.2]", themeTextSecondary)} />
               </div>
-              <div className="text-left">
+              <div className="text-center sm:text-left">
                 <p className={cn("text-sm font-extrabold leading-none", themeTextPrimary)}>{user.followers}</p>
-                <p className={cn("text-[9px] font-bold uppercase tracking-wider leading-none mt-1", themeTextSecondary)}>Followers</p>
+                <p className={cn("text-[8px] sm:text-[9px] font-bold uppercase tracking-wider leading-none mt-1 sm:mt-1.5", themeTextSecondary)}>Followers</p>
               </div>
             </Link>
 
             <Link
               to={`/profile/${user.username}/following`}
-              className="flex items-center justify-center gap-3 hover:opacity-85 active:scale-95 transition-all cursor-pointer"
+              className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3 hover:opacity-85 active:scale-95 transition-all cursor-pointer"
             >
               <div className={cn(
-                "h-8.5 w-8.5 rounded-full flex items-center justify-center",
+                "h-8 w-8 sm:h-8.5 sm:w-8.5 rounded-full flex items-center justify-center",
                 isDark ? "bg-[#3D2A1F]" : "bg-[#F2E8DC]/60"
               )}>
-                <Users className={cn("h-4.5 w-4.5 stroke-[2.2]", themeTextSecondary)} />
+                <Users className={cn("h-4 w-4 sm:h-4.5 sm:w-4.5 stroke-[2.2]", themeTextSecondary)} />
               </div>
-              <div className="text-left">
+              <div className="text-center sm:text-left">
                 <p className={cn("text-sm font-extrabold leading-none", themeTextPrimary)}>{user.following}</p>
-                <p className={cn("text-[9px] font-bold uppercase tracking-wider leading-none mt-1", themeTextSecondary)}>Following</p>
+                <p className={cn("text-[8px] sm:text-[9px] font-bold uppercase tracking-wider leading-none mt-1 sm:mt-1.5", themeTextSecondary)}>Following</p>
               </div>
             </Link>
 
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-3">
               <div className={cn(
-                "h-8.5 w-8.5 rounded-full flex items-center justify-center",
+                "h-8 w-8 sm:h-8.5 sm:w-8.5 rounded-full flex items-center justify-center",
                 isDark ? "bg-[#3D2A1F]" : "bg-[#F2E8DC]/60"
               )}>
-                <Bookmark className={cn("h-4.5 w-4.5 stroke-[2.2]", themeTextSecondary)} />
+                <Bookmark className={cn("h-4 w-4 sm:h-4.5 sm:w-4.5 stroke-[2.2]", themeTextSecondary)} />
               </div>
-              <div className="text-left">
+              <div className="text-center sm:text-left">
                 <p className={cn("text-sm font-extrabold leading-none", themeTextPrimary)}>18</p>
-                <p className={cn("text-[9px] font-bold uppercase tracking-wider leading-none mt-1", themeTextSecondary)}>Saved</p>
+                <p className={cn("text-[8px] sm:text-[9px] font-bold uppercase tracking-wider leading-none mt-1 sm:mt-1.5", themeTextSecondary)}>Saved</p>
               </div>
             </div>
           </div>
@@ -784,7 +790,7 @@ export default function Profile() {
           "rounded-[24px] border p-1.5 flex items-center justify-between transition-colors duration-300",
           themeCard, themeBorder
         )}>
-          <div className="flex gap-1.5">
+          <div className="flex gap-1 sm:gap-1.5">
             {[
               { id: "posts" as const, label: "Posts", icon: Grid3X3 },
               { id: "reels" as const, label: "Reels", icon: Film },
@@ -803,7 +809,7 @@ export default function Profile() {
                     }
                   }}
                   className={cn(
-                    "py-1.5 px-4 rounded-full text-xs font-bold transition-all duration-200 border-none active:scale-95 flex items-center gap-1.5 cursor-pointer",
+                    "py-1.5 px-2.5 sm:px-4 rounded-full text-[11px] sm:text-xs font-bold transition-all duration-200 border-none active:scale-95 flex items-center gap-1 sm:gap-1.5 cursor-pointer",
                     isActive
                       ? (isDark ? "bg-[#3D2A1F] text-[#F5F0E8]" : "bg-[#8B5E3C] text-white")
                       : (isDark ? "bg-transparent text-[#D2C5B4] hover:bg-[#3D2A1F]/30" : "bg-transparent text-[#8B5E3C] hover:bg-[#F2E8DC]/40")
@@ -855,15 +861,21 @@ export default function Profile() {
                 )}
 
                 {/* Hover overlay with Like count and Deletion triggers */}
-                <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-3.5 text-white">
+                <div 
+                  onClick={() => setFeedViewerPostId(post._id)}
+                  className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-3.5 text-white cursor-pointer"
+                >
                   <div className="flex justify-between items-center">
-                    <Link to={`/post/${post._id}`} className="text-[10px] font-bold text-white/90 hover:underline">
+                    <span className="text-[10px] font-bold text-white/90 hover:underline">
                       View Post
-                    </Link>
+                    </span>
                     {isOwnProfile && (
                       <button
-                        onClick={() => handleDeletePost(post._id)}
-                        className="w-7 h-7 rounded-full flex items-center justify-center bg-red-600 hover:bg-red-700 border-none text-white cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePost(post._id);
+                        }}
+                        className="w-7 h-7 rounded-full flex items-center justify-center bg-red-600 hover:bg-red-700 border-none text-white cursor-pointer z-10"
                         title="Delete Post"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -891,7 +903,7 @@ export default function Profile() {
           2. RIGHT COLUMN: About & Suggested Panels (Independently scrollable)
           ======================================================== */}
       <div
-        className="w-full lg:w-[320px] shrink-0 flex flex-col gap-6 overflow-y-auto pr-1 h-full scrollbar-none select-none"
+        className="w-full lg:w-[320px] shrink-0 flex flex-col gap-6 h-auto lg:h-full lg:overflow-y-auto pr-0 lg:pr-1 scrollbar-none select-none pb-24 lg:pb-0"
       >
         
         {/* About Me Card */}
@@ -1050,6 +1062,59 @@ export default function Profile() {
           }}
         />
       )}
+
+      {/* Feed Viewer Overlay */}
+      {feedViewerPostId && (
+        <ProfileFeedViewer
+          posts={displayedPosts.map(p => ({
+            ...p,
+            imageUrl: resolveUrl(p.mediaUrl || p.imageUrl || ""),
+            caption: p.caption || "",
+            author: p.author || { _id: user?._id || "", name: user?.name || user?.username || "Unknown" },
+            comments: p.comments || [],
+            createdAt: p.createdAt || "Just now",
+            likes: p.likes || []
+          }))}
+          initialPostId={feedViewerPostId}
+          onClose={() => setFeedViewerPostId(null)}
+          onLike={async (id) => {
+            try {
+              if (token) await toggleLike(token, id);
+              // Optimistically update local state if needed
+              setPosts(posts.map(p => {
+                if (p._id === id) {
+                  const isLiked = p.isLiked;
+                  return {
+                    ...p,
+                    isLiked: !isLiked,
+                    likes: isLiked ? (p.likes || []).slice(1) : [...(p.likes || []), "new_like"]
+                  };
+                }
+                return p;
+              }));
+            } catch (err) {
+              console.error(err);
+            }
+          }}
+          onCommentClick={setActiveCommentsPostId}
+          onShareClick={() => setShowShare(true)}
+          onTipClick={() => {}}
+        />
+      )}
+
+      <CommentsSheet
+        open={activeCommentsPostId !== null}
+        onOpenChange={(open) => !open && setActiveCommentsPostId(null)}
+        postId={activeCommentsPostId || ""}
+        onCommentAdded={(count) => {
+          // Optimistic UI update or re-fetch could go here
+        }}
+      />
+
+      <ShareSheet
+        open={showShare}
+        onOpenChange={setShowShare}
+      />
     </div>
   );
 }

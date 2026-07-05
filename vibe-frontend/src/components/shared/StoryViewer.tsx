@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { BackendStory } from "@/types/story";
 import { useAuth } from "@/contexts/AuthContext";
-import { API_BASE_URL } from "../../config";
+import { API_BASE_URL, resolveUrl } from "../../config";
 import axios from "axios";
 
 /* ======================
@@ -76,8 +76,8 @@ export function StoryViewer({
 
   if (!story) return null;
 
-  const mediaSrc = story.mediaUrl;     // 🔒 NO PREFIXING
-  const avatarSrc = story.user.avatar || "";
+  const mediaSrc = resolveUrl(story.mediaUrl);
+  const avatarSrc = story.user?.avatar ? resolveUrl(story.user.avatar) : "";
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex items-center justify-center">
@@ -102,14 +102,14 @@ export function StoryViewer({
               />
             ) : (
               <div className="h-9 w-9 rounded-full bg-zinc-700 flex items-center justify-center text-white text-sm font-medium">
-                {story.user.username.charAt(0).toUpperCase()}
+                {(story.user?.username || "U").charAt(0).toUpperCase()}
               </div>
             )}
 
             {/* USERNAME + TIME */}
             <div className="flex flex-col">
               <span className="text-sm text-white font-medium">
-                {story.user.username}
+                {story.user?.username || "Unknown"}
               </span>
               <span className="text-xs text-white/60">
                 {formatStoryTime(story.createdAt)}

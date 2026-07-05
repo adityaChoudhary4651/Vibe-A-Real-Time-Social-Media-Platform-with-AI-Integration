@@ -20,7 +20,10 @@ import {
   Lightbulb,
   Save,
   Send,
-  ChevronRight
+  ChevronRight,
+  MessageSquare,
+  Heart,
+  Share2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -397,7 +400,7 @@ export default function Create() {
 
   return (
     <div className={cn(
-      "w-full h-screen overflow-hidden font-sans flex flex-col xl:flex-row p-3 md:p-4.5 lg:p-5 gap-5 transition-colors duration-300",
+      "w-full h-[calc(100dvh-78px-env(safe-area-inset-bottom))] lg:h-screen overflow-hidden font-sans flex flex-col xl:flex-row p-3 pb-1 lg:p-5 lg:gap-5 transition-colors duration-300",
       isDark ? "bg-[#1F140E] text-[#F5F0E8]" : "bg-[#F8F4EE] text-[#5A3A22]"
     )}>
       {/* ========================================================
@@ -405,12 +408,31 @@ export default function Create() {
              Rendered in a single grand soft-edged card matching mockup
           ======================================================== */}
       <Card variant="outline" className={cn(
-        "flex-1 rounded-[24px] border p-5 flex flex-col justify-between h-full min-h-0 overflow-hidden relative select-none transition-colors duration-300",
-        themeCard, themeBorder
+        "flex-1 border-none bg-transparent p-0 lg:border lg:p-5 flex flex-col justify-start lg:justify-between h-full min-h-0 overflow-hidden relative select-none transition-colors duration-300 shadow-none lg:shadow-sm",
+        isDark ? "lg:bg-[#2A1D16] lg:border-[#3D2A1F]" : "lg:bg-[#FFFDF9] lg:border-[#E3D8C8]"
       )}>
 
+        {/* MOBILE HEADER */}
+        <div className="flex lg:hidden justify-between items-center mb-3 mt-1 flex-shrink-0">
+          <div>
+            <h1 className={cn("text-lg font-extrabold tracking-tight leading-none", themeTextPrimary)}>Create something new</h1>
+            <p className={cn("text-[10px] flex items-center gap-1 mt-1 font-medium", themeTextSecondary)}>
+              Share your moments, your way <Sparkles className={cn("h-3 w-3", isDark ? "text-[#FFB07C]" : "text-[#8B5E3C]")} />
+            </p>
+          </div>
+          <button
+            onClick={() => navigate("/")}
+            className={cn(
+              "w-8 h-8 rounded-full flex items-center justify-center transition-colors border active:scale-95",
+              isDark ? "bg-[#1F140E]/40 border-[#3D2A1F] text-[#D2C5B4]" : "bg-[#F2E8DC]/40 border-[#8B5E3C]/12 text-[#8B5E3C]"
+            )}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
         {/* HEADER */}
-        <div className="flex justify-between items-start mb-4 flex-shrink-0">
+        <div className="hidden lg:flex justify-between items-start mb-4 flex-shrink-0">
           <div>
             <h1 className={cn("text-3xl font-extrabold font-serif tracking-tight leading-none mb-1 transition-colors duration-300", themeTextPrimary)}>
               Create something new
@@ -433,8 +455,8 @@ export default function Create() {
 
         {/* MEDIA SWITCHER TABS */}
         <div className={cn(
-          "grid grid-cols-3 rounded-[20px] p-1.5 mb-4 max-w-lg border flex-shrink-0 transition-colors duration-300",
-          isDark ? "bg-[#1F140E]/40 border-[#3D2A1F]" : "bg-[#F2E8DC]/40 border-[#8B5E3C]/8"
+          "grid grid-cols-3 rounded-[16px] lg:rounded-[20px] p-1.5 mb-3 lg:mb-4 w-full max-w-none lg:max-w-lg border flex-shrink-0 transition-colors duration-300",
+          isDark ? "bg-[#140C09] border-[#3D2A1F]/30" : "bg-[#F2E8DC]/40 border-[#8B5E3C]/8"
         )}>
           {mediaTypes.map((type) => {
             const isActive = mediaType === type.id;
@@ -446,10 +468,10 @@ export default function Create() {
                   clearSelected();
                 }}
                 className={cn(
-                  "relative flex items-center justify-center gap-2 py-2.5 rounded-[16px] text-xs font-bold transition-all duration-300",
+                  "relative flex items-center justify-center gap-2 py-2 lg:py-2.5 rounded-[12px] lg:rounded-[16px] text-xs font-bold transition-all duration-300",
                   isActive
                     ? (isDark ? "bg-[#3D2A1F] text-[#F5F0E8]" : "bg-[#8B5E3C] text-[#FFFDF9]")
-                    : (isDark ? "text-[#D2C5B4]/85 hover:bg-[#3D2A1F]/30 hover:text-[#F5F0E8]" : "text-[#8B5E3C]/85 hover:bg-[#8B5E3C]/6 hover:text-[#5A3A22]")
+                    : (isDark ? "text-[#D2C5B4]/80 hover:bg-[#3D2A1F]/30 hover:text-[#F5F0E8]" : "text-[#8B5E3C]/80 hover:bg-[#8B5E3C]/6 hover:text-[#5A3A22]")
                 )}
               >
                 <type.icon className="h-4 w-4 stroke-[2.2]" />
@@ -457,11 +479,11 @@ export default function Create() {
                 {isActive && (
                   <motion.div
                     layoutId="activeTabBadge"
-                    className="absolute right-2 md:right-3 w-4 h-4 rounded-full flex items-center justify-center scale-90"
-                    style={{ backgroundColor: isDark ? "#140C09" : "#FFFDF9" }}
+                    className="absolute right-1.5 w-3.5 h-3.5 rounded-full flex items-center justify-center scale-90"
+                    style={{ backgroundColor: "#FFFDF9" }}
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   >
-                    <Check className={cn("h-2.5 w-2.5 stroke-[3]", themeTextSecondary)} />
+                    <Check className="h-2 w-2 stroke-[3.5] text-[#8B5E3C]" />
                   </motion.div>
                 )}
               </button>
@@ -470,12 +492,12 @@ export default function Create() {
         </div>
 
         {/* DOUBLE COLUMN CREATION WORKSPACE */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-stretch flex-1 min-h-0 mb-4 overflow-y-auto lg:overflow-hidden pr-2 lg:pr-0">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-3 lg:gap-6 items-stretch flex-1 min-h-0 mb-2 lg:mb-4 overflow-hidden pr-0">
 
           {/* LEFT SIDE: Media Upload Card */}
           <div className={cn(
-            "border rounded-[24px] p-5 flex flex-col justify-between h-[350px] lg:h-full min-h-0 lg:overflow-hidden transition-colors duration-300",
-            themeCard, themeBorder
+            "border rounded-[20px] lg:rounded-[24px] p-3 lg:p-5 flex flex-col justify-between flex-[1] min-h-[90px] max-h-[170px] lg:h-full lg:min-h-0 lg:max-h-none overflow-hidden transition-colors duration-300 flex-shrink-1",
+            themeCard, themeBorder, themeTextPrimary
           )}>
             <div className="flex-1 flex flex-col justify-center items-center min-h-0 overflow-hidden w-full">
               <AnimatePresence mode="wait">
@@ -515,7 +537,7 @@ export default function Create() {
                 ) : (
                   <label
                     className={cn(
-                      "w-full h-full border border-dashed rounded-[20px] flex flex-col items-center justify-center cursor-pointer p-4 transition-colors group min-h-0",
+                      "w-full h-full border border-dashed rounded-[16px] lg:rounded-[20px] flex flex-col items-center justify-center cursor-pointer p-3 lg:p-4 transition-colors group min-h-0",
                       isDark ? "border-[#3D2A1F]/60 bg-[#2A1D16]/10 hover:border-[#D2C5B4]/50" : "border-[#8B5E3C]/20 bg-[#F2E8DC]/5 hover:border-[#8B5E3C]/40"
                     )}
                     onDragOver={(e) => e.preventDefault()}
@@ -526,22 +548,18 @@ export default function Create() {
                       }
                     }}
                   >
-                    <UploadIllustration isDark={isDark} />
-                    <span className={cn("text-base font-bold tracking-tight mb-0.5 transition-colors", themeTextPrimary)}>
-                      Add a {mediaType === "reel" ? "video" : "photo"}
-                    </span>
-                    <span className={cn("text-xs font-semibold mb-3", themeTextSecondary)}>
-                      Drag & drop or click to browse
-                    </span>
-
-                    {/* Divider line */}
-                    <div className="flex items-center gap-2 w-full max-w-[130px] opacity-40 mb-3 flex-shrink-0">
-                      <div className={cn("h-[1px] flex-1", isDark ? "bg-[#D2C5B4]" : "bg-[#8B5E3C]")} />
-                      <span className={cn("text-[9px] font-bold tracking-wider uppercase", themeTextSecondary)}>or select from</span>
-                      <div className={cn("h-[1px] flex-1", isDark ? "bg-[#D2C5B4]" : "bg-[#8B5E3C]")} />
+                    <div className="flex flex-col items-center justify-center flex-shrink-1 min-h-0 scale-90 lg:scale-100">
+                      <div className="relative mb-2">
+                        <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", isDark ? "bg-[#3D2A1F] text-[#D2C5B4]" : "bg-[#8B5E3C]/10 text-[#8B5E3C]")}>
+                          <Plus className="h-5 w-5 stroke-[3]" />
+                        </div>
+                      </div>
+                      <span className={cn("text-xs font-extrabold tracking-tight mb-0.5", themeTextPrimary)}>
+                        Add a {mediaType === "reel" ? "video" : "photo"}
+                      </span>
                     </div>
 
-                    <div className="flex gap-2 flex-shrink-0">
+                    <div className="flex gap-2 flex-shrink-0 mt-1">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -549,11 +567,11 @@ export default function Create() {
                           fileInputRef.current?.click();
                         }}
                         className={cn(
-                          "border rounded-[14px] py-1.5 px-4 text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5",
+                          "border rounded-[12px] py-1 px-3 text-[10px] font-bold transition-all active:scale-95 flex items-center gap-1",
                           isDark ? "bg-[#2A1D16] border-[#3D2A1F] text-[#D2C5B4] hover:bg-[#1F140E]" : "bg-[#FFFDF9] border-[#8B5E3C]/12 text-[#8B5E3C] hover:bg-[#F2E8DC]"
                         )}
                       >
-                        <Image className="h-3.5 w-3.5 stroke-[2.2]" />
+                        <Image className="h-3 w-3 stroke-[2.2]" />
                         Gallery
                       </button>
                       <button
@@ -563,11 +581,11 @@ export default function Create() {
                           fileInputRef.current?.click();
                         }}
                         className={cn(
-                          "border rounded-[14px] py-1.5 px-4 text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5",
+                          "border rounded-[12px] py-1 px-3 text-[10px] font-bold transition-all active:scale-95 flex items-center gap-1",
                           isDark ? "bg-[#2A1D16] border-[#3D2A1F] text-[#D2C5B4] hover:bg-[#1F140E]" : "bg-[#FFFDF9] border-[#8B5E3C]/12 text-[#8B5E3C] hover:bg-[#F2E8DC]"
                         )}
                       >
-                        <Camera className="h-3.5 w-3.5 stroke-[2.2]" />
+                        <Camera className="h-3 w-3 stroke-[2.2]" />
                         Camera
                       </button>
                     </div>
@@ -587,7 +605,7 @@ export default function Create() {
             </div>
 
             {/* PREVIEWS & THUMBNAILS ROW */}
-            <div className={cn("mt-3 pt-3 border-t flex items-center gap-3 overflow-x-auto min-h-[48px] flex-shrink-0 scrollbar-none", themeBorder)}>
+            <div className={cn("hidden lg:flex mt-3 pt-3 border-t items-center gap-3 overflow-x-auto min-h-[48px] flex-shrink-0 scrollbar-none", themeBorder)}>
               {previewUrl && (
                 <div className={cn("relative w-10 h-10 rounded-[12px] overflow-hidden border flex-shrink-0 group", themeBorder)}>
                   {mediaType === "reel" ? (
@@ -618,222 +636,233 @@ export default function Create() {
           </div>
 
           {/* RIGHT SIDE: Caption Editor & AI Generator */}
-          <div className="flex flex-col gap-4 h-full min-h-0 overflow-hidden">
+          <div className="flex flex-col gap-2.5 flex-[1.4] min-h-[150px] lg:h-full lg:min-h-0 overflow-hidden pb-0">
 
-            {/* Caption Card (Strictly Static - Fits within layout) */}
+            {/* Caption Card */}
             <div className={cn(
-              "border rounded-[24px] p-4 flex flex-col justify-between flex-1 min-h-0 overflow-hidden transition-colors duration-300",
-              themeCard, themeBorder
+              "border rounded-[20px] lg:rounded-[24px] p-3 flex flex-col justify-between flex-1 min-h-[70px] max-h-[110px] lg:h-auto lg:min-h-0 lg:max-h-none overflow-hidden transition-colors duration-300",
+              themeCard, themeBorder, themeTextPrimary
             )}>
-              <div className="flex flex-col justify-start h-full min-h-0">
-                <div className="flex justify-between items-center mb-1.5 flex-shrink-0">
-                  <span className={cn("text-xs font-bold uppercase tracking-wider", themeTextSecondary)}>Caption</span>
-                  <span className={cn("text-xs font-semibold", themeTextSecondary)}>{caption.length}/2200</span>
+              <div className="flex flex-col justify-start h-full min-h-0 relative">
+                <div className="flex justify-between items-center mb-0.5 flex-shrink-0">
+                  <span className={cn("text-[10px] font-bold uppercase tracking-wider", themeTextSecondary)}>Caption</span>
+                  <span className={cn("text-[10px] font-semibold", themeTextSecondary)}>{caption.length}/2200</span>
                 </div>
 
-                {/* TEXTAREA */}
-                <div className={cn("relative flex-1 min-h-0 border rounded-[16px] p-2.5 bg-transparent", themeBorder)}>
+                {/* TEXTAREA CONTAINER */}
+                <div className={cn("relative flex-1 min-h-0 border rounded-[12px] p-2 bg-transparent", themeBorder)}>
                   <textarea
                     value={caption}
                     onChange={(e) => setCaption(e.target.value)}
                     placeholder="Write a caption that describes your vibe..."
+                    style={{ background: "transparent" }}
                     className={cn(
-                      "w-full h-full text-[13px] md:text-sm placeholder-[#8B5E3C]/50 bg-transparent border-none outline-none focus:ring-0 resize-none pr-6 font-sans overflow-hidden transition-colors duration-300",
-                      themeTextPrimary
+                      "w-full h-full text-xs bg-transparent border-none outline-none focus:ring-0 resize-none pr-8 font-sans overflow-hidden transition-colors duration-300",
+                      themeTextPrimary,
+                      isDark ? "placeholder-[#D2C5B4]/30" : "placeholder-[#8B5E3C]/40"
                     )}
                     disabled={isSharing}
                   />
-                  <button className={cn("absolute right-2.5 bottom-2 p-1 rounded-md opacity-70 hover:opacity-100 active:scale-95 transition-opacity", themeTextSecondary)}>
-                    <Smile className="h-4.5 w-4.5 stroke-[2]" />
-                  </button>
-                </div>
-
-                {/* HELPER ROW ACTIONS */}
-                <div className={cn("flex flex-wrap gap-2 mt-2 pt-2 border-t flex-shrink-0", themeBorder)}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCaption((prev) => prev + " #");
-                    }}
-                    className={cn(
-                      "border rounded-full py-1 px-3 text-[10px] font-bold transition-all active:scale-95 flex items-center gap-1",
-                      isDark ? "bg-[#2A1D16] border-[#3D2A1F] text-[#D2C5B4] hover:bg-[#1F140E]" : "bg-[#FFFDF9] border-[#8B5E3C]/12 text-[#8B5E3C] hover:bg-[#F2E8DC]"
-                    )}
-                  >
-                    <Tag className="h-3 w-3 stroke-[2.2]" />
-                    Tags
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowLocationInput(!showLocationInput)}
-                    className={cn(
-                      "border rounded-full py-1 px-3 text-[10px] font-bold transition-all active:scale-95 flex items-center gap-1",
-                      showLocationInput
-                        ? (isDark ? "bg-[#3D2A1F] border-[#3D2A1F] text-[#F5F0E8]" : "bg-[#E6D3BE] text-[#5A3A22] border-[#8B5E3C]/20")
-                        : (isDark ? "bg-[#2A1D16] border-[#3D2A1F] text-[#D2C5B4] hover:bg-[#1F140E]" : "bg-[#FFFDF9] border-[#8B5E3C]/12 text-[#8B5E3C] hover:bg-[#F2E8DC]")
-                    )}
-                  >
-                    <MapPin className="h-3 w-3 stroke-[2.2]" />
-                    Location
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCaption((prev) => prev + " @");
-                    }}
-                    className={cn(
-                      "border rounded-full py-1 px-3 text-[10px] font-bold transition-all active:scale-95 flex items-center gap-1",
-                      isDark ? "bg-[#2A1D16] border-[#3D2A1F] text-[#D2C5B4] hover:bg-[#1F140E]" : "bg-[#FFFDF9] border-[#8B5E3C]/12 text-[#8B5E3C] hover:bg-[#F2E8DC]"
-                    )}
-                  >
-                    <AtSign className="h-3 w-3 stroke-[2.2]" />
-                    Mention
-                  </button>
-                </div>
-
-                {/* LOCATION SLIDE DOWN INPUT */}
-                <AnimatePresence>
-                  {showLocationInput && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="mt-2 overflow-hidden flex-shrink-0"
-                    >
-                      <div className={cn("flex items-center gap-2 p-1.5 border rounded-[10px]", themeBorder, isDark ? "bg-[#1F140E]/20" : "bg-[#F2E8DC]/30")}>
-                        <MapPin className={cn("h-3.5 w-3.5 flex-shrink-0", themeTextSecondary)} />
-                        <input
-                          type="text"
-                          value={locationValue}
-                          onChange={(e) => setLocationValue(e.target.value)}
-                          placeholder="e.g. Paris, France"
-                          className={cn("w-full bg-transparent text-xs outline-none placeholder-[#8B5E3C]/50 font-medium", themeTextPrimary)}
-                        />
-                        {locationValue && (
-                          <button onClick={() => setLocationValue("")}>
-                            <X className={cn("h-3 w-3 hover:text-[#5A3A22]", themeTextSecondary)} />
-                          </button>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* REEL CATEGORY SELECTION (IF REEL) */}
-                {mediaType === "reel" && (
-                  <div className={cn("mt-2 pt-2 border-t flex-shrink-0", themeBorder)}>
-                    <label className={cn("text-[10px] font-bold uppercase tracking-wider block mb-1", themeTextSecondary)}>Reel Category</label>
-                    <select
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                      className={cn("w-full py-1 px-2 border rounded-[10px] text-xs font-semibold outline-none focus:border-[#8B5E3C] transition-colors", themeCard, themeBorder, themeTextPrimary)}
-                    >
-                      <option value="">Select Category</option>
-                      {reelCategories.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
-                {/* AUDIENCE SELECTOR */}
-                <div className={cn("mt-2 pt-2 border-t relative flex-shrink-0", themeBorder)}>
-                  <span className={cn("text-[10px] font-bold uppercase tracking-wider block mb-1", themeTextSecondary)}>Audience</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowAudienceDropdown(!showAudienceDropdown)}
-                    className={cn(
-                      "w-full border rounded-[14px] p-1.5 flex items-center justify-between text-left transition-colors",
-                      themeBorder, isDark ? "bg-[#1F140E]/20 hover:bg-[#1F140E]/40" : "bg-[#F2E8DC]/10 hover:bg-[#F2E8DC]/20"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={cn("w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0", isDark ? "bg-[#3D2A1F] text-[#D2C5B4]" : "bg-[#8B5E3C]/10 text-[#8B5E3C]")}>
-                        <Globe className="h-3.5 w-3.5" />
-                      </div>
-                      <div>
-                        <p className={cn("text-xs font-bold leading-tight", themeTextPrimary)}>
-                          {visibility === "public" ? "Public" : "Private"}
-                        </p>
-                        <p className={cn("text-[9px] font-bold leading-none mt-0.5", themeTextSecondary)}>
-                          {visibility === "public" ? "Anyone on or off Vibe" : "Only your followers"}
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronDown className={cn("h-3.5 w-3.5", themeTextSecondary)} />
-                  </button>
-
-                  <AnimatePresence>
-                    {showAudienceDropdown && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 5 }}
-                        className={cn("absolute z-10 left-0 right-0 mt-1 border rounded-[14px] overflow-hidden", themeCard, themeBorder)}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setVisibility("public");
-                            setShowAudienceDropdown(false);
-                          }}
-                          className={cn("w-full px-4 py-2 hover:bg-[#F2E8DC]/30 text-left border-b flex items-center justify-between", themeBorder)}
-                        >
-                          <div>
-                            <p className={cn("text-xs font-bold", themeTextPrimary)}>Public</p>
-                            <p className={cn("text-[9px] font-semibold", themeTextSecondary)}>Anyone on or off Vibe</p>
-                          </div>
-                          {visibility === "public" && <Check className={cn("h-4 w-4", themeTextSecondary)} />}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setVisibility("private");
-                            setShowAudienceDropdown(false);
-                          }}
-                          className="w-full px-4 py-2 hover:bg-[#F2E8DC]/30 text-left flex items-center justify-between"
-                        >
-                          <div>
-                            <p className={cn("text-xs font-bold", themeTextPrimary)}>Private</p>
-                            <p className={cn("text-[9px] font-semibold", themeTextSecondary)}>Only your followers</p>
-                          </div>
-                          {visibility === "private" && <Check className={cn("h-4 w-4", themeTextSecondary)} />}
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-
-              {/* POST SETTING TOGGLES */}
-              <div className={cn("mt-2 pt-2 border-t space-y-2 flex-shrink-0", themeBorder)}>
-                {[
-                  { label: "Allow comments", state: allowComments, setter: setAllowComments },
-                  { label: "Allow likes", state: allowLikes, setter: setAllowLikes },
-                  { label: "Share to feed", state: shareToFeed, setter: setShareToFeed },
-                ].map((toggle) => (
-                  <div key={toggle.label} className="flex items-center justify-between">
-                    <span className={cn("text-[10px] font-bold uppercase tracking-wider leading-none", themeTextSecondary)}>{toggle.label}</span>
+                  {/* Inline AI and Emoji Buttons */}
+                  <div className="absolute right-1 bottom-1 flex flex-col gap-1 p-0.5">
                     <button
-                      type="button"
-                      onClick={() => toggle.setter(!toggle.state)}
-                      className="w-8 h-4.5 bg-[#C8B9A6]/30 rounded-full relative p-0.5 transition-colors duration-200 focus:outline-none flex items-center"
-                      style={{ backgroundColor: toggle.state ? "#8B5E3C" : "" }}
+                      onClick={() => setShowAIPrompt(true)}
+                      className={cn("p-1 rounded-full hover:bg-[#8B5E3C]/20 transition-colors lg:hidden flex items-center justify-center", isDark ? "bg-[#3D2A1F] text-[#D2C5B4]" : "bg-[#8B5E3C]/10 text-[#8B5E3C]")}
                     >
-                      <div
-                        className={cn("w-3.5 h-3.5 rounded-full transition-transform duration-200", isDark ? "bg-[#2A1D16]" : "bg-[#FFFDF9]")}
-                        style={{ transform: toggle.state ? "translateX(14px)" : "translateX(0px)" }}
-                      />
+                      <Sparkles className="h-3 w-3 stroke-[2]" />
+                    </button>
+                    <button className={cn("p-1 rounded-full opacity-80 hover:opacity-100 transition-opacity", themeTextSecondary)}>
+                      <Smile className="h-3.5 w-3.5 stroke-[2]" />
                     </button>
                   </div>
-                ))}
+                </div>
               </div>
             </div>
 
+            {/* HELPER ROW ACTIONS - BELOW CAPTION ON MOBILE */}
+            <div className="flex flex-wrap gap-1.5 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setCaption((prev) => prev + " #")}
+                className={cn(
+                  "border rounded-full py-1 px-3 text-[10px] font-bold transition-all active:scale-95 flex items-center gap-1",
+                  isDark ? "bg-[#2A1D16] border-[#3D2A1F] text-[#D2C5B4] hover:bg-[#1F140E]" : "bg-[#FFFDF9] border-[#8B5E3C]/12 text-[#8B5E3C] hover:bg-[#F2E8DC]"
+                )}
+              >
+                <Tag className="h-3 w-3 stroke-[2] text-[#8B5E3C] dark:text-[#D2C5B4]" />
+                Tags
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowLocationInput(!showLocationInput)}
+                className={cn(
+                  "border rounded-full py-1 px-3 text-[10px] font-bold transition-all active:scale-95 flex items-center gap-1",
+                  isDark ? "bg-[#2A1D16] border-[#3D2A1F] text-[#D2C5B4] hover:bg-[#1F140E]" : "bg-[#FFFDF9] border-[#8B5E3C]/12 text-[#8B5E3C] hover:bg-[#F2E8DC]"
+                )}
+              >
+                <MapPin className="h-3 w-3 stroke-[2] text-[#8B5E3C] dark:text-[#D2C5B4]" />
+                Location
+              </button>
+              <button
+                type="button"
+                onClick={() => setCaption((prev) => prev + " @")}
+                className={cn(
+                  "border rounded-full py-1 px-3 text-[10px] font-bold transition-all active:scale-95 flex items-center gap-1",
+                  isDark ? "bg-[#2A1D16] border-[#3D2A1F] text-[#D2C5B4] hover:bg-[#1F140E]" : "bg-[#FFFDF9] border-[#8B5E3C]/12 text-[#8B5E3C] hover:bg-[#F2E8DC]"
+                )}
+              >
+                <AtSign className="h-3 w-3 stroke-[2] text-[#8B5E3C] dark:text-[#D2C5B4]" />
+                Mention
+              </button>
+            </div>
+
+            {/* LOCATION SLIDE DOWN INPUT */}
+            <AnimatePresence>
+              {showLocationInput && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden flex-shrink-0"
+                >
+                  <div className={cn("flex items-center gap-2 p-1.5 border rounded-[10px]", themeBorder, isDark ? "bg-[#1F140E]/20" : "bg-[#F2E8DC]/30")}>
+                    <MapPin className="h-3 w-3 flex-shrink-0 text-[#8B5E3C] dark:text-[#D2C5B4]" />
+                    <input
+                      type="text"
+                      value={locationValue}
+                      onChange={(e) => setLocationValue(e.target.value)}
+                      placeholder="e.g. Paris, France"
+                      style={{ background: "transparent" }}
+                      className={cn("w-full bg-transparent text-xs outline-none placeholder-[#8B5E3C]/50 font-medium", themeTextPrimary)}
+                    />
+                    {locationValue && (
+                      <button onClick={() => setLocationValue("")}>
+                        <X className="h-3 w-3 text-[#8B5E3C] hover:text-[#5A3A22] dark:text-[#D2C5B4]" />
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* REEL CATEGORY SELECTION (IF REEL) */}
+            {mediaType === "reel" && (
+              <div className={cn("pt-1.5 border-t flex-shrink-0", themeBorder)}>
+                <label className={cn("text-[9px] font-bold uppercase tracking-wider block mb-1", themeTextSecondary)}>Reel Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className={cn("w-full py-1 px-2 border rounded-[10px] text-xs font-semibold outline-none focus:border-[#8B5E3C] transition-colors", themeCard, themeBorder, themeTextPrimary)}
+                >
+                  <option value="">Select Category</option>
+                  {reelCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* AUDIENCE SELECTOR */}
+            <div className={cn("pt-1.5 border-t relative flex-shrink-0", themeBorder)}>
+              <span className={cn("text-[9px] font-bold uppercase tracking-wider block mb-1", themeTextSecondary)}>Audience</span>
+              <button
+                type="button"
+                onClick={() => setShowAudienceDropdown(!showAudienceDropdown)}
+                className={cn(
+                  "w-full border rounded-[12px] p-1.5 flex items-center justify-between text-left transition-colors",
+                  isDark ? "bg-[#1F140E]/20 hover:bg-[#1F140E]/40 border-[#3D2A1F]" : "bg-[#F2E8DC]/10 hover:bg-[#F2E8DC]/20 border-[#E3D8C8]"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <div className={cn("w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0", isDark ? "bg-[#3D2A1F] text-[#D2C5B4]" : "bg-[#8B5E3C]/10 text-[#8B5E3C]")}>
+                    <Globe className="h-3 w-3" />
+                  </div>
+                  <div>
+                    <p className={cn("text-[11px] font-bold leading-tight", themeTextPrimary)}>
+                      {visibility === "public" ? "Public" : "Private"}
+                    </p>
+                    <p className={cn("text-[9px] font-semibold leading-none mt-0.5", themeTextSecondary)}>
+                      {visibility === "public" ? "Anyone on or off Vibe" : "Only your followers"}
+                    </p>
+                  </div>
+                </div>
+                <ChevronDown className="h-3 w-3 text-[#8B5E3C] dark:text-[#D2C5B4]" />
+              </button>
+
+              <AnimatePresence>
+                {showAudienceDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 5 }}
+                    className={cn("absolute z-10 left-0 right-0 mt-1 border rounded-[12px] overflow-hidden", themeCard, themeBorder)}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVisibility("public");
+                        setShowAudienceDropdown(false);
+                      }}
+                      className={cn("w-full px-4 py-2 hover:bg-[#F2E8DC]/30 text-left border-b flex items-center justify-between", themeBorder)}
+                    >
+                      <div>
+                        <p className={cn("text-xs font-bold", themeTextPrimary)}>Public</p>
+                        <p className={cn("text-[9px] font-semibold text-[#8B5E3C]")}>Anyone on or off Vibe</p>
+                      </div>
+                      {visibility === "public" && <Check className={cn("h-3.5 w-3.5", themeTextSecondary)} />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVisibility("private");
+                        setShowAudienceDropdown(false);
+                      }}
+                      className="w-full px-4 py-2 hover:bg-[#F2E8DC]/30 text-left flex items-center justify-between"
+                    >
+                      <div>
+                        <p className={cn("text-xs font-bold", themeTextPrimary)}>Private</p>
+                        <p className={cn("text-[9px] font-semibold text-[#8B5E3C]")}>Only your followers</p>
+                      </div>
+                      {visibility === "private" && <Check className={cn("h-3.5 w-3.5", themeTextSecondary)} />}
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* POST SETTING TOGGLES */}
+            <div className={cn("pt-1.5 border-t space-y-1.5 flex-shrink-0", themeBorder)}>
+              {[
+                { label: "Allow comments", state: allowComments, setter: setAllowComments, icon: MessageSquare },
+                { label: "Allow likes", state: allowLikes, setter: setAllowLikes, icon: Heart },
+                { label: "Share to feed", state: shareToFeed, setter: setShareToFeed, icon: Share2 },
+              ].map((toggle) => (
+                <div key={toggle.label} className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                     <toggle.icon className="h-3.5 w-3.5 text-[#8B5E3C]/60 dark:text-[#D2C5B4]/60" />
+                     <span className={cn("text-[11px] font-bold leading-none", themeTextPrimary)}>{toggle.label}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => toggle.setter(!toggle.state)}
+                    className={cn(
+                      "w-8 h-4.5 rounded-full relative p-0.5 transition-colors duration-200 focus:outline-none flex items-center",
+                      toggle.state ? (isDark ? "bg-[#E8AC7D]" : "bg-[#8B5E3C]") : "bg-[#C8B9A6]/30"
+                    )}
+                  >
+                    <div
+                      className={cn("w-3.5 h-3.5 rounded-full transition-transform duration-200 bg-white")}
+                      style={{ transform: toggle.state ? "translateX(14px)" : "translateX(0px)" }}
+                    />
+                  </button>
+                </div>
+              ))}
+            </div>
+
             {/* AI Generator Card */}
-            <div className={cn("border rounded-[24px] p-3.5 flex flex-col justify-between overflow-hidden relative flex-shrink-0", themeBorder, isDark ? "bg-[#1F140E]/40" : "bg-[#F2E8DC]/20")}>
+            <div className={cn("hidden lg:flex border rounded-[16px] lg:rounded-[24px] p-2.5 lg:p-3.5 flex-col justify-between overflow-hidden relative flex-shrink-0", themeBorder, isDark ? "bg-[#1F140E]/40" : "bg-[#F2E8DC]/20")}>
               <div className="flex items-center gap-3">
                 <div className={cn("w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0", isDark ? "bg-[#3D2A1F] text-[#D2C5B4]" : "bg-[#8B5E3C]/8 text-[#8B5E3C]")}>
                   <Sparkles className="h-4 w-4 stroke-[2]" />
@@ -873,6 +902,7 @@ export default function Create() {
                         value={aiTopic}
                         onChange={(e) => setAiTopic(e.target.value)}
                         placeholder="e.g. sunset at the beach"
+                        style={{ background: isDark ? "#2A1D16" : "#FFFDF9" }}
                         className={cn("flex-1 p-1.5 border rounded-[8px] text-[11px] placeholder-[#8B5E3C]/40 outline-none font-medium", themeCard, themeBorder, themeTextPrimary)}
                       />
                       <button
@@ -902,14 +932,16 @@ export default function Create() {
           </div>
         </div>
 
-        {/* BOTTOM ACTION BAR */}
-        <div className={cn("flex items-center justify-between py-3 border-t flex-shrink-0 transition-colors duration-300", themeCard, themeBorder)}>
+        {/* BOTTOM ACTION BAR - STRICTLY CONSTRAINED */}
+        <div className={cn("flex items-center justify-between p-3 border-t lg:border-0 lg:border-t flex-shrink-0 transition-colors duration-300 mt-2 lg:mt-0 rounded-[20px] lg:rounded-none",
+          themeCard, themeBorder
+        )}>
           <button
             type="button"
             onClick={handleSaveDraft}
             className={cn(
-              "border rounded-[14px] py-2.5 px-4.5 text-xs font-bold transition-all active:scale-95 flex items-center gap-2",
-              isDark ? "bg-[#2A1D16] border-[#3D2A1F] text-[#D2C5B4] hover:bg-[#1F140E]" : "bg-[#FFFDF9] border-[#8B5E3C]/15 text-[#8B5E3C] hover:bg-[#F2E8DC]"
+              "border rounded-[12px] lg:rounded-[14px] py-2 lg:py-2.5 px-4 lg:px-4.5 text-xs font-bold transition-all active:scale-95 flex items-center gap-1.5",
+              isDark ? "bg-[#2A1D16] border-[#3D2A1F] text-[#D2C5B4]" : "bg-[#FFFDF9] border-[#8B5E3C]/15 text-[#8B5E3C]"
             )}
           >
             <Save className="h-3.5 w-3.5 stroke-[2]" />
@@ -917,14 +949,14 @@ export default function Create() {
           </button>
 
           <div className={cn(
-            "flex items-center gap-1 rounded-[14px] group hover:scale-[1.01] active:scale-95 transition-all duration-200",
+            "flex items-center gap-1 rounded-[12px] lg:rounded-[14px] group hover:scale-[1.01] active:scale-95 transition-all duration-200",
             isDark ? "bg-[#3D2A1F] text-[#F5F0E8]" : "bg-[#8B5E3C] text-[#FFFDF9]"
           )}>
             <button
               type="button"
               onClick={handleShare}
               disabled={!canShare || isSharing}
-              className="py-2.5 px-5 text-xs font-bold flex items-center gap-2"
+              className="py-2 lg:py-2.5 px-4 lg:px-5 text-xs font-bold flex items-center gap-1.5"
             >
               {isSharing ? (
                 <>
@@ -938,8 +970,8 @@ export default function Create() {
                 </>
               )}
             </button>
-            <div className={cn("w-[1px] h-5", isDark ? "bg-[#F5F0E8]/20" : "bg-[#FFFDF9]/20")} />
-            <button className={cn("py-2.5 px-2.5 flex items-center justify-center rounded-r-[14px]", isDark ? "hover:bg-[#F5F0E8]/10" : "hover:bg-[#FFFDF9]/10")} aria-label="More options">
+            <div className={cn("w-[1px] h-4 lg:h-5", "bg-[#FFFDF9]/20", isDark ? "lg:bg-[#F5F0E8]/20" : "bg-[#FFFDF9]/20")} />
+            <button className={cn("py-2 lg:py-2.5 px-2 flex items-center justify-center rounded-r-[12px] lg:rounded-r-[14px]", "hover:bg-[#FFFDF9]/10", isDark ? "lg:hover:bg-[#F5F0E8]/10" : "lg:hover:bg-[#FFFDF9]/10")} aria-label="More options">
               <ChevronRight className="h-3.5 w-3.5 rotate-90 stroke-[2.2]" />
             </button>
           </div>
@@ -950,7 +982,7 @@ export default function Create() {
       {/* ========================================================
           2. RIGHT SIDEBAR: Creator recommendations (Column 3)
           ======================================================== */}
-      <div className="w-full xl:w-[320px] flex-shrink-0 flex flex-col justify-between h-full overflow-hidden select-none">
+      <div className="hidden xl:flex w-[320px] flex-shrink-0 flex-col justify-between h-full overflow-hidden select-none">
 
         {/* Creator Tips card */}
         <Card variant="outline" className={cn(

@@ -10,6 +10,7 @@ import {
   Compass,
   Users,
   Sparkles,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -302,26 +303,47 @@ export function MobileBottomNav() {
 
   const mobileNavItems = [
     { icon: Home, path: "/" },
-    { icon: Search, path: "/search" },
-    { icon: Compass, path: "/discover" },
-    { icon: Film, path: "/reels" },
     { icon: Users, path: "/communities" },
-    { icon: MessageCircle, path: "/messages" },
+    { icon: Film, path: "/reels" },
+    { icon: Compass, path: "/discover" },
     { icon: User, path: "/profile" },
   ];
 
-  const themeTextActive = isDark ? "text-[#F5F0E8]" : "text-[#8B5E3C]";
-  const themeTextInactive = isDark ? "text-[#D2C5B4]/60" : "text-[#8B5E3C]/50";
+  const themeTextActive = isDark ? "text-[#E8AC7D]" : "text-[#8B5E3C]";
+  const themeTextInactive = isDark ? "text-[#F5F0E8]/60" : "text-[#8B5E3C]/50";
 
   return (
     <nav className={cn(
-      "lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t safe-area-pb transition-colors duration-300",
+      "lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t safe-area-pb transition-colors duration-300 rounded-t-[24px] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.5)]",
       isDark ? "bg-[#1F140E] border-[#3D2A1F]" : "bg-[#F5F0E8] border-[#E3D8C8]"
     )}>
-      <div className="flex items-center justify-around h-16 px-2">
+      <div className="flex items-center justify-around h-16 px-2 pb-1 relative">
         {mobileNavItems.map((item) => {
           const isActive = location.pathname === item.path || (item.path === "/profile" && location.pathname.startsWith("/profile"));
           const isProfile = item.path === "/profile";
+          const isReels = item.path === "/reels";
+
+          if (isReels) {
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className="relative -top-3 flex flex-col items-center justify-center p-1 rounded-full transition-transform active:scale-95"
+              >
+                <div className="rounded-full p-[2px] bg-gradient-to-tr from-[#FA709A] to-[#FEE140] shadow-lg">
+                  <div className={cn(
+                    "h-12 w-12 rounded-full flex items-center justify-center",
+                    isDark ? "bg-[#140C09]" : "bg-[#F5F0E8]"
+                  )}>
+                    <Film className={cn("h-6 w-6", isDark ? "text-[#FA709A]" : "text-[#8B5E3C]")} />
+                  </div>
+                </div>
+                <span className={cn("absolute -bottom-4 text-[10px] font-medium", isActive ? themeTextActive : themeTextInactive)}>
+                  Reels
+                </span>
+              </Link>
+            );
+          }
 
           if (isProfile) {
             return (
@@ -335,10 +357,8 @@ export function MobileBottomNav() {
               >
                 <motion.div whileTap={{ scale: 0.9 }} className="relative">
                   <item.icon className={cn("h-6 w-6", isActive && "drop-shadow-sm")} />
-                  {isActive && (
-                    <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#8B5E3C]" />
-                  )}
                 </motion.div>
+                <span className="text-[10px] font-medium">Profile</span>
               </button>
             );
           }
@@ -355,14 +375,12 @@ export function MobileBottomNav() {
               <motion.div whileTap={{ scale: 0.9 }} className="relative">
                 <item.icon className={cn("h-6 w-6", isActive && "drop-shadow-sm")} />
                 {isActive && (
-                  <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#8B5E3C]" />
-                )}
-                {item.path === "/messages" && unreadMsgCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full text-[10px] font-semibold bg-[#8B5E3C] text-white flex items-center justify-center pointer-events-none">
-                    {unreadMsgCount > 7 ? "7+" : unreadMsgCount}
-                  </span>
+                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#E8AC7D]" />
                 )}
               </motion.div>
+              <span className="text-[10px] font-medium capitalize">
+                {item.path === "/" ? "Home" : item.path.substring(1)}
+              </span>
             </Link>
           );
         })}
@@ -376,7 +394,42 @@ export function MobileBottomNav() {
 ====================== */
 export function MobileHeader() {
   const location = useLocation();
+  const { isAuthenticated } = useAuth();
+  const { socket } = useSocket();
   const [isDark, setIsDark] = useState(() => localStorage.getItem("vibe_theme") === "dark");
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMsgCount, setUnreadMsgCount] = useState(0);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const fetchCounts = () => {
+      getUnreadCount().then(setUnreadCount).catch(() => { });
+      getUnreadMessageCount().then(setUnreadMsgCount).catch(() => { });
+    };
+
+    fetchCounts();
+
+    window.addEventListener("messagesRead", fetchCounts);
+    
+    if (socket) {
+      socket.on("receive_message", () => {
+        if (location.pathname !== "/messages") {
+          setUnreadMsgCount(prev => prev + 1);
+        }
+      });
+      socket.on("new_notification", () => {
+        setUnreadCount(prev => prev + 1);
+      });
+    }
+
+    return () => {
+      window.removeEventListener("messagesRead", fetchCounts);
+      if (socket) {
+        socket.off("receive_message");
+        socket.off("new_notification");
+      }
+    };
+  }, [isAuthenticated, socket, location.pathname]);
 
   useEffect(() => {
     const handleThemeChange = () => {
@@ -405,10 +458,10 @@ export function MobileHeader() {
 
   return (
     <header className={cn(
-      "lg:hidden sticky top-0 z-40 border-b transition-colors duration-300",
-      isDark ? "bg-[#1F140E] border-[#3D2A1F]" : "bg-[#F5F0E8] border-[#E3D8C8]"
+      "lg:hidden sticky top-0 z-50 border-b transition-colors duration-300 pt-[env(safe-area-inset-top,0px)]",
+      isDark ? "bg-[#0A0604] border-[#1F140E]" : "bg-[#F5F0E8] border-[#E3D8C8]"
     )}>
-      <div className="flex items-center justify-between h-14 px-4">
+      <div className="flex items-center justify-between h-14 px-4 bg-inherit">
         <div className="flex items-center gap-2">
           <h1 className={cn(
             "font-extrabold tracking-widest font-serif transition-colors duration-300",
@@ -429,26 +482,41 @@ export function MobileHeader() {
 
         <div className="flex items-center gap-2">
           {isHome && (
-            <>
+            <div className="flex items-center gap-4">
               <Link
                 to="/notifications"
-                className={cn(
-                  "p-2 rounded-xl transition-colors",
-                  isDark ? "hover:bg-[#140C09] text-[#D2C5B4]" : "hover:bg-[#EFE6DA] text-[#8B5E3C]"
-                )}
+                className="relative transition-transform active:scale-95"
               >
-                <Bell className="h-5 w-5" />
+                <Bell className={cn("h-[22px] w-[22px]", isDark ? "text-[#F5F0E8]" : "text-[#4A3428]")} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 h-4 w-4 rounded-full text-[9px] font-bold bg-[#D48954] text-white flex items-center justify-center">
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
+              
               <Link
                 to="/create"
                 className={cn(
-                  "p-2 rounded-xl transition-colors",
-                  isDark ? "hover:bg-[#140C09] text-[#D2C5B4]" : "hover:bg-[#EFE6DA] text-[#8B5E3C]"
+                  "h-8 w-8 rounded-lg flex items-center justify-center transition-transform active:scale-95 shadow-sm",
+                  isDark ? "bg-[#D48954]" : "bg-[#8B5E3C]"
                 )}
               >
-                <PlusSquare className="h-5 w-5" />
+                <Plus className={cn("h-5 w-5", isDark ? "text-[#140C09]" : "text-[#FFF]")} strokeWidth={2.5} />
               </Link>
-            </>
+
+              <Link
+                to="/messages"
+                className="relative transition-transform active:scale-95"
+              >
+                <MessageCircle className={cn("h-[22px] w-[22px]", isDark ? "text-[#F5F0E8]" : "text-[#4A3428]")} />
+                {unreadMsgCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 h-4 w-4 rounded-full text-[9px] font-bold bg-[#D48954] text-white flex items-center justify-center">
+                    {unreadMsgCount}
+                  </span>
+                )}
+              </Link>
+            </div>
           )}
         </div>
       </div>

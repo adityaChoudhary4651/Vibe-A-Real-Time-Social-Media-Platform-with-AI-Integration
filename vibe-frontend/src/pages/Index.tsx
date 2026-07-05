@@ -26,10 +26,11 @@ import {
   CheckCircle2,
   X,
   SlidersHorizontal,
-  ChevronUp,
   ChevronDown,
   Eye,
-  EyeOff
+  EyeOff,
+  IndianRupee,
+  MoreHorizontal
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
@@ -43,26 +44,8 @@ import { API_BASE_URL, resolveUrl } from "../config";
 import api from "@/lib/axios";
 import { toast } from "sonner";
 
-// Types
-interface FeedPost {
-  _id: string;
-  imageUrl: string;
-  caption: string;
-  author: {
-    _id: string;
-    name: string;
-    username?: string;
-    avatar?: string;
-    isVerified?: boolean;
-    category?: string;
-  };
-  likes: string[];
-  commentsCount?: number;
-  comments: any[];
-  sharesCount?: number;
-  createdAt: string;
-  isLiked?: boolean;
-}
+import { FeedPostCard, FeedPost } from "@/components/post/FeedPostCard";
+import { ProfileFeedViewer } from "@/components/profile/ProfileFeedViewer";
 
 interface Story {
   _id: string;
@@ -171,6 +154,7 @@ export default function Index() {
   const [customTip, setCustomTip] = useState("");
   const [tippingSuccess, setTippingSuccess] = useState(false);
   const [activeCommentsPostId, setActiveCommentsPostId] = useState<string | null>(null);
+  const [feedViewerPostId, setFeedViewerPostId] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
 
   // Carousel scroll position tracker
@@ -724,7 +708,7 @@ export default function Index() {
         </aside>
 
         {/* ==================== MAIN CONTENT ==================== */}
-        <main className="flex-1 py-4 lg:py-8 px-0 sm:px-4 lg:px-6 md:px-10 overflow-y-auto max-h-screen scrollbar-hide space-y-6 lg:space-y-8 pb-20 lg:pb-8">
+        <main className="flex-1 pt-0 lg:pt-8 pb-4 lg:pb-8 px-0 sm:px-4 lg:px-6 md:px-10 overflow-y-auto max-h-screen scrollbar-hide space-y-6 lg:space-y-8">
           <MobileHeader />
 
           {/* Main Top Header with Layout Customizer toggle (Hidden on mobile) */}
@@ -813,21 +797,53 @@ export default function Index() {
                 const hasStories = stories && stories.length > 0;
                 return (
                   <section key="stories" className="space-y-4">
+                    {/* Mobile Search Bar */}
+                    <div
+                      onClick={() => navigate("/search")}
+                      className="lg:hidden flex items-center gap-3 w-full bg-[#E8AC7D]/10 dark:bg-[#2A1F1A] border border-[#8B5E3C]/20 rounded-2xl px-4 py-3 mb-2 cursor-pointer"
+                    >
+                      <SearchIcon className="h-5 w-5 text-[#8B5E3C] dark:text-[#E8AC7D]" />
+                      <span className="text-sm text-[#8B5E3C]/70 dark:text-[#E8AC7D]/70 font-medium">Search vibes, people, or tags...</span>
+                    </div>
+
                     <div className="flex items-center justify-between">
                       <h2 className="text-lg font-bold tracking-wide font-serif">Stories</h2>
                       <button className={`text-xs font-semibold ${theme.textSecondary} hover:underline`}>View all</button>
                     </div>
 
                     <div className="flex gap-4 overflow-x-auto scrollbar-hide py-1">
-                      {/* Create Story square card (Bug 1 Fix: onClick sets showAddStory to true) */}
+                      {/* Create Story vertical card */}
                       <div
                         onClick={() => setShowAddStory(true)}
-                        className={`w-[110px] h-[110px] shrink-0 border-2 border-dashed border-[#8B5E3C]/30 hover:border-[#8B5E3C] rounded-[20px] flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${theme.card} group`}
+                        className="w-[90px] h-[140px] shrink-0 relative rounded-[20px] overflow-hidden shadow-xs group cursor-pointer border border-[#E3D8C8]/10 bg-neutral-900"
                       >
-                        <div className="h-8 w-8 rounded-full bg-[#8B5E3C] flex items-center justify-center text-white mb-2 group-hover:scale-110 transition-transform duration-300 shadow-xs">
-                          <Plus className="h-4 w-4" />
+                        <img
+                          src={user?.avatar ? resolveUrl(user.avatar) : "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"}
+                          alt="Your avatar"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-60"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+
+                        {/* Avatar top-left */}
+                        <div className="absolute top-2 left-2">
+                          <div className="h-7 w-7 rounded-full overflow-hidden border border-[#8B5E3C] bg-white">
+                            <img
+                              src={user?.avatar ? resolveUrl(user.avatar) : "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"}
+                              alt="Your story"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
                         </div>
-                        <span className="text-[10px] font-bold tracking-wider uppercase opacity-85">Create Story</span>
+
+                        {/* Text and Plus icon bottom */}
+                        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                          <span className="text-[10px] font-medium text-white truncate drop-shadow-md">
+                            Your story
+                          </span>
+                          <div className="h-4 w-4 rounded-full bg-[#E8AC7D] flex items-center justify-center shrink-0">
+                            <Plus className="h-3 w-3 text-black" strokeWidth={3} />
+                          </div>
+                        </div>
                       </div>
 
                       {/* Real Backend / Fallback Stories */}
@@ -838,12 +854,12 @@ export default function Index() {
                             <div
                               key={group.user._id}
                               onClick={() => openStories(group)}
-                              className="w-[110px] h-[110px] shrink-0 relative rounded-[20px] overflow-hidden shadow-xs group cursor-pointer border border-[#E3D8C8]/10"
+                              className="w-[90px] h-[140px] shrink-0 relative rounded-[20px] overflow-hidden shadow-xs group cursor-pointer border border-[#E3D8C8]/10 bg-neutral-900"
                             >
                               {latestStory?.mediaType === "video" || (latestStory?.mediaUrl && (latestStory.mediaUrl.endsWith(".mp4") || latestStory.mediaUrl.endsWith(".mov") || latestStory.mediaUrl.includes("/video/upload/"))) ? (
                                 <video
                                   src={resolveUrl(latestStory.mediaUrl)}
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                   preload="metadata"
                                   muted
                                   playsInline
@@ -852,17 +868,27 @@ export default function Index() {
                                 <img
                                   src={resolveUrl(latestStory?.mediaUrl)}
                                   alt={group.user.username}
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 />
                               )}
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-                              <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center gap-1.5 min-w-0">
-                                <img
-                                  src={resolveUrl(group.user.avatar) || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"}
-                                  alt={group.user.username}
-                                  className="h-5 w-5 rounded-full object-cover border border-[#8B5E3C]"
-                                />
-                                <span className="text-[9px] font-medium text-white truncate drop-shadow-md">
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+
+                              {/* Avatar top-left with gradient border */}
+                              <div className="absolute top-2 left-2">
+                                <div className="h-7 w-7 rounded-full p-[1.5px] bg-gradient-to-tr from-[#FA709A] to-[#FEE140]">
+                                  <div className="h-full w-full rounded-full overflow-hidden border border-black bg-white">
+                                    <img
+                                      src={resolveUrl(group.user.avatar) || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"}
+                                      alt={group.user.username}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Username bottom */}
+                              <div className="absolute bottom-2 left-2 right-2">
+                                <span className="text-[10px] font-medium text-white truncate block drop-shadow-md">
                                   {group.user.username}
                                 </span>
                               </div>
@@ -873,21 +899,29 @@ export default function Index() {
                         fallbackStories.map((story) => (
                           <div
                             key={story.id}
-                            className="w-[110px] h-[110px] shrink-0 relative rounded-[20px] overflow-hidden shadow-xs group cursor-pointer border border-[#E3D8C8]/10"
+                            className="w-[90px] h-[140px] shrink-0 relative rounded-[20px] overflow-hidden shadow-xs group cursor-pointer border border-[#E3D8C8]/10 bg-neutral-900"
                           >
                             <img
                               src={story.media}
                               alt={story.name}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-                            <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center gap-1.5 min-w-0">
-                              <img
-                                src={story.avatar}
-                                alt={story.name}
-                                className="h-5 w-5 rounded-full object-cover border border-[#8B5E3C]"
-                              />
-                              <span className="text-[9px] font-medium text-white truncate drop-shadow-md">
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+
+                            <div className="absolute top-2 left-2">
+                              <div className="h-7 w-7 rounded-full p-[1.5px] bg-gradient-to-tr from-[#FA709A] to-[#FEE140]">
+                                <div className="h-full w-full rounded-full overflow-hidden border border-black bg-white">
+                                  <img
+                                    src={story.avatar}
+                                    alt={story.name}
+                                    className="h-full w-full object-cover"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="absolute bottom-2 left-2 right-2">
+                              <span className="text-[10px] font-medium text-white truncate block drop-shadow-md">
                                 {story.name.split(".")[0]}
                               </span>
                             </div>
@@ -905,95 +939,29 @@ export default function Index() {
                   <section key="posts" className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h2 className="text-lg font-bold tracking-wide font-serif">Posts</h2>
-                      <button className={`text-xs font-semibold ${theme.textSecondary} hover:underline`}>View all</button>
+                      <button 
+                        onClick={() => posts.length > 0 && setFeedViewerPostId(posts[0]._id)}
+                        className={`text-xs font-semibold ${theme.textSecondary} hover:underline`}
+                      >
+                        View all
+                      </button>
                     </div>
 
                     <div
                       ref={postsCarouselRef}
                       onScroll={handleScroll}
-                      className="flex gap-6 overflow-x-auto scrollbar-hide py-2 smooth-scroll"
+                      className="flex flex-col sm:flex-row gap-6 sm:overflow-x-auto scrollbar-hide py-2 smooth-scroll"
                     >
                       {posts.map((post) => (
-                        <div
+                        <FeedPostCard
                           key={post._id}
-                          className={`w-[85vw] sm:w-[520px] md:w-[540px] h-auto sm:h-[280px] shrink-0 flex flex-col sm:flex-row rounded-[24px] overflow-hidden border ${theme.cardBorder} ${theme.card} ${theme.shadow} transition-all duration-300`}
-                        >
-                          {/* Left media */}
-                          <div className="w-full sm:w-1/2 h-[200px] sm:h-full relative overflow-hidden group bg-neutral-100 dark:bg-neutral-900 shrink-0">
-                            <img
-                              src={post.imageUrl}
-                              alt={post.caption}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=800";
-                              }}
-                            />
-                          </div>
-
-                          {/* Right Engagement Panel */}
-                          <div className="w-full sm:w-1/2 p-4 sm:p-5 flex flex-col justify-between flex-1">
-                            <div className="flex items-center justify-between">
-                              {/* Bug 4: suggested profile link (navigates to user profile when clicking avatar/name) */}
-                              <div
-                                onClick={() => navigate(`/profile/${post.author.username}`)}
-                                className="flex items-center gap-2.5 min-w-0 cursor-pointer group/author"
-                              >
-                                <img
-                                  src={post.author.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"}
-                                  alt={post.author.name}
-                                  className="h-8 w-8 rounded-full object-cover border border-[#8B5E3C]/30 transition-transform group-hover/author:scale-105"
-                                />
-                                <div className="min-w-0 leading-tight">
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-xs font-bold truncate group-hover/author:underline">{post.author.name}</span>
-                                    {post.author.isVerified && <CheckCircle2 className="h-3 w-3 text-[#8B5E3C] fill-[#EFE6DA] shrink-0" />}
-                                  </div>
-                                  <span className="text-[10px] opacity-60 font-medium block">{post.createdAt}</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <p className="text-xs font-medium leading-relaxed opacity-85 my-3 line-clamp-3">
-                              {post.caption}
-                            </p>
-
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between border-t border-[#C8B9A6]/20 pt-3 text-[10px] opacity-80 font-bold">
-                                <button
-                                  onClick={() => handleLike(post._id)}
-                                  className="flex items-center gap-1.5 hover:text-red-500 transition-colors"
-                                >
-                                  <Heart className={`h-4.5 w-4.5 transition-transform duration-300 active:scale-125 ${post.isLiked ? "text-red-500 fill-red-500" : ""}`} />
-                                  <span>{post.likes.length}</span>
-                                </button>
-
-                                <div
-                                  onClick={() => setActiveCommentsPostId(post._id)}
-                                  className="flex items-center gap-1.5 cursor-pointer hover:opacity-85"
-                                >
-                                  <MessageSquare className="h-4 w-4" />
-                                  <span>{post.commentsCount || 0}</span>
-                                </div>
-
-                                <div
-                                  onClick={() => setShowShare(true)}
-                                  className="flex items-center gap-1.5 cursor-pointer hover:opacity-85"
-                                >
-                                  <Share2 className="h-4 w-4" />
-                                  <span>{post.sharesCount || 0}</span>
-                                </div>
-                              </div>
-
-                              <button
-                                onClick={() => setTipModalPost(post)}
-                                className={`w-full py-2 sm:py-2.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wider uppercase transition-colors duration-300 flex items-center justify-center gap-1.5 ${theme.accentButton}`}
-                              >
-                                <DollarSign className="h-3.5 w-3.5" />
-                                <span>Tip Creator</span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                          post={post}
+                          theme={theme}
+                          onLike={handleLike}
+                          onCommentClick={setActiveCommentsPostId}
+                          onShareClick={() => setShowShare(true)}
+                          onTipClick={setTipModalPost}
+                        />
                       ))}
                     </div>
 
@@ -1467,6 +1435,17 @@ export default function Index() {
         open={showShare}
         onOpenChange={setShowShare}
       />
+      {feedViewerPostId && (
+        <ProfileFeedViewer
+          posts={posts}
+          initialPostId={feedViewerPostId}
+          onClose={() => setFeedViewerPostId(null)}
+          onLike={handleLike}
+          onCommentClick={setActiveCommentsPostId}
+          onShareClick={() => setShowShare(true)}
+          onTipClick={setTipModalPost}
+        />
+      )}
       <MobileBottomNav />
     </div>
   );
