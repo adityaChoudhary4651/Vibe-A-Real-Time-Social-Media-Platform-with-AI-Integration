@@ -208,8 +208,9 @@ export function CallOverlay({
         callerAvatar: user.avatar,
         callType: activeCallType
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Initiate Agora call flow failed:", err);
+      toast.error(`Call failed to start: ${err.message || err}`);
       handleEndCall();
     }
   };
@@ -246,8 +247,9 @@ export function CallOverlay({
       });
 
       setCallStatus("connected");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Accept Agora call failed:", err);
+      toast.error(`Failed to connect call: ${err.message || err}`);
       handleEndCall();
     }
   };
