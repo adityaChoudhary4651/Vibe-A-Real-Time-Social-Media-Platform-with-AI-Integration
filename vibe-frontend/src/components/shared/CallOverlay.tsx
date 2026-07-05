@@ -413,7 +413,8 @@ export function CallOverlay({
           playsInline
           className={cn(
             "w-full h-full object-cover",
-            (callStatus !== "connected" || activeCallType !== "video" || !remoteStream) && "hidden"
+            (callStatus !== "connected" || !remoteStream) && "hidden",
+            activeCallType === "voice" && "absolute w-0 h-0 opacity-0 pointer-events-none"
           )}
         />
 
@@ -533,13 +534,13 @@ export function CallOverlay({
         )}
       </div>
 
-      {/* HIDDEN INLINE LOCAL PREVIEW VIDEO ELEMENT FOR TRACK ATTACHMENT */}
+      {/* INLINE LOCAL PREVIEW VIDEO ELEMENT FOR TRACK ATTACHMENT */}
       <video
         ref={localHiddenVideoRef}
         autoPlay
         muted
         playsInline
-        className="hidden"
+        className="absolute w-0 h-0 opacity-0 pointer-events-none"
       />
     </div>
   );
