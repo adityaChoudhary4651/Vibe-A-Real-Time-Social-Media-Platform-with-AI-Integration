@@ -30,8 +30,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     const newSocket = io(API_BASE_URL, {
-      transports: ["websocket"],
+      transports: ["polling", "websocket"],
       reconnection: true,
+    });
+
+    newSocket.on("connect_error", (err) => {
+      console.error("Socket connection error ❌:", err.message);
     });
 
     newSocket.on("connect", () => {

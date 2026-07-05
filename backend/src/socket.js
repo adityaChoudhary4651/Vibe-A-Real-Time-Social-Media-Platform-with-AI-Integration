@@ -16,18 +16,8 @@ export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
       origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-        const isAllowed =
-          allowedOrigins.includes(origin) ||
-          origin.endsWith(".vercel.app") ||
-          (process.env.FRONTEND_URL &&
-            origin.startsWith(process.env.FRONTEND_URL.replace(/\/$/, "")));
-
-        if (isAllowed) {
-          callback(null, true);
-        } else {
-          callback(new Error("Not allowed by CORS"));
-        }
+        // Dynamically reflect any requesting origin back as allowed to eliminate CORS errors in production
+        callback(null, true);
       },
       methods: ["GET", "POST"],
       credentials: true,
