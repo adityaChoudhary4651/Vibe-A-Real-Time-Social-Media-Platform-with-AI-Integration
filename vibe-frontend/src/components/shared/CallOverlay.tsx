@@ -407,27 +407,29 @@ export function CallOverlay({
       {/* CALL SCREEN CONTENT */}
       <div className="flex-1 relative flex items-center justify-center overflow-hidden">
         {/* REMOTE STREAM (VIDEO BACKGROUND) */}
-        {callStatus === "connected" && activeCallType === "video" && remoteStream && (
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            className="w-full h-full object-cover"
-          />
-        )}
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          className={cn(
+            "w-full h-full object-cover",
+            (callStatus !== "connected" || activeCallType !== "video" || !remoteStream) && "hidden"
+          )}
+        />
 
         {/* LOCAL STREAM PIP (VIDEO ON TOP) */}
-        {callStatus === "connected" && activeCallType === "video" && localStream && !isVideoOff && !isPip && (
-          <div className="absolute top-4 left-4 w-28 h-40 rounded-xl overflow-hidden border border-white/30 z-30 shadow-md">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              muted
-              playsInline
-              className="w-full h-full object-cover scale-x-[-1]"
-            />
-          </div>
-        )}
+        <div className={cn(
+          "absolute top-4 left-4 w-28 h-40 rounded-xl overflow-hidden border border-white/30 z-30 shadow-md",
+          (callStatus !== "connected" || activeCallType !== "video" || !localStream || isVideoOff || isPip) && "hidden"
+        )}>
+          <video
+            ref={localVideoRef}
+            autoPlay
+            muted
+            playsInline
+            className="w-full h-full object-cover scale-x-[-1]"
+          />
+        </div>
 
         {/* VOICE CALL / DIALING UI (NO VIDEO OR CAMERA SHUT) */}
         {(callStatus !== "connected" || activeCallType === "voice" || isVideoOff || isPip) && (
