@@ -94,21 +94,21 @@ export function CallOverlay({
     };
   }, [callStatus]);
 
-  /* =====================
-     STREAM BINDING EFFECTS
-  ===================== */
   useEffect(() => {
     if (localVideoRef.current && localStream) {
       localVideoRef.current.srcObject = localStream;
+      localVideoRef.current.play().catch((err) => console.warn("Local play failed:", err));
     }
     if (localHiddenVideoRef.current && localStream) {
       localHiddenVideoRef.current.srcObject = localStream;
+      localHiddenVideoRef.current.play().catch((err) => console.warn("Hidden play failed:", err));
     }
   }, [localStream, callStatus, isVideoOff, isPip]);
 
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
       remoteVideoRef.current.srcObject = remoteStream;
+      remoteVideoRef.current.play().catch((err) => console.warn("Remote play failed:", err));
     }
   }, [remoteStream, callStatus]);
 
