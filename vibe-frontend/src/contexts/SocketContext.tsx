@@ -41,7 +41,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     newSocket.on("connect", () => {
       setIsConnected(true);
       console.log("Socket connected:", newSocket.id);
-      newSocket.emit("setup", user.id);
+      newSocket.emit("setup", user.id || user._id);
     });
 
     newSocket.on("connected", () => {

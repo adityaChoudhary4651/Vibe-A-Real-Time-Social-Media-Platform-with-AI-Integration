@@ -171,7 +171,7 @@ export function CallOverlay({
       socket.emit("call_user", {
         offer,
         calleeId: targetId,
-        callerId: user.id,
+        callerId: user.id || user._id,
         callerName: user.name || user.username,
         callerAvatar: user.avatar,
         callType: activeCallType
