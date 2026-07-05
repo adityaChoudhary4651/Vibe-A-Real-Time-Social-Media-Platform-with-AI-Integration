@@ -182,98 +182,6 @@ export default function Index() {
     scrollBarThumb: "bg-[#8B5E3C]",
   };
 
-  // Custom static / fallback mock data (in case database has no entries)
-  const fallbackStories = [
-    { id: "s1", name: "aanya.live", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150", media: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600" },
-    { id: "s2", name: "rohan_07", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150", media: "https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=600" },
-    { id: "s3", name: "artby_vi", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150", media: "https://images.unsplash.com/photo-1509281373149-e957c6296406?w=600" },
-    { id: "s4", name: "meghaaa", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150", media: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=600" },
-    { id: "s5", name: "karan.33", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150", media: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600" },
-  ];
-
-  const fallbackPosts: FeedPost[] = [
-    {
-      _id: "m_post1",
-      imageUrl: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800",
-      caption: "Watching the sun go down. #SunsetPhotography Peaceful moments and thoughts.",
-      author: {
-        _id: "u_rohan",
-        name: "rohan_07",
-        username: "rohan_07",
-        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
-        category: "Sunset Lover",
-      },
-      likes: ["1", "2"],
-      commentsCount: 86,
-      comments: [],
-      sharesCount: 124,
-      createdAt: "2h ago",
-      isLiked: false,
-    },
-    {
-      _id: "m_post2",
-      imageUrl: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=800",
-      caption: "Embracing the warm golden hours of summer in style. #TravelDiaries",
-      author: {
-        _id: "u_aanya",
-        name: "aanya.live",
-        username: "aanya.live",
-        avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
-        isVerified: true,
-        category: "Fashion Blogger",
-      },
-      likes: ["1", "2", "3"],
-      commentsCount: 112,
-      comments: [],
-      sharesCount: 231,
-      createdAt: "4h ago",
-      isLiked: true,
-    },
-    {
-      _id: "m_post3",
-      imageUrl: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=800",
-      caption: "New experimental abstract textures. #AIArtRevolution What vibes do you see?",
-      author: {
-        _id: "u_vi",
-        name: "artby_vi",
-        username: "artby_vi",
-        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-        category: "Digital Artist",
-      },
-      likes: [],
-      commentsCount: 45,
-      comments: [],
-      sharesCount: 78,
-      createdAt: "6h ago",
-      isLiked: false,
-    },
-  ];
-
-  const fallbackSuggested = [
-    { _id: "su1", username: "vihaan_.official", name: "vihaan_.official", avatar: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150", bio: "Content Creator", followers: ["1", "2"], isFollowing: false },
-    { _id: "su2", username: "nehaa_theexplorer", name: "nehaa_theexplorer", avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150", bio: "Traveller", followers: ["1", "2", "3", "4"], isFollowing: false },
-    { _id: "su3", username: "artby_vi", name: "artby_vi", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150", bio: "Digital Artist", followers: ["1"], isFollowing: false },
-    { _id: "su4", username: "that.guitar.guy", name: "that.guitar.guy", avatar: "https://images.unsplash.com/photo-1520341280432-4749d4d7bcf9?w=150", bio: "Music Creator", followers: ["1", "2", "3"], isFollowing: false },
-    { _id: "su5", username: "film.by.karan", name: "film.by.karan", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150", bio: "Filmmaker", followers: [], isFollowing: false },
-  ];
-
-  const fallbackReels = [
-    { _id: "r1", mediaUrl: "https://images.unsplash.com/photo-1520156473395-82c498be7bfc?w=400", author: { _id: "1", username: "skate_fan" }, likes: [], views: "12.6K" },
-    { _id: "r2", mediaUrl: "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=400", author: { _id: "2", username: "live_gig" }, likes: [], views: "8.4K" },
-    { _id: "r3", mediaUrl: "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=400", author: { _id: "3", username: "model_port" }, likes: [], views: "6.7K" },
-    { _id: "r4", mediaUrl: "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=400", author: { _id: "4", username: "wave_rider" }, likes: [], views: "9.3K" },
-    { _id: "r5", mediaUrl: "https://images.unsplash.com/photo-1470246973918-29a93221c455?w=400", author: { _id: "5", username: "road_trip" }, likes: [], views: "7.1K" },
-    { _id: "r6", mediaUrl: "https://images.unsplash.com/photo-1472214222541-d510753a4907?w=400", author: { _id: "6", username: "valley_sun" }, likes: [], views: "5.2K" },
-  ];
-
-  const fallbackCommunities = [
-    { _id: "c1", name: "Travel Lovers", description: "Exploring the world, one city at a time.", members: ["1", "2", "3"], memberCount: 128000, avatar: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=100" },
-    { _id: "c2", name: "Photography Hub", description: "A community for lens enthusiasts.", members: ["1", "2", "3", "4", "5"], memberCount: 96000, avatar: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=100" },
-    { _id: "c3", name: "Music Vibes", description: "Sharing tunes and good vibrations.", members: ["1"], memberCount: 75000, avatar: "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=100" },
-    { _id: "c4", name: "Creative Minds", description: "Connecting design thinkers and doers.", members: ["1", "2"], memberCount: 64000, avatar: "https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=100" },
-    { _id: "c5", name: "Fitness & Health", description: "Stay fit, eat healthy, live better.", members: [], memberCount: 54000, avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100" },
-  ];
-
   // Dynamic Trending Hashtags extractor (Bug 5a)
   const getTrendingHashtags = () => {
     const counts: Record<string, { count: number; image: string }> = {};
@@ -343,13 +251,13 @@ export default function Index() {
           createdAt: new Date(post.createdAt).toLocaleDateString(),
           isLiked: user ? post.likes?.includes(user.id || user._id) : false,
         }));
-        setPosts(formatted.length > 0 ? formatted : fallbackPosts);
+        setPosts(formatted);
       } else {
-        setPosts(fallbackPosts);
+        setPosts([]);
       }
     } catch (e) {
-      console.error("Error loading posts, using fallback:", e);
-      setPosts(fallbackPosts);
+      console.error("Error loading posts:", e);
+      setPosts([]);
     } finally {
       setLoadingPosts(false);
     }
@@ -569,14 +477,14 @@ export default function Index() {
 
   // Discover sorting rules:
   // Bug 5b: Popular Communities: sorted by members count descending
-  const sortedCommunities = [...(communities.length > 0 ? communities : fallbackCommunities)].sort((a, b) => {
+  const sortedCommunities = [...communities].sort((a, b) => {
     const aCount = a.members?.length || 0;
     const bCount = b.members?.length || 0;
     return bCount - aCount;
   });
 
   // Bug 5c: Featured Creators: sorted by followers count descending
-  const sortedFeaturedCreators = [...(suggestedCreators.length > 0 ? suggestedCreators : fallbackSuggested)].sort((a, b) => {
+  const sortedFeaturedCreators = [...suggestedCreators].sort((a, b) => {
     const aCount = a.followers?.length || 0;
     const bCount = b.followers?.length || 0;
     return bCount - aCount;
@@ -896,37 +804,9 @@ export default function Index() {
                           );
                         })
                       ) : (
-                        fallbackStories.map((story) => (
-                          <div
-                            key={story.id}
-                            className="w-[90px] h-[140px] shrink-0 relative rounded-[20px] overflow-hidden shadow-xs group cursor-pointer border border-[#E3D8C8]/10 bg-neutral-900"
-                          >
-                            <img
-                              src={story.media}
-                              alt={story.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-
-                            <div className="absolute top-2 left-2">
-                              <div className="h-7 w-7 rounded-full p-[1.5px] bg-gradient-to-tr from-[#FA709A] to-[#FEE140]">
-                                <div className="h-full w-full rounded-full overflow-hidden border border-black bg-white">
-                                  <img
-                                    src={story.avatar}
-                                    alt={story.name}
-                                    className="h-full w-full object-cover"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="absolute bottom-2 left-2 right-2">
-                              <span className="text-[10px] font-medium text-white truncate block drop-shadow-md">
-                                {story.name.split(".")[0]}
-                              </span>
-                            </div>
-                          </div>
-                        ))
+                        <div className="text-[11px] opacity-50 flex items-center justify-center w-[90px] h-[140px] px-2 text-center border border-dashed rounded-[20px]">
+                          No stories
+                        </div>
                       )}
                     </div>
                   </section>
@@ -952,17 +832,23 @@ export default function Index() {
                       onScroll={handleScroll}
                       className="flex flex-col sm:flex-row gap-6 sm:overflow-x-auto scrollbar-hide py-2 smooth-scroll"
                     >
-                      {posts.map((post) => (
-                        <FeedPostCard
-                          key={post._id}
-                          post={post}
-                          theme={theme}
-                          onLike={handleLike}
-                          onCommentClick={setActiveCommentsPostId}
-                          onShareClick={() => setShowShare(true)}
-                          onTipClick={setTipModalPost}
-                        />
-                      ))}
+                      {posts.length > 0 ? (
+                        posts.map((post) => (
+                          <FeedPostCard
+                            key={post._id}
+                            post={post}
+                            theme={theme}
+                            onLike={handleLike}
+                            onCommentClick={setActiveCommentsPostId}
+                            onShareClick={() => setShowShare(true)}
+                            onTipClick={setTipModalPost}
+                          />
+                        ))
+                      ) : (
+                        <div className="w-full py-8 text-center text-xs opacity-50 border border-dashed rounded-[24px] font-bold">
+                          No posts available. Be the first to create one!
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex justify-center pt-2">
@@ -979,7 +865,6 @@ export default function Index() {
 
               // Render Suggested Creators Section
               if (sectionKey === "suggested") {
-                const creatorsToDisplay = suggestedCreators.length > 0 ? suggestedCreators : fallbackSuggested;
                 return (
                   <section key="suggested" className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -991,45 +876,48 @@ export default function Index() {
                     </div>
 
                     <div className="flex gap-4 overflow-x-auto scrollbar-hide py-1">
-                      {creatorsToDisplay.map((creator) => (
-                        <div
-                          key={creator._id}
-                          className={`w-[170px] shrink-0 p-5 rounded-[24px] border ${theme.cardBorder} ${theme.card} ${theme.shadow} flex flex-col items-center justify-between hover:-translate-y-1 transition-transform duration-300`}
-                        >
-                          {/* Bug 4: Suggested creator link - navigates to profile when clicking ID/avatar */}
+                      {suggestedCreators.length > 0 ? (
+                        suggestedCreators.map((creator) => (
                           <div
-                            onClick={() => navigate(`/profile/${creator.username}`)}
-                            className="flex flex-col items-center text-center cursor-pointer group/suggested"
+                            key={creator._id}
+                            className={`w-[170px] shrink-0 p-5 rounded-[24px] border ${theme.cardBorder} ${theme.card} ${theme.shadow} flex flex-col items-center justify-between hover:-translate-y-1 transition-transform duration-300`}
                           >
-                            <div className="relative mb-3.5">
-                              <img
-                                src={resolveUrl(creator.avatar) || "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150"}
-                                alt={creator.username}
-                                className="h-16 w-16 rounded-full object-cover border border-[#8B5E3C]/30 shadow-xs transition-transform group-hover/suggested:scale-105"
-                              />
-                              <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-[#8B5E3C] border border-[#EFE6DA] flex items-center justify-center text-white text-[9px] font-bold">+</span>
-                            </div>
-                            <h4 className="text-xs font-bold truncate max-w-[130px] group-hover/suggested:underline">{creator.name}</h4>
-                            <p className="text-[9px] opacity-65 font-medium mt-0.5 truncate max-w-[130px]">{creator.bio || "Content Creator"}</p>
-                          </div>
+                            {/* Bug 4: Suggested creator link - navigates to profile when clicking ID/avatar */}
+                            <div
+                              onClick={() => navigate(`/profile/${creator.username}`)}
+                              className="flex flex-col items-center text-center cursor-pointer group/suggested"
+                            >
+                              <div className="relative mb-3.5">
+                                <img
+                                  src={resolveUrl(creator.avatar) || "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150"}
+                                  alt={creator.username}
+                                  className="h-16 w-16 rounded-full object-cover border border-[#8B5E3C]/30 shadow-xs transition-transform group-hover/suggested:scale-105"
+                                </div>
+                                <h4 className="text-xs font-bold truncate max-w-[130px] group-hover/suggested:underline">{creator.name}</h4>
+                                <p className="text-[9px] opacity-65 font-medium mt-0.5 truncate max-w-[130px]">{creator.bio || "Content Creator"}</p>
+                              </div>
 
-                          <button
-                            onClick={() => handleFollowCreator(creator)}
-                            className={`w-full mt-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${creator.isFollowing ? theme.accentButtonSecondary : theme.accentButton
-                              }`}
-                          >
-                            {creator.isFollowing ? "Following" : "Follow"}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
+                              <button
+                                onClick={() => handleFollowCreator(creator)}
+                                className={`w-full mt-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${creator.isFollowing ? theme.accentButtonSecondary : theme.accentButton
+                                  }`}
+                              >
+                                {creator.isFollowing ? "Following" : "Follow"}
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="w-full py-8 text-center text-xs opacity-50 border border-dashed rounded-[24px] font-bold">
+                            No suggested creators found.
+                          </div>
+                        )}
+                      </div>
                   </section>
                 );
               }
 
               // Render Reels Section
               if (sectionKey === "reels") {
-                const reelsToDisplay = reels.length > 0 ? reels : fallbackReels;
                 return (
                   <section key="reels" className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -1044,52 +932,58 @@ export default function Index() {
                     </div>
 
                     <div className="flex gap-4 overflow-x-auto scrollbar-hide py-1">
-                      {reelsToDisplay.map((reel) => {
-                        const isVideo = reel.mediaUrl && (reel.mediaUrl.endsWith(".mp4") || reel.mediaUrl.endsWith(".mov") || reel.mediaUrl.includes("/video/upload/"));
-                        const fullMediaUrl = reel.mediaUrl?.startsWith("http") ? reel.mediaUrl : `${API_BASE_URL}/${reel.mediaUrl?.replace(/\\/g, "/")}`;
+                      {reels.length > 0 ? (
+                        reels.map((reel) => {
+                          const isVideo = reel.mediaUrl && (reel.mediaUrl.endsWith(".mp4") || reel.mediaUrl.endsWith(".mov") || reel.mediaUrl.includes("/video/upload/"));
+                          const fullMediaUrl = reel.mediaUrl?.startsWith("http") ? reel.mediaUrl : `${API_BASE_URL}/${reel.mediaUrl?.replace(/\\/g, "/")}`;
 
-                        return (
-                          <div
-                            key={reel._id}
-                            /* Bug 3a: Click specific reel card navigates to Reels page and opens that specific reel */
-                            onClick={() => navigate(`/reels?reelId=${reel._id}`)}
-                            className="w-[140px] h-[210px] shrink-0 relative rounded-[24px] overflow-hidden shadow-xs group cursor-pointer bg-neutral-900"
-                          >
-                            {isVideo ? (
-                              <video
-                                src={fullMediaUrl}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                preload="metadata"
-                                muted
-                                playsInline
-                              />
-                            ) : (
-                              <img
-                                src={reel.mediaUrl || "https://images.unsplash.com/photo-1520156473395-82c498be7bfc?w=400"}
-                                alt="Reel Thumbnail"
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1520156473395-82c498be7bfc?w=400";
-                                }}
-                              />
-                            )}
+                          return (
+                            <div
+                              key={reel._id}
+                              /* Bug 3a: Click specific reel card navigates to Reels page and opens that specific reel */
+                              onClick={() => navigate(`/reels?reelId=${reel._id}`)}
+                              className="w-[140px] h-[210px] shrink-0 relative rounded-[24px] overflow-hidden shadow-xs group cursor-pointer bg-neutral-900"
+                            >
+                              {isVideo ? (
+                                <video
+                                  src={fullMediaUrl}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                  preload="metadata"
+                                  muted
+                                  playsInline
+                                />
+                              ) : (
+                                <img
+                                  src={reel.mediaUrl || "https://images.unsplash.com/photo-1520156473395-82c498be7bfc?w=400"}
+                                  alt="Reel Thumbnail"
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1520156473395-82c498be7bfc?w=400";
+                                  }}
+                                />
+                              )}
 
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
 
-                            {/* Play icon overlay */}
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                              <div className="h-10 w-10 rounded-full bg-white/25 backdrop-blur-xs flex items-center justify-center text-white scale-90 group-hover:scale-100 transition-transform duration-300">
-                                <Play className="h-4.5 w-4.5 fill-white ml-0.5" />
+                              {/* Play icon overlay */}
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                <div className="h-10 w-10 rounded-full bg-white/25 backdrop-blur-xs flex items-center justify-center text-white scale-90 group-hover:scale-100 transition-transform duration-300">
+                                  <Play className="h-4.5 w-4.5 fill-white ml-0.5" />
+                                </div>
+                              </div>
+
+                              <div className="absolute bottom-3 left-3 flex items-center gap-1 text-[10px] font-semibold text-white drop-shadow-md">
+                                <Play className="h-3 w-3 fill-white" />
+                                <span>{reel.views || `${reel.likes.length * 4 + 7}K`}</span>
                               </div>
                             </div>
-
-                            <div className="absolute bottom-3 left-3 flex items-center gap-1 text-[10px] font-semibold text-white drop-shadow-md">
-                              <Play className="h-3 w-3 fill-white" />
-                              <span>{reel.views || `${reel.likes.length * 4 + 7}K`}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                      ) : (
+                        <div className="w-full py-8 text-center text-xs opacity-50 border border-dashed rounded-[24px] font-bold">
+                          No reels found.
+                        </div>
+                      )}
                     </div>
                   </section>
                 );
