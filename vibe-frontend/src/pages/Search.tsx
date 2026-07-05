@@ -103,8 +103,24 @@ export default function Search() {
     textPrimary: isDark ? "text-[#F5F0E8]" : "text-[#4A3428]",
     textSecondary: isDark ? "text-[#D2C5B4]" : "text-[#8B5E3C]",
     border: isDark ? "border-[#3D2A1F]" : "border-[#E3D8C8]",
-    navActive: isDark ? "bg-[#3D2A1F]" : "bg-[#EFE6DA]",
+    navActive: isDark ? "bg-[#5C3E2F] text-[#F5F0E8]" : "bg-[#5C3E2F] text-[#F5F0E8]",
     navHover: isDark ? "hover:bg-[#2A1D16]/50" : "hover:bg-[#EFE6DA]/50",
+    inputBg: isDark ? "bg-[#2A1D16]" : "bg-[#EFE6DA]/70",
+    inputBorder: isDark ? "border-[#3D2A1F]" : "border-[#E3D8C8]",
+    tabInactive: isDark ? "bg-[#2A1D16] text-[#D2C5B4]" : "bg-[#EFE6DA] text-[#8B5E3C]",
+    tabHover: isDark ? "hover:bg-[#3D2A1F]" : "hover:bg-[#E2D6C5]",
+    filterBg: isDark ? "bg-[#2A1D16]/40" : "bg-[#EFE6DA]/40",
+    filterBgSolid: isDark ? "bg-[#2A1D16]" : "bg-[#EFE6DA]",
+    filterHover: isDark ? "hover:bg-[#3D2A1F]" : "hover:bg-[#EFE6DA]/85",
+    btnBg: isDark ? "bg-[#2A1D16] hover:bg-[#3D2A1F] border-[#3D2A1F] text-[#D2C5B4]" : "bg-[#EFE6DA] hover:bg-[#E2D6C5] border-[#E3D8C8] text-[#8B5E3C]",
+    widgetCard: isDark ? "bg-[#2A1D16]/60 border-[#3D2A1F]" : "bg-[#EFE6DA]/40 border-[#E3D8C8]",
+    hoverRow: isDark ? "hover:bg-[#3D2A1F]/60" : "hover:bg-[#EFE6DA]/60",
+    dropdownBg: isDark ? "bg-[#2A1D16] border-[#3D2A1F]" : "bg-[#FBF9F6] border-[#E3D8C8]",
+    // Shorthand color values for inline style usage
+    clrPrimary: isDark ? "#F5F0E8" : "#4A3428",
+    clrSecondary: isDark ? "#D2C5B4" : "#8B5E3C",
+    clrCardBg: isDark ? "#2A1D16" : "#EFE6DA",
+    clrBorder: isDark ? "#3D2A1F" : "#E3D8C8",
   };
 
   // Search and Filter states
@@ -320,21 +336,21 @@ export default function Search() {
         {/* SEARCH BAR CONTAINER */}
         <div className="relative w-full" ref={dropdownRef}>
           <form onSubmit={handleSearchSubmit} className="flex gap-2 w-full">
-            <div className="relative flex-1 bg-[#EFE6DA]/70 border border-[#E3D8C8] rounded-2xl flex items-center px-4 py-2 transition focus-within:ring-2 focus-within:ring-[#8B5E3C] focus-within:border-[#8B5E3C]">
-              <SearchIcon className="h-5 w-5 text-[#8B5E3C] mr-3 flex-shrink-0" />
+            <div className={cn("relative flex-1 border rounded-2xl flex items-center px-4 py-2 transition focus-within:ring-2 focus-within:ring-[#8B5E3C] focus-within:border-[#8B5E3C]", theme.inputBg, theme.inputBorder)}>
+              <SearchIcon className={cn("h-5 w-5 mr-3 flex-shrink-0", theme.textSecondary)} />
               <Input
                 type="text"
                 value={searchQuery}
                 onFocus={() => setIsFocused(true)}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search for people, posts, reels, topics, communities..."
-                className="bg-transparent border-none text-base outline-none ring-0 placeholder-[#8B5E3C]/60 text-[#4A3428] w-full focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-none focus-visible:border-none shadow-none h-9 p-0"
+                className={cn("bg-transparent border-none text-base outline-none ring-0 w-full focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-none focus-visible:border-none shadow-none h-9 p-0", theme.textPrimary)}
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="p-1 text-[#8B5E3C]/60 hover:text-[#8B5E3C]"
+                  className={cn("p-1", theme.textSecondary)}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -342,7 +358,7 @@ export default function Search() {
             </div>
             <Button
               type="button"
-              className="bg-[#EFE6DA] hover:bg-[#E2D6C5] border border-[#E3D8C8] text-[#8B5E3C] p-3 rounded-2xl flex-shrink-0"
+              className={cn("border p-3 rounded-2xl flex-shrink-0", theme.btnBg)}
             >
               <SlidersHorizontal className="h-5 w-5" />
             </Button>
@@ -350,7 +366,7 @@ export default function Search() {
 
           {/* FOCUS HISTORY & SUGGESTIONS OVERLAY */}
           {isFocused && (
-            <div className="absolute top-[105%] left-0 right-0 bg-[#FBF9F6] border border-[#E3D8C8] rounded-2xl shadow-xl z-50 p-4 max-h-[380px] overflow-y-auto space-y-4">
+            <div className={cn("absolute top-[105%] left-0 right-0 border rounded-2xl shadow-xl z-50 p-4 max-h-[380px] overflow-y-auto space-y-4", theme.dropdownBg)}>
               
               {/* SUGGESTIONS SECTION (WHEN QUERY ENTERED) */}
               {searchQuery.trim() && suggestions.length > 0 && (
@@ -363,7 +379,7 @@ export default function Search() {
                         onClick={() => triggerSearch(item.text)}
                         className="flex items-center gap-3 w-full p-2 hover:bg-[#EFE6DA]/40 rounded-xl text-left transition"
                       >
-                        <Avatar className="h-8 w-8 border border-[#E3D8C8]">
+                        <Avatar className={cn("h-8 w-8 border", theme.cardBorder)}>
                           <AvatarImage src={resolveUrl(item.avatar)} />
                           <AvatarFallback className="bg-[#EFE6DA] text-[#8B5E3C] text-xs">
                             {item.text.charAt(0).toUpperCase()}
@@ -438,7 +454,7 @@ export default function Search() {
                 "px-5 py-2.5 rounded-full text-sm font-semibold transition flex-shrink-0 cursor-pointer",
                 activeTab === tab
                   ? "bg-[#5C3E2F] text-[#F5F0E8] shadow-md"
-                  : "bg-[#EFE6DA] text-[#8B5E3C] hover:bg-[#E2D6C5]"
+                  : cn(theme.tabInactive, theme.tabHover)
               )}
             >
               {tab}
@@ -449,7 +465,7 @@ export default function Search() {
         {/* SUB-FILTERS / MEDIA FILTERS (Photos vs Reels - visible on All, Posts, Reels) */}
         {(activeTab === "All" || activeTab === "Posts" || activeTab === "Reels") && (
           <div className="flex justify-between items-center flex-wrap gap-3">
-            <div className="flex items-center gap-2 bg-[#EFE6DA]/40 p-1 rounded-xl border border-[#E3D8C8]">
+            <div className={cn("flex items-center gap-2 p-1 rounded-xl border", theme.filterBg, theme.cardBorder)}>
               {(["All", "Photos", "Reels"] as const).map((filter) => (
                 <button
                   key={filter}
@@ -458,7 +474,7 @@ export default function Search() {
                     "px-4 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer",
                     mediaFilter === filter
                       ? "bg-[#5C3E2F] text-[#F5F0E8] shadow-xs"
-                      : "text-[#8B5E3C] hover:bg-[#EFE6DA]/85"
+                      : cn(theme.textSecondary, theme.filterHover)
                   )}
                 >
                   {filter === "All" ? "All (Both)" : filter === "Photos" ? "Photos Only" : "Reels Only"}
@@ -466,8 +482,8 @@ export default function Search() {
               ))}
             </div>
 
-            <div className="text-xs text-[#8B5E3C] font-semibold bg-[#EFE6DA]/40 px-3 py-1.5 rounded-xl border border-[#E3D8C8]">
-              Sort By: <span className="text-[#4A3428] font-bold">Most Relevant</span>
+            <div className={cn("text-xs font-semibold px-3 py-1.5 rounded-xl border", theme.textSecondary, theme.filterBg, theme.cardBorder)}>
+              Sort By: <span className={cn("font-bold", theme.textPrimary)}>Most Relevant</span>
             </div>
           </div>
         )}
@@ -507,21 +523,21 @@ export default function Search() {
                 {itemsList.map((user: any) => (
                   <div
                     key={user._id}
-                    className="bg-[#EFE6DA]/40 border border-[#E3D8C8] p-4 rounded-2xl flex flex-col items-center text-center space-y-3"
+                    className={cn("border p-4 rounded-2xl flex flex-col items-center text-center space-y-3", theme.widgetCard)}
                   >
-                    <Avatar className="h-16 w-16 border-2 border-[#8B5E3C]">
+                    <Avatar className={cn("h-16 w-16 border-2", theme.cardBorder)}>
                       <AvatarImage src={resolveUrl(user.avatar)} />
                       <AvatarFallback className="bg-[#5C3E2F] text-[#F5F0E8] text-lg font-bold">
                         {user.username.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <h4 className="font-bold text-base line-clamp-1">{user.name}</h4>
-                      <p className="text-xs text-[#8B5E3C] font-semibold">@{user.username}</p>
+                      <h4 className={cn("font-bold text-base line-clamp-1", theme.textPrimary)}>{user.name}</h4>
+                      <p className={cn("text-xs font-semibold", theme.textSecondary)}>@{user.username}</p>
                     </div>
-                    {user.bio && <p className="text-xs text-[#4A3428]/80 line-clamp-2 h-8">{user.bio}</p>}
+                    {user.bio && <p className={cn("text-xs line-clamp-2 h-8", theme.textSecondary)}>{user.bio}</p>}
                     
-                    <div className="flex gap-4 text-xs font-semibold text-[#8B5E3C]">
+                    <div className={cn("flex gap-4 text-xs font-semibold", theme.textSecondary)}>
                       <p>{formatCount(user.followers?.length)} Followers</p>
                       <p>{formatCount(user.following?.length)} Following</p>
                     </div>
@@ -529,7 +545,7 @@ export default function Search() {
                     <div className="flex gap-2 w-full pt-1">
                       <Button
                         onClick={() => navigate(`/profile/${user.username}`)}
-                        className="flex-1 bg-[#EFE6DA] hover:bg-[#E2D6C5] text-[#8B5E3C] rounded-xl text-xs py-1.5 h-auto font-semibold"
+                        className={cn("flex-1 rounded-xl text-xs py-1.5 h-auto font-semibold border transition", theme.filterBgSolid, theme.tabHover, theme.cardBorder, theme.textSecondary)}
                       >
                         Profile
                       </Button>
@@ -539,7 +555,7 @@ export default function Search() {
                           className={cn(
                             "flex-1 rounded-xl text-xs py-1.5 h-auto font-bold transition",
                             user.followers?.includes(currentUser?.id)
-                              ? "bg-[#EFE6DA] text-[#8B5E3C] hover:bg-destructive/10 hover:text-destructive border border-destructive/20"
+                              ? cn(theme.filterBgSolid, theme.textSecondary, theme.cardBorder, "hover:bg-destructive/10 hover:text-destructive border border-destructive/20")
                               : "bg-[#8B5E3C] hover:bg-[#5C3E2F] text-[#F5F0E8]"
                           )}
                         >
@@ -557,14 +573,14 @@ export default function Search() {
                   <button
                     key={idx}
                     onClick={() => triggerSearch(tag.title)}
-                    className="bg-[#EFE6DA]/40 hover:bg-[#EFE6DA]/60 border border-[#E3D8C8] p-4 rounded-2xl text-left space-y-3 transition flex flex-col justify-between"
+                    className={cn("border p-4 rounded-2xl text-left space-y-3 transition flex flex-col justify-between", theme.widgetCard, theme.hoverRow)}
                   >
                     <div className="h-10 w-10 bg-[#5C3E2F]/10 rounded-xl flex items-center justify-center text-[#5C3E2F]">
                       <Tag className="h-5 w-5" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-base line-clamp-1">{tag.title}</h4>
-                      <p className="text-xs text-[#8B5E3C] font-semibold mt-1">
+                      <h4 className={cn("font-bold text-base line-clamp-1", theme.textPrimary)}>{tag.title}</h4>
+                      <p className={cn("text-xs font-semibold mt-1", theme.textSecondary)}>
                         {formatCount(tag.postsCount)} posts
                       </p>
                     </div>
@@ -577,23 +593,23 @@ export default function Search() {
                 {itemsList.map((c: any) => (
                   <div
                     key={c._id}
-                    className="bg-[#EFE6DA]/40 border border-[#E3D8C8] p-4 rounded-2xl flex flex-col justify-between space-y-4"
+                    className={cn("border p-4 rounded-2xl flex flex-col justify-between space-y-4", theme.widgetCard)}
                   >
                     <div className="flex gap-3">
-                      <Avatar className="h-12 w-12 rounded-xl border border-[#E3D8C8]">
+                      <Avatar className={cn("h-12 w-12 rounded-xl border", theme.cardBorder)}>
                         <AvatarImage src={resolveUrl(c.avatar)} />
-                        <AvatarFallback className="bg-[#EFE6DA] text-[#8B5E3C] font-bold rounded-xl">
+                        <AvatarFallback className={cn("font-bold rounded-xl", theme.card, theme.textSecondary)}>
                           {c.name.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
-                        <h4 className="font-bold text-base line-clamp-1">{c.name}</h4>
-                        <p className="text-xs text-[#8B5E3C] font-semibold mt-0.5">
+                        <h4 className={cn("font-bold text-base line-clamp-1", theme.textPrimary)}>{c.name}</h4>
+                        <p className={cn("text-xs font-semibold mt-0.5", theme.textSecondary)}>
                           {formatCount(c.memberCount || c.members?.length)} Members
                         </p>
                       </div>
                     </div>
-                    <p className="text-xs text-[#4A3428]/80 line-clamp-2 h-8">{c.description}</p>
+                    <p className={cn("text-xs line-clamp-2 h-8", theme.textSecondary)}>{c.description}</p>
                     <Button
                       onClick={() => navigate(`/communities`)} // Navigate to communities page
                       className="w-full bg-[#8B5E3C] hover:bg-[#5C3E2F] text-[#F5F0E8] rounded-xl text-xs py-2 font-bold"
@@ -615,13 +631,13 @@ export default function Search() {
                       
                       {/* Quote block inserted inline */}
                       {showEmbedQuote && (
-                        <div className="bg-[#EFE6DA] p-6 rounded-2xl border border-[#E3D8C8] flex flex-col justify-between aspect-square mb-4">
-                          <span className="text-[#8B5E3C] text-5xl font-serif leading-none">“</span>
-                          <p className="text-[#4A3428] text-base font-semibold leading-relaxed my-2">
+                        <div className={cn("p-6 rounded-2xl border flex flex-col justify-between aspect-square mb-4", theme.card, theme.cardBorder)}>
+                          <span className={cn("text-5xl font-serif leading-none", theme.textSecondary)}>“</span>
+                          <p className={cn("text-base font-semibold leading-relaxed my-2", theme.textPrimary)}>
                             {quoteData?.text || "Collect moments, not things."}
                           </p>
-                          <div className="flex justify-between items-end border-t border-[#E3D8C8]/60 pt-3">
-                            <span className="text-[10px] text-[#8B5E3C] font-bold uppercase tracking-wider">
+                          <div className={cn("flex justify-between items-end border-t pt-3", theme.cardBorder)}>
+                            <span className={cn("text-[10px] font-bold uppercase tracking-wider", theme.textSecondary)}>
                               — {quoteData?.author || "Vibe"}
                             </span>
                             <span className="text-lg opacity-40">🌱</span>
@@ -638,7 +654,7 @@ export default function Search() {
                             setSelectedPost(post);
                           }
                         }}
-                        className="relative overflow-hidden rounded-2xl group cursor-pointer shadow-sm border border-[#E3D8C8] bg-[#EFE6DA]/40 group-hover:shadow-md transition-all duration-300"
+                        className={cn("relative overflow-hidden rounded-2xl group cursor-pointer shadow-sm border transition-all duration-300 group-hover:shadow-md", theme.cardBorder, isDark ? "bg-[#2A1D16]/40" : "bg-[#EFE6DA]/40")}
                       >
                         {/* Post image/video static preview */}
                         {post.type === "reel" || post.mediaType === "video" || (post.mediaUrl && (post.mediaUrl.endsWith(".mp4") || post.mediaUrl.endsWith(".mov") || post.mediaUrl.includes("/video/upload/"))) ? (
@@ -771,23 +787,23 @@ export default function Search() {
       <div className="hidden xl:block w-80 space-y-6 flex-shrink-0">
         
         {/* WIDGET: MOTIVATIONAL THOUGHT */}
-        <div className="bg-[#EFE6DA]/40 border border-[#E3D8C8] rounded-3xl p-5 relative overflow-hidden space-y-4">
+        <div className={cn("border rounded-3xl p-5 relative overflow-hidden space-y-4", theme.widgetCard)}>
           <div className="flex justify-between items-center">
-            <h3 className="text-xs font-bold text-[#8B5E3C] uppercase tracking-wider">Today's Motivational Thought</h3>
+            <h3 className={cn("text-xs font-bold uppercase tracking-wider", theme.textSecondary)}>Today's Motivational Thought</h3>
             <button
               onClick={() => setEditQuoteOpen(true)}
-              className="p-1 hover:bg-[#EFE6DA] rounded-lg text-[#8B5E3C] transition"
+              className={cn("p-1 rounded-lg transition", theme.tabHover, theme.textSecondary)}
             >
               <Edit className="h-3.5 w-3.5" />
             </button>
           </div>
 
           <div className="space-y-2">
-            <span className="text-[#8B5E3C] text-4xl font-serif leading-none block">“</span>
-            <p className="text-base font-bold italic leading-relaxed text-[#4A3428]">
+            <span className={cn("text-4xl font-serif leading-none block", theme.textSecondary)}>“</span>
+            <p className={cn("text-base font-bold italic leading-relaxed", theme.textPrimary)}>
               {quoteData?.text || "Believe in yourself a little more."}
             </p>
-            <p className="text-xs text-[#8B5E3C] font-semibold text-right">
+            <p className={cn("text-xs font-semibold text-right", theme.textSecondary)}>
               — {quoteData?.author || "Vibe"}
             </p>
           </div>
@@ -800,8 +816,8 @@ export default function Search() {
 
         {/* WIDGET: YOUR LATEST POST */}
         {latestPost && latestPost._id ? (
-          <div className="bg-[#EFE6DA]/40 border border-[#E3D8C8] rounded-3xl p-5 space-y-4">
-            <h3 className="text-xs font-bold text-[#8B5E3C] uppercase tracking-wider">Your Latest Post</h3>
+          <div className={cn("border rounded-3xl p-5 space-y-4", theme.widgetCard)}>
+            <h3 className={cn("text-xs font-bold uppercase tracking-wider", theme.textSecondary)}>Your Latest Post</h3>
             
             <div className="flex gap-3">
               {latestPost.mediaType === "video" || (latestPost.mediaUrl && (latestPost.mediaUrl.endsWith(".mp4") || latestPost.mediaUrl.endsWith(".mov") || latestPost.mediaUrl.includes("/video/upload/"))) ? (
@@ -820,14 +836,14 @@ export default function Search() {
                 />
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate text-[#4A3428]">
+                <p className={cn("text-sm font-semibold truncate", theme.textPrimary)}>
                   {latestPost.caption || "Untitled post"}
                 </p>
-                <p className="text-xs text-[#8B5E3C] mt-1">{formatTimeAgo(latestPost.createdAt)}</p>
+                <p className={cn("text-xs mt-1", theme.textSecondary)}>{formatTimeAgo(latestPost.createdAt)}</p>
               </div>
             </div>
 
-            <div className="flex items-center justify-around border-t border-b border-[#E3D8C8]/60 py-2 text-xs font-bold text-[#8B5E3C]">
+            <div className={cn("flex items-center justify-around border-t border-b py-2 text-xs font-bold", theme.cardBorder, theme.textSecondary)}>
               <div className="flex items-center gap-1">
                 <Heart className="h-3.5 w-3.5 text-[#8B5E3C]" />
                 <span>{formatCount(latestPost.likesCount)}</span>
@@ -844,23 +860,23 @@ export default function Search() {
 
             <button
               onClick={() => navigate(`/post/${latestPost._id}`)}
-              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-[#EFE6DA] hover:bg-[#E2D6C5] text-[#8B5E3C] text-xs font-bold border border-[#E3D8C8] transition active:scale-95"
+              className={cn("w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold border transition active:scale-95", theme.filterBgSolid, theme.tabHover, theme.cardBorder, theme.textSecondary)}
             >
               View post
               <ArrowRight className="h-3.5 w-3.5" />
             </button>
           </div>
         ) : (
-          <div className="bg-[#EFE6DA]/40 border border-[#E3D8C8] rounded-3xl p-5 space-y-2 text-center">
-            <h3 className="text-xs font-bold text-[#8B5E3C] uppercase tracking-wider">Your Latest Post</h3>
-            <p className="text-xs text-[#8B5E3C]/60 italic py-2">No posts created yet</p>
+          <div className={cn("border rounded-3xl p-5 space-y-2 text-center", theme.widgetCard)}>
+            <h3 className={cn("text-xs font-bold uppercase tracking-wider", theme.textSecondary)}>Your Latest Post</h3>
+            <p className={cn("text-xs italic py-2 opacity-60", theme.textSecondary)}>No posts created yet</p>
           </div>
         )}
 
         {/* WIDGET: FRIENDS' LATEST POSTS */}
-        <div className="bg-[#EFE6DA]/40 border border-[#E3D8C8] rounded-3xl p-5 space-y-4">
+        <div className={cn("border rounded-3xl p-5 space-y-4", theme.widgetCard)}>
           <div className="flex justify-between items-center">
-            <h3 className="text-xs font-bold text-[#8B5E3C] uppercase tracking-wider">Friends' Latest Posts</h3>
+            <h3 className={cn("text-xs font-bold uppercase tracking-wider", theme.textSecondary)}>Friends' Latest Posts</h3>
             <button
               onClick={() => navigate("/")}
               className="text-xs text-[#8B5E3C] hover:underline font-bold"
@@ -875,18 +891,18 @@ export default function Search() {
                 <div
                   key={post._id}
                   onClick={() => navigate(`/post/${post._id}`)}
-                  className="flex items-center justify-between hover:bg-[#EFE6DA]/60 p-1.5 rounded-xl transition cursor-pointer"
+                  className={cn("flex items-center justify-between p-1.5 rounded-xl transition cursor-pointer", theme.hoverRow)}
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8 border border-[#E3D8C8]">
+                    <Avatar className={cn("h-8 w-8 border", theme.cardBorder)}>
                       <AvatarImage src={resolveUrl(post.author?.avatar)} />
                       <AvatarFallback className="bg-[#5C3E2F] text-[#F5F0E8] text-xs font-bold">
                         {post.author?.username?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-xs font-bold">@{post.author?.username}</p>
-                      <p className="text-[10px] text-[#8B5E3C] mt-0.5">{formatTimeAgo(post.createdAt)}</p>
+                        <p className={cn("text-xs font-bold", theme.textPrimary)}>@{post.author?.username}</p>
+                        <p className={cn("text-[10px] mt-0.5", theme.textSecondary)}>{formatTimeAgo(post.createdAt)}</p>
                     </div>
                   </div>
                   {post.mediaType === "video" || (post.mediaUrl && (post.mediaUrl.endsWith(".mp4") || post.mediaUrl.endsWith(".mov") || post.mediaUrl.includes("/video/upload/"))) ? (
@@ -913,12 +929,12 @@ export default function Search() {
         </div>
 
         {/* WIDGET: PEOPLE YOU MAY KNOW */}
-        <div className="bg-[#EFE6DA]/40 border border-[#E3D8C8] rounded-3xl p-5 space-y-4">
+        <div className={cn("border rounded-3xl p-5 space-y-4", theme.widgetCard)}>
           <div className="flex justify-between items-center">
-            <h3 className="text-xs font-bold text-[#8B5E3C] uppercase tracking-wider">People You May Know</h3>
+            <h3 className={cn("text-xs font-bold uppercase tracking-wider", theme.textSecondary)}>People You May Know</h3>
             <button
               onClick={() => navigate("/discover")}
-              className="text-xs text-[#8B5E3C] hover:underline font-bold"
+              className={cn("text-xs hover:underline font-bold", theme.textSecondary)}
             >
               View all
             </button>
@@ -929,21 +945,21 @@ export default function Search() {
               {suggestedUsers.map((user: any) => (
                 <div
                   key={user._id}
-                  className="flex items-center justify-between hover:bg-[#EFE6DA]/60 p-1.5 rounded-xl transition"
+                  className={cn("flex items-center justify-between p-1.5 rounded-xl transition", theme.hoverRow)}
                 >
                   <div
                     onClick={() => navigate(`/profile/${user.username}`)}
                     className="flex items-center gap-2 cursor-pointer"
                   >
-                    <Avatar className="h-8 w-8 border border-[#E3D8C8]">
+                    <Avatar className={cn("h-8 w-8 border", theme.cardBorder)}>
                       <AvatarImage src={resolveUrl(user.avatar)} />
                       <AvatarFallback className="bg-[#5C3E2F] text-[#F5F0E8] text-xs font-bold">
                         {user.username.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <p className="text-xs font-bold truncate max-w-[85px]">{user.name}</p>
-                      <p className="text-[10px] text-[#8B5E3C] truncate max-w-[85px]">@{user.username}</p>
+                      <p className={cn("text-xs font-bold truncate max-w-[85px]", theme.textPrimary)}>{user.name}</p>
+                      <p className={cn("text-[10px] truncate max-w-[85px]", theme.textSecondary)}>@{user.username}</p>
                     </div>
                   </div>
                   <Button
@@ -956,20 +972,20 @@ export default function Search() {
               ))}
             </div>
           ) : (
-            <p className="text-xs text-[#8B5E3C]/60 italic py-2 text-center">No suggestions available</p>
+            <p className={cn("text-xs italic py-2 text-center opacity-60", theme.textSecondary)}>No suggestions available</p>
           )}
         </div>
 
         {/* WIDGET: TRENDING TOPICS */}
-        <div className="bg-[#EFE6DA]/40 border border-[#E3D8C8] rounded-3xl p-5 space-y-4">
+        <div className={cn("border rounded-3xl p-5 space-y-4", theme.widgetCard)}>
           <div className="flex justify-between items-center">
-            <h3 className="text-xs font-bold text-[#8B5E3C] uppercase tracking-wider">Trending Topics</h3>
+            <h3 className={cn("text-xs font-bold uppercase tracking-wider", theme.textSecondary)}>Trending Topics</h3>
             <button
               onClick={() => {
                 setActiveTab("Topics");
                 queryClient.invalidateQueries({ queryKey: ["search-hashtags"] });
               }}
-              className="text-xs text-[#8B5E3C] hover:underline font-bold"
+              className={cn("text-xs hover:underline font-bold", theme.textSecondary)}
             >
               View all
             </button>
@@ -981,14 +997,14 @@ export default function Search() {
                 <button
                   key={idx}
                   onClick={() => triggerSearch(tag.title)}
-                  className="bg-[#EFE6DA] hover:bg-[#E2D6C5] border border-[#E3D8C8] text-[#8B5E3C] font-semibold text-xs px-3 py-1.5 rounded-full transition cursor-pointer"
+                  className={cn("font-semibold text-xs px-3 py-1.5 rounded-full border transition cursor-pointer", theme.filterBgSolid, theme.tabHover, theme.cardBorder, theme.textSecondary)}
                 >
                   {tag.title}
                 </button>
               ))}
             </div>
           ) : (
-            <p className="text-xs text-[#8B5E3C]/60 italic py-2 text-center">No trending hashtags found</p>
+            <p className={cn("text-xs italic py-2 text-center opacity-60", theme.textSecondary)}>No trending hashtags found</p>
           )}
         </div>
 

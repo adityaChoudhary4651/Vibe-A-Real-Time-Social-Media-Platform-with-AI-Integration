@@ -38,6 +38,7 @@ import { getUnreadMessageCount } from "@/api/messages";
 import { AddStorySheet } from "@/components/shared/AddStorySheet";
 import { CommentsSheet } from "@/components/shared/CommentsSheet";
 import { ShareSheet } from "@/components/shared/ShareSheet";
+import { MobileBottomNav, MobileHeader } from "@/components/layout/Navigation";
 import { API_BASE_URL, resolveUrl } from "../config";
 import api from "@/lib/axios";
 import { toast } from "sonner";
@@ -618,7 +619,7 @@ export default function Index() {
 
         {/* ==================== LEFT SIDEBAR ==================== */}
         <aside
-          className={`w-[205px] xl:w-[220px] shrink-0 sticky top-0 h-screen flex flex-col justify-between py-5 border-r ${theme.border} pr-2`}
+          className={`hidden lg:flex w-[205px] xl:w-[220px] shrink-0 sticky top-0 h-screen flex-col justify-between py-5 border-r ${theme.border} pr-2`}
         >
           <div className="space-y-4 flex flex-col flex-1">
 
@@ -723,10 +724,11 @@ export default function Index() {
         </aside>
 
         {/* ==================== MAIN CONTENT ==================== */}
-        <main className="flex-1 py-8 px-6 md:px-10 overflow-y-auto max-h-screen scrollbar-hide space-y-8">
+        <main className="flex-1 py-4 lg:py-8 px-0 sm:px-4 lg:px-6 md:px-10 overflow-y-auto max-h-screen scrollbar-hide space-y-6 lg:space-y-8 pb-20 lg:pb-8">
+          <MobileHeader />
 
-          {/* Main Top Header with Layout Customizer toggle */}
-          <div className="flex items-center justify-between border-b pb-4 border-[#C8B9A6]/20">
+          {/* Main Top Header with Layout Customizer toggle (Hidden on mobile) */}
+          <div className="hidden lg:flex items-center justify-between border-b pb-4 border-[#C8B9A6]/20 px-4 sm:px-0">
             <div>
               <p className="text-xs opacity-60 tracking-wider font-semibold uppercase">Feed</p>
               <h1 className="text-2xl font-bold tracking-wide font-serif">Vibe Dashboard</h1>
@@ -914,10 +916,10 @@ export default function Index() {
                       {posts.map((post) => (
                         <div
                           key={post._id}
-                          className={`w-[520px] md:w-[540px] h-[280px] shrink-0 flex flex-row rounded-[24px] overflow-hidden border ${theme.cardBorder} ${theme.card} ${theme.shadow} transition-all duration-300`}
+                          className={`w-[85vw] sm:w-[520px] md:w-[540px] h-auto sm:h-[280px] shrink-0 flex flex-col sm:flex-row rounded-[24px] overflow-hidden border ${theme.cardBorder} ${theme.card} ${theme.shadow} transition-all duration-300`}
                         >
                           {/* Left media */}
-                          <div className="w-1/2 h-full relative overflow-hidden group bg-neutral-100 dark:bg-neutral-900">
+                          <div className="w-full sm:w-1/2 h-[200px] sm:h-full relative overflow-hidden group bg-neutral-100 dark:bg-neutral-900 shrink-0">
                             <img
                               src={post.imageUrl}
                               alt={post.caption}
@@ -929,7 +931,7 @@ export default function Index() {
                           </div>
 
                           {/* Right Engagement Panel */}
-                          <div className="w-1/2 p-5 flex flex-col justify-between">
+                          <div className="w-full sm:w-1/2 p-4 sm:p-5 flex flex-col justify-between flex-1">
                             <div className="flex items-center justify-between">
                               {/* Bug 4: suggested profile link (navigates to user profile when clicking avatar/name) */}
                               <div
@@ -984,7 +986,7 @@ export default function Index() {
 
                               <button
                                 onClick={() => setTipModalPost(post)}
-                                className={`w-full py-2.5 rounded-full text-xs font-bold tracking-wider uppercase transition-colors duration-300 flex items-center justify-center gap-1.5 ${theme.accentButton}`}
+                                className={`w-full py-2 sm:py-2.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wider uppercase transition-colors duration-300 flex items-center justify-center gap-1.5 ${theme.accentButton}`}
                               >
                                 <DollarSign className="h-3.5 w-3.5" />
                                 <span>Tip Creator</span>
@@ -1131,7 +1133,7 @@ export default function Index() {
         </main>
 
         {/* ==================== RIGHT SIDEBAR ==================== */}
-        <aside className={`w-[300px] xl:w-[320px] shrink-0 sticky top-0 h-screen py-8 border-l ${theme.border} pl-6 flex flex-col justify-between overflow-y-auto scrollbar-hide`}>
+        <aside className={`hidden 2xl:flex w-[300px] xl:w-[320px] shrink-0 sticky top-0 h-screen py-8 border-l ${theme.border} pl-6 flex-col justify-between overflow-y-auto scrollbar-hide`}>
 
           <div className="space-y-7">
             {/* Header Discover */}
@@ -1465,6 +1467,7 @@ export default function Index() {
         open={showShare}
         onOpenChange={setShowShare}
       />
+      <MobileBottomNav />
     </div>
   );
 }

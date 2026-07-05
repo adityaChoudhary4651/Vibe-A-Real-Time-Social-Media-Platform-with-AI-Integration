@@ -63,12 +63,12 @@ interface IllustrationProps {
 }
 
 const UploadIllustration = ({ isDark }: IllustrationProps) => {
-  const folderBack = isDark ? "#18120fff" : "#F2E8DC";
+  const folderBack = isDark ? "#0A0604" : "#F2E8DC";
   const strokeColor = isDark ? "#D2C5B4" : "#8B5E3C";
-  const cardBg = isDark ? "#1F140E" : "#FFFDF9";
-  const folderFront = isDark ? "#2A1D16" : "#FFFDF9";
-  const circleFill = isDark ? "#3D2A1F" : "#8B5E3C";
-  const accentBeige = isDark ? "#3D2A1F" : "#E6D3BE";
+  const cardBg = isDark ? "#0A0604" : "#FFFDF9";
+  const folderFront = isDark ? "#140C09" : "#FFFDF9";
+  const circleFill = isDark ? "#251711" : "#8B5E3C";
+  const accentBeige = isDark ? "#251711" : "#E6D3BE";
 
   return (
     <svg width="120" height="90" viewBox="0 0 180 130" fill="none" className="mx-auto select-none pointer-events-none mb-2">
@@ -458,7 +458,7 @@ export default function Create() {
                   <motion.div
                     layoutId="activeTabBadge"
                     className="absolute right-2 md:right-3 w-4 h-4 rounded-full flex items-center justify-center scale-90"
-                    style={{ backgroundColor: isDark ? "#2A1D16" : "#FFFDF9" }}
+                    style={{ backgroundColor: isDark ? "#140C09" : "#FFFDF9" }}
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   >
                     <Check className={cn("h-2.5 w-2.5 stroke-[3]", themeTextSecondary)} />
@@ -469,12 +469,12 @@ export default function Create() {
           })}
         </div>
 
-        {/* DOUBLE COLUMN CREATION WORKSPACE (Strict height budgeting - No scrolling) */}
-        <div className="grid grid-cols-2 gap-6 items-stretch flex-1 min-h-0 mb-4 overflow-hidden">
+        {/* DOUBLE COLUMN CREATION WORKSPACE */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 items-stretch flex-1 min-h-0 mb-4 overflow-y-auto lg:overflow-hidden pr-2 lg:pr-0">
 
           {/* LEFT SIDE: Media Upload Card */}
           <div className={cn(
-            "border rounded-[24px] p-5 flex flex-col justify-between h-full min-h-0 overflow-hidden transition-colors duration-300",
+            "border rounded-[24px] p-5 flex flex-col justify-between h-[350px] lg:h-full min-h-0 lg:overflow-hidden transition-colors duration-300",
             themeCard, themeBorder
           )}>
             <div className="flex-1 flex flex-col justify-center items-center min-h-0 overflow-hidden w-full">

@@ -78,18 +78,23 @@ function getZodiac(age: number): string {
 ───────────────────────────────────────────── */
 interface AttrCardProps { icon: React.ReactNode; label: string; value: string | number; }
 function AttrCard({ icon, label, value }: AttrCardProps) {
+  const isDark = localStorage.getItem("vibe_theme") === "dark";
   return (
-    <div className="bg-[#FBF8F4] border border-[#EDE6DB] rounded-xl px-2.5 py-2 flex flex-col gap-0.5 min-w-0">
+    <div className={cn(
+      "border rounded-xl px-2.5 py-2 flex flex-col gap-0.5 min-w-0 transition-colors duration-300",
+      isDark ? "bg-[#1E1510]/50 border-[#251711]" : "bg-[#FBF8F4] border-[#EDE6DB]"
+    )}>
       <div className="flex items-center gap-1">
         <span className="opacity-50 flex-shrink-0 [&>svg]:h-3 [&>svg]:w-3">{icon}</span>
-        <span className="text-[9px] font-bold uppercase tracking-widest text-[#A07850] truncate">{label}</span>
+        <span className={cn("text-[9px] font-bold uppercase tracking-widest truncate", isDark ? "text-[#D2C5B4]" : "text-[#A07850]")}>{label}</span>
       </div>
-      <span className="text-xs font-semibold text-[#3D2A1A] truncate leading-tight">{value || "—"}</span>
+      <span className={cn("text-xs font-semibold truncate leading-tight", isDark ? "text-[#F5F0E8]" : "text-[#3D2A1A]")}>{value || "—"}</span>
     </div>
   );
 }
 
 function InterestSticker({ interest, selected, onClick }: { interest: string; selected?: boolean; onClick?: () => void }) {
+  const isDark = localStorage.getItem("vibe_theme") === "dark";
   const emoji = INTEREST_ICONS[interest] || "✨";
   return (
     <button
@@ -98,14 +103,14 @@ function InterestSticker({ interest, selected, onClick }: { interest: string; se
       className={cn(
         "flex flex-col items-center gap-1 border rounded-2xl px-2.5 py-2 shadow-sm transition-all duration-200 cursor-pointer select-none",
         selected
-          ? "bg-[#7A4F2A] border-[#7A4F2A] shadow-md scale-95"
-          : "bg-[#FBF8F4] border-[#EDE6DB] hover:shadow-md hover:-translate-y-0.5"
+          ? (isDark ? "bg-[#8B5E3C] border-[#8B5E3C] shadow-md scale-95" : "bg-[#7A4F2A] border-[#7A4F2A] shadow-md scale-95")
+          : (isDark ? "bg-[#1E1510]/50 border-[#251711] hover:bg-[#251711]/50" : "bg-[#FBF8F4] border-[#EDE6DB] hover:shadow-md hover:-translate-y-0.5")
       )}
     >
       <span className="text-xl leading-none">{emoji}</span>
       <span className={cn(
         "text-[9px] font-bold uppercase tracking-wider text-center leading-tight max-w-[54px] truncate",
-        selected ? "text-white" : "text-[#7A5535]"
+        selected ? "text-white" : (isDark ? "text-[#D2C5B4]" : "text-[#7A5535]")
       )}>
         {interest}
       </span>
@@ -502,6 +507,26 @@ export default function Discover() {
   const navigate = useNavigate();
   const { token } = useAuth();
 
+  // Synchronized global dark mode state
+  const [isDark, setIsDark] = useState(() => localStorage.getItem("vibe_theme") === "dark");
+
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setIsDark(localStorage.getItem("vibe_theme") === "dark");
+    };
+    window.addEventListener("themeChange", handleThemeChange);
+    return () => window.removeEventListener("themeChange", handleThemeChange);
+  }, []);
+
+  const themeBg = isDark ? "#0A0604" : "#F5EFE6";
+  const themeCardBg = isDark ? "#140C09" : "#FFFCF8";
+  const themeBorderColor = isDark ? "#251711" : "#EDE6DB";
+  const themeTextColor = isDark ? "#F5F0E8" : "#3D2A1A";
+  const themeTextSec = isDark ? "#D2C5B4" : "#A07850";
+  const themeButtonBorder = isDark ? "#251711" : "#D6CBB8";
+  const themeButtonColor = isDark ? "#D2C5B4" : "#5C3E2A";
+  const themeBrandAccent = isDark ? "#8B5E3C" : "#7A4F2A";
+
   /* ── State ── */
   const [profiles, setProfiles] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -603,26 +628,32 @@ export default function Discover() {
       />
 
       <div
-        className="flex flex-col overflow-hidden h-full"
-        style={{ background: "#F5EFE6" }}
+        className="flex flex-col overflow-hidden h-full transition-colors duration-300"
+        style={{ background: themeBg }}
       >
         {/* ══ TOP BAR ══ */}
         <div
-          className="flex-shrink-0 flex items-center justify-between px-5 py-2.5 border-b"
-          style={{ background: "#F5EFE6", borderColor: "#EDE6DB" }}
+          className="flex-shrink-0 flex items-center justify-between px-5 py-2.5 border-b transition-colors duration-300"
+          style={{ background: themeBg, borderColor: themeBorderColor }}
         >
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-xl border transition hover:bg-[#EDE6DB] active:scale-95"
-            style={{ borderColor: "#D6CBB8", color: "#5C3E2A" }}
+            className={cn(
+              "flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-xl border transition active:scale-95",
+              isDark ? "hover:bg-[#1E1510]/50" : "hover:bg-[#EDE6DB]"
+            )}
+            style={{ borderColor: themeButtonBorder, color: themeButtonColor }}
           >
             <X className="h-3.5 w-3.5" /> Close
           </button>
 
           <button
             onClick={() => setEditModalOpen(true)}
-            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-1.5 rounded-xl border transition hover:bg-[#EDE6DB] active:scale-95"
-            style={{ borderColor: "#D6CBB8", color: "#5C3E2A" }}
+            className={cn(
+              "flex items-center gap-1.5 text-sm font-semibold px-4 py-1.5 rounded-xl border transition active:scale-95",
+              isDark ? "hover:bg-[#1E1510]/50" : "hover:bg-[#EDE6DB]"
+            )}
+            style={{ borderColor: themeButtonBorder, color: themeButtonColor }}
           >
             <Edit2 className="h-3.5 w-3.5" /> Edit My Info
           </button>
@@ -631,8 +662,11 @@ export default function Discover() {
           <div className="relative" ref={filterRef}>
             <button
               onClick={() => setFilterOpen(o => !o)}
-              className="flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-xl border transition hover:bg-[#EDE6DB] active:scale-95"
-              style={{ borderColor: "#D6CBB8", color: "#5C3E2A" }}
+              className={cn(
+                "flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-xl border transition active:scale-95",
+                isDark ? "hover:bg-[#1E1510]/50" : "hover:bg-[#EDE6DB]"
+              )}
+              style={{ borderColor: themeButtonBorder, color: themeButtonColor }}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" /> Filter
               <ChevronDown className={cn("h-3 w-3 transition-transform", filterOpen && "rotate-180")} />
@@ -640,38 +674,38 @@ export default function Discover() {
 
             {filterOpen && (
               <div
-                className="absolute right-0 top-full mt-2 w-60 rounded-2xl border shadow-xl z-50 p-4 space-y-3"
-                style={{ background: "#FFFCF8", borderColor: "#EDE6DB" }}
+                className="absolute right-0 top-full mt-2 w-60 rounded-2xl border shadow-xl z-50 p-4 space-y-3 transition-colors duration-300"
+                style={{ background: themeCardBg, borderColor: themeBorderColor }}
               >
-                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#A07850" }}>Gender</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-left" style={{ color: themeTextSec }}>Gender</p>
                 <div className="flex flex-wrap gap-1.5">
                   {GENDER_FILTERS.map(f => (
                     <button key={f} onClick={() => { setGenderFilter(f); setFilterOpen(false); }}
                       className={cn("px-3 py-1 rounded-full text-xs font-semibold border transition",
                         genderFilter === f
-                          ? "bg-[#7A4F2A] text-white border-[#7A4F2A]"
-                          : "bg-[#F5EFE6] text-[#5C3E2A] border-[#D6CBB8] hover:bg-[#EDE6DB]"
+                          ? (isDark ? "bg-[#8B5E3C] text-white border-[#8B5E3C]" : "bg-[#7A4F2A] text-white border-[#7A4F2A]")
+                          : (isDark ? "bg-[#1E1510]/60 text-[#D2C5B4] border-[#251711] hover:bg-[#251711]" : "bg-[#F5EFE6] text-[#5C3E2A] border-[#D6CBB8] hover:bg-[#EDE6DB]")
                       )}>
                       {f}
                     </button>
                   ))}
                 </div>
-                <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#A07850" }}>Search</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-left" style={{ color: themeTextSec }}>Search</p>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3" style={{ color: "#A07850" }} />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3" style={{ color: themeTextSec }} />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Name or username..."
                     className="w-full pl-8 pr-3 py-2 rounded-xl border text-xs outline-none"
-                    style={{ background: "#F5EFE6", borderColor: "#D6CBB8", color: "#3D2A1A" }}
+                    style={{ background: themeBg, borderColor: themeButtonBorder, color: themeTextColor }}
                   />
                 </div>
                 <button
                   onClick={() => { loadProfiles(); setFilterOpen(false); }}
-                  className="w-full py-2 rounded-xl text-xs font-bold text-white"
-                  style={{ background: "#7A4F2A" }}
+                  className="w-full py-2 rounded-xl text-xs font-bold text-white cursor-pointer active:scale-95 transition-all"
+                  style={{ background: themeBrandAccent }}
                 >
                   Apply
                 </button>
@@ -683,34 +717,33 @@ export default function Discover() {
         {/* ══ BODY ══ */}
         {isLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin" style={{ color: "#A07850" }} />
-            <p className="text-sm font-semibold" style={{ color: "#7A5535" }}>Finding people...</p>
+            <Loader2 className="h-8 w-8 animate-spin" style={{ color: themeTextSec }} />
+            <p className="text-sm font-semibold" style={{ color: themeTextColor }}>Finding people...</p>
           </div>
         ) : !currentProfile ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
             <div className="text-5xl">🌱</div>
-            <h3 className="text-lg font-bold" style={{ color: "#3D2A1A" }}>
+            <h3 className="text-lg font-bold" style={{ color: themeTextColor }}>
               {searchQuery ? "No matching profiles" : "You've seen everyone!"}
             </h3>
-            <p className="text-sm max-w-xs" style={{ color: "#A07850" }}>
+            <p className="text-sm max-w-xs" style={{ color: themeTextSec }}>
               {searchQuery ? "Try a different filter." : "Check back later for new Vibers."}
             </p>
             <button
               onClick={() => { setSearchQuery(""); setGenderFilter("All"); }}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-              style={{ background: "#7A4F2A" }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white cursor-pointer active:scale-95 transition-all"
+              style={{ background: themeBrandAccent }}
             >
               <RefreshCw className="h-4 w-4" /> Refresh
             </button>
           </div>
         ) : (
-          /* ════════ MAIN GRID: 2 cols — full-width, no scroll ════════ */
+          /* ════════ MAIN GRID: responsive vertical on mobile, 2 cols on lg ════════ */
           <div
-            className="flex-1 overflow-hidden p-4 gap-4 w-full"
-            style={{ display: "grid", gridTemplateColumns: "1fr 300px" }}
+            className="flex-1 overflow-y-auto lg:overflow-hidden p-2 sm:p-4 gap-4 w-full flex flex-col lg:grid lg:grid-cols-[1fr_300px]"
           >
             {/* ── LEFT: Photo + Buttons + Attributes ── */}
-            <div className="flex flex-col gap-3 min-h-0 overflow-hidden">
+            <div className="flex flex-col gap-3 min-h-[500px] lg:min-h-0 overflow-hidden text-left">
 
               {/* Photo Carousel — flex-1 fills all remaining vertical space */}
               <div
@@ -719,7 +752,7 @@ export default function Discover() {
                   swiping === "left" && "-rotate-1 opacity-60 scale-[0.98]",
                   swiping === "right" && "rotate-1 opacity-60 scale-[0.98]"
                 )}
-                style={{ borderColor: "#EDE6DB", background: "#D6CBB8" }}
+                style={{ borderColor: themeBorderColor, background: isDark ? "#140C09" : "#D6CBB8" }}
               >
                 {/* Image */}
                 {images.length > 0 ? (
@@ -816,13 +849,13 @@ export default function Discover() {
                     "flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border-2 font-bold text-sm transition-all duration-200 active:scale-95 disabled:opacity-50",
                     swiping === "left" && "scale-95 opacity-50"
                   )}
-                  style={{ background: "#FFF5F5", borderColor: "#F5CCC8", color: "#D64C3A" }}
+                  style={isDark ? { background: "rgba(214, 76, 58, 0.12)", borderColor: "rgba(214, 76, 58, 0.25)", color: "#F27A6D" } : { background: "#FFF5F5", borderColor: "#F5CCC8", color: "#D64C3A" }}
                 >
                   <div
                     className="h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: "#FFEBE8" }}
+                    style={isDark ? { background: "rgba(214, 76, 58, 0.2)" } : { background: "#FFEBE8" }}
                   >
-                    <X className="h-4 w-4" style={{ color: "#D64C3A" }} />
+                    <X className="h-4 w-4" style={{ color: isDark ? "#F27A6D" : "#D64C3A" }} />
                   </div>
                   Not My Type
                 </button>
@@ -834,13 +867,13 @@ export default function Discover() {
                     "flex-1 flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border-2 font-bold text-sm transition-all duration-200 active:scale-95 disabled:opacity-50",
                     swiping === "right" && "scale-95 opacity-50"
                   )}
-                  style={{ background: "#F5FFF8", borderColor: "#C8ECD3", color: "#2E9E5A" }}
+                  style={isDark ? { background: "rgba(46, 158, 90, 0.12)", borderColor: "rgba(46, 158, 90, 0.25)", color: "#5ED68C" } : { background: "#F5FFF8", borderColor: "#C8ECD3", color: "#2E9E5A" }}
                 >
                   <div
                     className="h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: "#E5F5EA" }}
+                    style={isDark ? { background: "rgba(46, 158, 90, 0.2)" } : { background: "#E5F5EA" }}
                   >
-                    <Heart className="h-4 w-4 fill-current" style={{ color: "#2E9E5A" }} />
+                    <Heart className="h-4 w-4 fill-current" style={{ color: isDark ? "#5ED68C" : "#2E9E5A" }} />
                   </div>
                   My Type
                 </button>
@@ -849,7 +882,7 @@ export default function Discover() {
               {/* ── ATTRIBUTES GRID: compact ── */}
               <div
                 className="flex-shrink-0 rounded-2xl border p-3"
-                style={{ background: "#FFFCF8", borderColor: "#EDE6DB" }}
+                style={{ background: themeCardBg, borderColor: themeBorderColor }}
               >
                 <div className="grid grid-cols-5 gap-1.5">
                   {buildAttributes(currentProfile).map(attr => (
@@ -863,17 +896,17 @@ export default function Discover() {
             <div className="flex flex-col gap-3 overflow-hidden min-h-0">
 
               {/* Diamonds */}
-              <div className="flex-shrink-0 rounded-3xl border p-4 space-y-3" style={{ background: "#FFFCF8", borderColor: "#EDE6DB" }}>
+              <div className="flex-shrink-0 rounded-3xl border p-4 space-y-3" style={{ background: themeCardBg, borderColor: themeBorderColor }}>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#A07850" }}>
+                  <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: themeTextSec }}>
                     User Diamonds
                   </span>
                   <div className="flex items-center gap-1.5">
                     <Diamond className="h-3.5 w-3.5" style={{ color: "#5B8DE8" }} />
-                    <span className="text-sm font-black" style={{ color: "#3D2A1A" }}>{currentProfile.tipsReceived ?? 0}</span>
+                    <span className="text-sm font-black" style={{ color: themeTextColor }}>{currentProfile.tipsReceived ?? 0}</span>
                     <button
                       className="h-5 w-5 rounded-full flex items-center justify-center"
-                      style={{ background: "#F0F5FF" }}
+                      style={{ background: isDark ? "rgba(91,141,232,0.15)" : "#F0F5FF" }}
                     >
                       <Plus className="h-3 w-3" style={{ color: "#5B8DE8" }} />
                     </button>
@@ -881,16 +914,16 @@ export default function Discover() {
                 </div>
                 <button
                   className="w-full flex items-center justify-between px-4 py-2 rounded-xl border text-xs font-bold transition hover:opacity-80"
-                  style={{ borderColor: "#D6CBB8", color: "#5C3E2A", background: "#F5EFE6" }}
+                  style={{ borderColor: themeButtonBorder, color: themeButtonColor, background: isDark ? "rgba(37,23,17,0.4)" : "#F5EFE6" }}
                 >
                   Get Diamonds <ArrowRight className="h-3.5 w-3.5" />
                 </button>
               </div>
 
               {/* User ID + Bio */}
-              <div className="flex-shrink-0 rounded-3xl border p-4 space-y-3" style={{ background: "#FFFCF8", borderColor: "#EDE6DB" }}>
+              <div className="flex-shrink-0 rounded-3xl border p-4 space-y-3" style={{ background: themeCardBg, borderColor: themeBorderColor }}>
                 <div>
-                  <span className="text-[9px] font-bold uppercase tracking-widest block mb-1" style={{ color: "#A07850" }}>User ID</span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest block mb-1" style={{ color: themeTextSec }}>User ID</span>
                   <button
                     onClick={() => navigate(`/profile/${currentProfile.username}`)}
                     className="text-sm font-black transition hover:opacity-60"
@@ -899,25 +932,25 @@ export default function Discover() {
                     @{currentProfile.username}
                   </button>
                 </div>
-                <div className="border-t pt-3" style={{ borderColor: "#EDE6DB" }}>
-                  <span className="text-[9px] font-bold uppercase tracking-widest block mb-1" style={{ color: "#A07850" }}>Bio</span>
-                  <p className="text-xs leading-relaxed" style={{ color: "#5C3E2A" }}>
+                <div className="border-t pt-3" style={{ borderColor: themeBorderColor }}>
+                  <span className="text-[9px] font-bold uppercase tracking-widest block mb-1" style={{ color: themeTextSec }}>Bio</span>
+                  <p className="text-xs leading-relaxed" style={{ color: themeButtonColor }}>
                     {currentProfile.bio?.trim() || "No bio yet. This person is a mystery. ✨"}
                   </p>
                 </div>
-                <div className="flex gap-4 border-t pt-2" style={{ borderColor: "#EDE6DB" }}>
+                <div className="flex gap-4 border-t pt-2" style={{ borderColor: themeBorderColor }}>
                   <div>
-                    <p className="text-sm font-black" style={{ color: "#3D2A1A" }}>{currentProfile.followers ?? 0}</p>
-                    <p className="text-[9px]" style={{ color: "#A07850" }}>Followers</p>
+                    <p className="text-sm font-black" style={{ color: themeTextColor }}>{currentProfile.followers ?? 0}</p>
+                    <p className="text-[9px]" style={{ color: themeTextSec }}>Followers</p>
                   </div>
                   <div>
-                    <p className="text-sm font-black" style={{ color: "#3D2A1A" }}>{currentProfile.following ?? 0}</p>
-                    <p className="text-[9px]" style={{ color: "#A07850" }}>Following</p>
+                    <p className="text-sm font-black" style={{ color: themeTextColor }}>{currentProfile.following ?? 0}</p>
+                    <p className="text-[9px]" style={{ color: themeTextSec }}>Following</p>
                   </div>
                   <button
                     onClick={() => handleAction("like")}
-                    className="ml-auto flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-bold text-white"
-                    style={{ background: "#7A4F2A" }}
+                    className="ml-auto flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-bold text-white cursor-pointer active:scale-95 transition-all"
+                    style={{ background: themeBrandAccent }}
                   >
                     <UserCheck className="h-3 w-3" /> Follow
                   </button>
@@ -925,8 +958,8 @@ export default function Discover() {
               </div>
 
               {/* Keywords / Interests */}
-              <div className="flex-1 rounded-3xl border p-4 min-h-0 overflow-hidden" style={{ background: "#FFFCF8", borderColor: "#EDE6DB" }}>
-                <span className="text-[9px] font-bold uppercase tracking-widest block mb-2" style={{ color: "#A07850" }}>
+              <div className="flex-1 rounded-3xl border p-4 min-h-0 overflow-hidden" style={{ background: themeCardBg, borderColor: themeBorderColor }}>
+                <span className="text-[9px] font-bold uppercase tracking-widest block mb-2" style={{ color: themeTextSec }}>
                   Keywords / Interests
                 </span>
                 <div className="grid grid-cols-3 gap-2">

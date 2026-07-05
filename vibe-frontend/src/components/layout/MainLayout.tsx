@@ -1,8 +1,6 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { DesktopSidebar, MobileBottomNav, MobileHeader } from "./Navigation";
-import { SuggestedUsers } from "@/components/shared/SuggestedUsers";
 import { SocketNotificationListener } from "@/components/shared/SocketNotificationListener";
-import { motion } from "framer-motion";
 import { useMemo, useState, useEffect } from "react";
 
 type LayoutOutletContext = {
@@ -39,10 +37,8 @@ export function MainLayout() {
 
   return (
     <div className={`min-h-screen w-full max-w-full transition-colors duration-300 ${
-      isCustomStaticPage 
-        ? (isDark ? "bg-[#1F140E] text-[#F5F0E8] h-screen overflow-hidden" : "bg-[#F5F0E8] text-[#4A3428] h-screen overflow-hidden") 
-        : "bg-background"
-    }`}>
+      isDark ? "bg-[#1F140E] text-[#F5F0E8]" : "bg-[#F5F0E8] text-[#4A3428]"
+    } ${isCustomStaticPage || isDiscoverPage ? "h-screen overflow-hidden" : ""}`}>
       <SocketNotificationListener />
       <div className="flex w-full h-full">
         <DesktopSidebar />
@@ -57,24 +53,6 @@ export function MainLayout() {
           </div>
         </main>
 
-        {/* Right sidebar for larger screens */}
-        {location.pathname !== "/search" && location.pathname !== "/discover" && location.pathname !== "/create" && location.pathname !== "/messages" && location.pathname !== "/communities" && location.pathname !== "/notifications" && location.pathname !== "/vibe-ai" && !location.pathname.startsWith("/profile") && (
-          <aside className="hidden xl:block w-80 h-screen sticky top-0 border-l border-border p-6">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="space-y-6"
-            >
-              {/* Footer info links */}
-
-              <div className="text-xs text-muted-foreground space-y-2">
-                <p>About · Help · Press · API · Jobs · Privacy · Terms</p>
-                <p>© 2026 Vibe Social Platform</p>
-              </div>
-            </motion.div>
-          </aside>
-        )}
       </div>
 
       {/* Hide nav on reels page, and allow pages (like in-chat) to request nav hidden */}

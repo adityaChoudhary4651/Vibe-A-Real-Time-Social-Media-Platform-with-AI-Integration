@@ -46,12 +46,15 @@ export function SettingsSheet({ open, onOpenChange }: SettingsSheetProps) {
       if (isCurrentlyDark) {
         document.documentElement.classList.remove("dark");
         localStorage.setItem("vibe_dark_mode", "false");
+        localStorage.setItem("vibe_theme", "light");
         toast.success("Light mode enabled ☀️");
       } else {
         document.documentElement.classList.add("dark");
         localStorage.setItem("vibe_dark_mode", "true");
+        localStorage.setItem("vibe_theme", "dark");
         toast.success("Dark mode enabled 🌙");
       }
+      window.dispatchEvent(new Event("themeChange"));
       return;
     }
     toast.success(`Opening ${id.replace("_", " ")}...`);

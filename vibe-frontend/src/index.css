@@ -15,148 +15,129 @@
 @tailwind utilities;
 
 @layer base {
+  /* ──────────────────────────────────────────────────
+     VIBE — Warm Coffee Design System
+     Light mode: creamy beige  |  Dark mode: roasted coffee
+  ────────────────────────────────────────────────── */
   :root {
-    /* Charcoal dark theme with soft periwinkle blue accent */
-    --background: 0 0% 8%;
-    --foreground: 0 0% 92%;
+    /* Backgrounds */
+    --background: 30 43% 95%;        /* #F5F0E8 — warm cream */
+    --foreground: 20 35% 22%;        /* #4A3428 — dark coffee text */
 
-    --card: 0 0% 11%;
-    --card-foreground: 0 0% 92%;
+    --card: 30 38% 91%;              /* #EFE6DA — card beige */
+    --card-foreground: 20 35% 22%;
 
-    --popover: 0 0% 11%;
-    --popover-foreground: 0 0% 92%;
+    --popover: 30 38% 91%;
+    --popover-foreground: 20 35% 22%;
 
-    --primary: 230 50% 65%;
-    --primary-foreground: 0 0% 8%;
+    --primary: 24 40% 38%;           /* #8B5E3C — brand coffee */
+    --primary-foreground: 30 43% 95%;
 
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 0 0% 92%;
+    --secondary: 30 38% 88%;         /* #E8DDD0 */
+    --secondary-foreground: 20 35% 22%;
 
-    --muted: 0 0% 16%;
-    --muted-foreground: 0 0% 55%;
+    --muted: 30 30% 86%;             /* #E3D8C8 */
+    --muted-foreground: 24 28% 46%;  /* #8B5E3C-ish */
 
-    --accent: 0 0% 14%;
-    --accent-foreground: 0 0% 92%;
+    --accent: 30 38% 88%;
+    --accent-foreground: 20 35% 22%;
 
-    --destructive: 0 50% 50%;
+    --destructive: 4 72% 52%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 18%;
-    --input: 0 0% 18%;
-    --ring: 230 50% 65%;
+    --border: 30 30% 84%;            /* #E3D8C8 */
+    --input: 30 30% 84%;
+    --ring: 24 40% 38%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* Minimal shadows - no colored glows */
-    --shadow-soft: 0 4px 24px -4px hsl(0 0% 0% / 0.25);
-    --shadow-glow: 0 0 40px hsl(0 0% 0% / 0.2);
-    --shadow-card: 0 2px 16px -2px hsl(0 0% 0% / 0.45);
-    --shadow-elevated: 0 8px 32px -8px hsl(0 0% 0% / 0.55);
+    --shadow-soft: 0 4px 24px -4px hsl(20 35% 22% / 0.12);
+    --shadow-card: 0 2px 16px -2px hsl(20 35% 22% / 0.1);
+    --shadow-elevated: 0 8px 32px -8px hsl(20 35% 22% / 0.15);
+    --shadow-2xs: 0 1px 3px 0px hsl(20 35% 22% / 0.08);
+    --shadow-xs: 0 1px 3px 0px hsl(20 35% 22% / 0.08);
+    --shadow-sm: 0 1px 3px 0px hsl(20 35% 22% / 0.1), 0 1px 2px -1px hsl(20 35% 22% / 0.1);
+    --shadow: 0 1px 3px 0px hsl(20 35% 22% / 0.1), 0 1px 2px -1px hsl(20 35% 22% / 0.1);
+    --shadow-md: 0 4px 8px -2px hsl(20 35% 22% / 0.12);
+    --shadow-lg: 0 8px 16px -4px hsl(20 35% 22% / 0.14);
+    --shadow-xl: 0 16px 32px -8px hsl(20 35% 22% / 0.16);
+    --shadow-2xl: 0 24px 48px -12px hsl(20 35% 22% / 0.2);
 
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-bounce: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 
-    --sidebar-background: 0 0% 8%;
-    --sidebar-foreground: 0 0% 92%;
-    --sidebar-primary: 230 50% 65%;
-    --sidebar-primary-foreground: 0 0% 8%;
-    --sidebar-accent: 0 0% 14%;
-    --sidebar-accent-foreground: 230 50% 65%;
-    --sidebar-border: 0 0% 18%;
-    --sidebar-ring: 230 50% 65%;
-    --chart-1: 230 50% 65%;
-    --chart-2: 200 45% 55%;
-    --chart-3: 170 40% 50%;
-    --chart-4: 260 40% 60%;
-    --chart-5: 290 35% 55%;
-    --sidebar: 0 0% 8%;
-    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.1);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.1);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.15), 0 1px 2px -1px hsl(0 0% 0% / 0.15);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.15), 0 1px 2px -1px hsl(0 0% 0% / 0.15);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 4px 6px -1px hsl(0 0% 0% / 0.2);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 8px 10px -1px hsl(0 0% 0% / 0.2);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.35);
+    --sidebar-background: 30 43% 95%;
+    --sidebar-foreground: 20 35% 22%;
+    --sidebar-primary: 24 40% 38%;
+    --sidebar-primary-foreground: 30 43% 95%;
+    --sidebar-accent: 30 38% 88%;
+    --sidebar-accent-foreground: 20 35% 22%;
+    --sidebar-border: 30 30% 84%;
+    --sidebar-ring: 24 40% 38%;
+    --sidebar: 30 43% 95%;
+
+    --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-serif: 'Lora', ui-serif, Georgia, Cambria, serif;
+    --font-mono: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
     --tracking-normal: 0em;
     --spacing: 0.25rem;
   }
 
   .dark {
-    --background: 0 0% 6%;
-    --foreground: 0 0% 94%;
+    /* Backgrounds — extra dark roasted coffee palette */
+    --background: 20 43% 3%;         /* #0A0604 — very dark coffee */
+    --foreground: 30 43% 93%;        /* #F5F0E8 — warm cream text */
 
-    --card: 0 0% 9%;
-    --card-foreground: 0 0% 94%;
+    --card: 20 38% 6%;               /* #140C09 — card dark brown */
+    --card-foreground: 30 43% 93%;
 
-    --popover: 0 0% 9%;
-    --popover-foreground: 0 0% 94%;
+    --popover: 20 38% 6%;
+    --popover-foreground: 30 43% 93%;
 
-    --primary: 230 55% 68%;
-    --primary-foreground: 0 0% 6%;
+    --primary: 24 40% 46%;           /* #8B5E3C — brand coffee */
+    --primary-foreground: 30 43% 93%;
 
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 94%;
+    --secondary: 20 37% 11%;         /* #251711 — raised surface */
+    --secondary-foreground: 30 43% 93%;
 
-    --muted: 0 0% 14%;
-    --muted-foreground: 0 0% 50%;
+    --muted: 20 37% 11%;             /* #251711 */
+    --muted-foreground: 27 30% 65%;  /* #D2C5B4 — muted warm text */
 
-    --accent: 0 0% 12%;
-    --accent-foreground: 0 0% 94%;
+    --accent: 20 37% 11%;
+    --accent-foreground: 30 43% 93%;
 
-    --destructive: 0 55% 55%;
+    --destructive: 4 72% 52%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 16%;
-    --input: 0 0% 16%;
-    --ring: 230 55% 68%;
+    --border: 20 37% 11%;            /* #251711 — dark outline */
+    --input: 20 37% 11%;
+    --ring: 24 40% 46%;
 
-    --shadow-soft: 0 4px 24px -4px hsl(0 0% 0% / 0.3);
-    --shadow-glow: 0 0 60px hsl(0 0% 0% / 0.25);
-    --shadow-card: 0 2px 16px -2px hsl(0 0% 0% / 0.55);
-    --shadow-elevated: 0 8px 32px -8px hsl(0 0% 0% / 0.65);
+    --shadow-soft: 0 4px 24px -4px hsl(0 0% 0% / 0.4);
+    --shadow-card: 0 2px 16px -2px hsl(0 0% 0% / 0.5);
+    --shadow-elevated: 0 8px 32px -8px hsl(0 0% 0% / 0.6);
+    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.15);
+    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.15);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 1px 2px -1px hsl(0 0% 0% / 0.2);
+    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 1px 2px -1px hsl(0 0% 0% / 0.2);
+    --shadow-md: 0 4px 8px -2px hsl(0 0% 0% / 0.3);
+    --shadow-lg: 0 8px 16px -4px hsl(0 0% 0% / 0.35);
+    --shadow-xl: 0 16px 32px -8px hsl(0 0% 0% / 0.4);
+    --shadow-2xl: 0 24px 48px -12px hsl(0 0% 0% / 0.5);
 
-    --sidebar-background: 0 0% 6%;
-    --sidebar-foreground: 0 0% 94%;
-    --sidebar-primary: 230 55% 68%;
-    --sidebar-primary-foreground: 0 0% 6%;
-    --sidebar-accent: 0 0% 12%;
-    --sidebar-accent-foreground: 230 55% 68%;
-    --sidebar-border: 0 0% 16%;
-    --sidebar-ring: 230 55% 68%;
-    --chart-1: 230 55% 68%;
-    --chart-2: 200 50% 58%;
-    --chart-3: 170 45% 52%;
-    --chart-4: 260 45% 62%;
-    --chart-5: 290 40% 58%;
-    --sidebar: 0 0% 6%;
-    --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.1);
-    --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.1);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.15), 0 1px 2px -1px hsl(0 0% 0% / 0.15);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.15), 0 1px 2px -1px hsl(0 0% 0% / 0.15);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 2px 4px -1px hsl(0 0% 0% / 0.2);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 4px 6px -1px hsl(0 0% 0% / 0.2);
-    --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.2), 0 8px 10px -1px hsl(0 0% 0% / 0.2);
-    --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.35);
-    --radius: 0.5rem;
-  }
-}
+    --sidebar-background: 20 43% 3%;
+    --sidebar-foreground: 30 43% 93%;
+    --sidebar-primary: 24 40% 46%;
+    --sidebar-primary-foreground: 30 43% 93%;
+    --sidebar-accent: 20 37% 11%;
+    --sidebar-accent-foreground: 30 43% 93%;
+    --sidebar-border: 20 37% 11%;
+    --sidebar-ring: 24 40% 46%;
+    --sidebar: 20 43% 3%;
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
-  }
-
-  html {
-    scroll-behavior: smooth;
+    --radius: 0.75rem;
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
   }
 }
 
@@ -183,7 +164,7 @@
     inset: 0;
     padding: 2px;
     border-radius: inherit;
-    background: hsl(230, 50%, 65%);
+    background: hsl(var(--primary));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
@@ -191,7 +172,7 @@
 
   .story-ring {
     @apply rounded-full p-[2px];
-    background: hsl(230, 50%, 65%);
+    background: hsl(var(--primary));
   }
 
   .nav-link {
@@ -214,7 +195,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: hsl(230, 50%, 65%);
+    background: hsl(var(--primary));
     opacity: 0;
     transition: opacity 0.3s;
     filter: blur(20px);
@@ -311,4 +292,208 @@
   .skeleton-pulse {
     @apply animate-pulse bg-muted;
   }
+}
+
+/* ============================================================
+   DARK MODE — Global Visibility Fixes
+   These rules override hardcoded light-mode inline styles that
+   slip through without isDark checks on individual pages.
+   Using high specificity to ensure they apply universally.
+   ============================================================ */
+
+/* Fix gradient-text — show as warm gold gradient in dark mode */
+.dark .gradient-text {
+  background: linear-gradient(135deg, #D2A679 0%, #F5C98A 50%, #C8956A 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Login/Signup — fix gradient button */
+.dark .bg-gradient-to-r.from-blue-300.to-blue-500,
+.dark .from-blue-300.to-blue-500 {
+  background: linear-gradient(135deg, #8B5E3C, #C8956A) !important;
+}
+
+/* Inputs — ensure readable in dark mode */
+.dark input:not([style*="background"]),
+.dark textarea:not([style*="background"]) {
+  background-color: hsl(var(--input)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Labels */
+.dark label {
+  color: hsl(var(--foreground));
+}
+
+/* Shadcn Card — force coffee dark card backgrounds */
+.dark .bg-card {
+  background-color: hsl(var(--card)) !important;
+}
+.dark .bg-background {
+  background-color: hsl(var(--background)) !important;
+}
+.dark .bg-muted {
+  background-color: hsl(var(--muted)) !important;
+}
+.dark .bg-secondary {
+  background-color: hsl(var(--secondary)) !important;
+}
+.dark .bg-popover {
+  background-color: hsl(var(--popover)) !important;
+}
+
+/* Text colors */
+.dark .text-foreground { color: hsl(var(--foreground)) !important; }
+.dark .text-muted-foreground { color: hsl(var(--muted-foreground)) !important; }
+.dark .text-card-foreground { color: hsl(var(--card-foreground)) !important; }
+.dark .text-popover-foreground { color: hsl(var(--popover-foreground)) !important; }
+.dark .text-secondary-foreground { color: hsl(var(--secondary-foreground)) !important; }
+
+/* Borders */
+.dark .border-border { border-color: hsl(var(--border)) !important; }
+.dark .border-input { border-color: hsl(var(--input)) !important; }
+.dark .divide-border > * + * { border-color: hsl(var(--border)) !important; }
+
+/* Shadcn Dialogs & Sheets — ensure coffee dark bg */
+.dark [role="dialog"],
+.dark [data-radix-popper-content-wrapper],
+.dark [data-side] {
+  --tw-bg-opacity: 1;
+}
+.dark [cmdk-root],
+.dark [data-radix-collection-item] {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+/* Fix hardcoded dark text colors that become invisible in dark mode */
+/* These patterns come from inline style={{ color: "#5C3E2A" }} etc. */
+.dark [style*="color: rgb(92, 62, 42)"],
+.dark [style*="color: #5C3E2A"],
+.dark [style*="color: #4A3428"],
+.dark [style*="color: #3D2A1A"],
+.dark [style*="color: #5A3A22"] {
+  color: #D2C5B4 !important;
+}
+
+/* Fix hardcoded dark background divs that disappear */
+.dark [style*="background: #F5EFE6"],
+.dark [style*="background-color: #F5EFE6"],
+.dark [style*="background: #F5F0E8"],
+.dark [style*="background-color: #F5F0E8"],
+.dark [style*="background: #EFE6DA"],
+.dark [style*="background-color: #EFE6DA"],
+.dark [style*="background: #FBF8F4"],
+.dark [style*="background-color: #FBF8F4"],
+.dark [style*="background: #FFFCF8"],
+.dark [style*="background-color: #FFFCF8"],
+.dark [style*="background: #FFFDF9"],
+.dark [style*="background-color: #FFFDF9"] {
+  background-color: hsl(var(--card)) !important;
+}
+
+/* Fix hardcoded light border colors */
+.dark [style*="border-color: #EDE6DB"],
+.dark [style*="borderColor: #EDE6DB"],
+.dark [style*="border-color: #E3D8C8"],
+.dark [style*="borderColor: #E3D8C8"],
+.dark [style*="border-color: #D6CBB8"],
+.dark [style*="borderColor: #D6CBB8"] {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Scrollbars in dark mode */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #251711;
+  border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #8B5E3C;
+}
+
+/* Hardcoded class overrides to ensure all pages align strictly to the dark mode homepage values */
+.dark .bg-\[\#1F140E\] {
+  background-color: #0A0604 !important;
+}
+.dark .bg-\[\#2A1D16\] {
+  background-color: #140C09 !important;
+}
+.dark .border-\[\#3D2A1F\] {
+  border-color: #251711 !important;
+}
+.dark .bg-\[\#3D2A1F\] {
+  background-color: #251711 !important;
+}
+.dark .hover\:bg-\[\#1F140E\]:hover {
+  background-color: #0A0604 !important;
+}
+.dark .hover\:bg-\[\#2A1D16\]\/50:hover {
+  background-color: rgba(20, 12, 9, 0.5) !important;
+}
+.dark .hover\:bg-\[\#1F140E\]\/80:hover {
+  background-color: rgba(10, 6, 4, 0.8) !important;
+}
+.dark .border-\[\#3D2A1F\]\/60 {
+  border-color: rgba(37, 23, 17, 0.6) !important;
+}
+.dark .border-\[\#3D2A1F\]\/50 {
+  border-color: rgba(37, 23, 17, 0.5) !important;
+}
+.dark .bg-\[\#1F140E\]\/40 {
+  background-color: rgba(10, 6, 4, 0.4) !important;
+}
+.dark .bg-\[\#1F140E\]\/30 {
+  background-color: rgba(10, 6, 4, 0.3) !important;
+}
+.dark .bg-\[\#1F140E\]\/20 {
+  background-color: rgba(10, 6, 4, 0.2) !important;
+}
+.dark .bg-\[\#1F140E\]\/60 {
+  background-color: rgba(10, 6, 4, 0.6) !important;
+}
+.dark .bg-\[\#1F140E\]\/80 {
+  background-color: rgba(10, 6, 4, 0.8) !important;
+}
+.dark .bg-\[\#2A1D16\]\/10 {
+  background-color: rgba(20, 12, 9, 0.1) !important;
+}
+.dark .bg-\[\#2A1D16\]\/50 {
+  background-color: rgba(20, 12, 9, 0.5) !important;
+}
+.dark .bg-\[\#1E1510\] {
+  background-color: #140C09 !important;
+}
+.dark .bg-\[\#1E1510\]\/50 {
+  background-color: rgba(20, 12, 9, 0.5) !important;
+}
+.dark .bg-\[\#1E1510\]\/60 {
+  background-color: rgba(20, 12, 9, 0.6) !important;
+}
+.dark .hover\:bg-\[\#1E1510\]\/50:hover {
+  background-color: rgba(20, 12, 9, 0.5) !important;
+}
+.dark .border-\[\#251711\] {
+  border-color: #251711 !important;
+}
+.dark .text-\[\#D2C5B4\] {
+  color: #D2C5B4 !important;
+}
+.dark .text-\[\#F5F0E8\] {
+  color: #F5F0E8 !important;
 }
