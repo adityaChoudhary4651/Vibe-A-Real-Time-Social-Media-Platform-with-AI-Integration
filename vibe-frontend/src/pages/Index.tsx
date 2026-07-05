@@ -892,10 +892,11 @@ export default function Index() {
                                   src={resolveUrl(creator.avatar) || "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150"}
                                   alt={creator.username}
                                   className="h-16 w-16 rounded-full object-cover border border-[#8B5E3C]/30 shadow-xs transition-transform group-hover/suggested:scale-105"
-                                </div>
-                                <h4 className="text-xs font-bold truncate max-w-[130px] group-hover/suggested:underline">{creator.name}</h4>
-                                <p className="text-[9px] opacity-65 font-medium mt-0.5 truncate max-w-[130px]">{creator.bio || "Content Creator"}</p>
+                                />
+                                <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-[#8B5E3C] border border-[#EFE6DA] flex items-center justify-center text-white text-[9px] font-bold">+</span>
                               </div>
+                              <h4 className="text-xs font-bold truncate max-w-[130px] group-hover/suggested:underline">{creator.name}</h4>
+                              <p className="text-[9px] opacity-65 font-medium mt-0.5 truncate max-w-[130px]">{creator.bio || "Content Creator"}</p>
 
                               <button
                                 onClick={() => handleFollowCreator(creator)}
