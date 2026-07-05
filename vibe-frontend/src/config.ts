@@ -10,3 +10,5 @@ export const resolveUrl = (url: string | null | undefined): string => {
   const sanitizedUrl = url.startsWith("/") ? url.substring(1) : url;
   return `${API_BASE_URL}/${sanitizedUrl}`;
 };
+
+export const AGORA_APP_ID = (import.meta.env.VITE_AGORA_APP_ID as string) || "da3d8cb30b3240a5a3a789a5725f18bf"; // Fallback public Agora App ID for testing

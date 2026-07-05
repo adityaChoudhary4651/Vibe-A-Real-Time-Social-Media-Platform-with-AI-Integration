@@ -16,22 +16,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-const iceConfiguration = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    {
-      urls: [
-        "turn:openrelay.metered.ca:80",
-        "turn:openrelay.metered.ca:443",
-        "turn:openrelay.metered.ca:443?transport=tcp"
-      ],
-      username: "openrelayproject",
-      credential: "openrelayproject"
-    }
-  ]
-};
+import AgoraRTC, {
+  IAgoraRTCClient,
+  ICameraVideoTrack,
+  IMicrophoneAudioTrack,
+  IAgoraRTCRemoteUser
+} from "agora-rtc-sdk-ng";
+import { AGORA_APP_ID } from "@/config";
 
 interface CallOverlayProps {
   open: boolean;
@@ -69,19 +60,23 @@ export function CallOverlay({
     "idle" | "ringing" | "connecting" | "connected" | "ended" | "incoming"
   >(isIncoming ? "incoming" : "ringing");
 
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
-  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(activeCallType === "voice");
   const [callDuration, setCallDuration] = useState(0);
   const [isPip, setIsPip] = useState(false);
 
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const localHiddenVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  // Agora State References
+  const [localVideoTrack, setLocalVideoTrack] = useState<ICameraVideoTrack | null>(null);
+  const [remoteVideoTrack, setRemoteVideoTrack] = useState<any>(null);
+  const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
+
+  const localVideoRef = useRef<HTMLDivElement>(null);
+  const remoteVideoRef = useRef<HTMLDivElement>(null);
+  
+  const clientRef = useRef<IAgoraRTCClient | null>(null);
+  const localAudioTrackRef = useRef<IMicrophoneAudioTrack | null>(null);
+  const localVideoTrackRef = useRef<ICameraVideoTrack | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const iceCandidatesQueueRef = useRef<RTCIceCandidateInit[]>([]);
 
   /* =====================
      RINGING DURATION TIMER
@@ -103,37 +98,76 @@ export function CallOverlay({
     };
   }, [callStatus]);
 
+  /* =====================
+     AGORA TRACK BINDING EFFECTS
+  ===================== */
   useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
-      localVideoRef.current.play().catch((err) => console.warn("Local play failed:", err));
+    const videoElement = localVideoRef.current;
+    if (localVideoTrack && videoElement && callStatus === "connected" && !isVideoOff && !isPip) {
+      localVideoTrack.play(videoElement);
     }
-    if (localHiddenVideoRef.current && localStream) {
-      localHiddenVideoRef.current.srcObject = localStream;
-      localHiddenVideoRef.current.play().catch((err) => console.warn("Hidden play failed:", err));
-    }
-  }, [localStream, callStatus, isVideoOff, isPip]);
+    return () => {
+      localVideoTrack?.stop();
+    };
+  }, [localVideoTrack, callStatus, isVideoOff, isPip]);
 
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
-      remoteVideoRef.current.play().catch((err) => console.warn("Remote play failed:", err));
+    const videoElement = remoteVideoRef.current;
+    if (remoteVideoTrack && videoElement && callStatus === "connected" && activeCallType === "video" && hasRemoteVideo) {
+      remoteVideoTrack.play(videoElement);
     }
-  }, [remoteStream, callStatus]);
+    return () => {
+      remoteVideoTrack?.stop();
+    };
+  }, [remoteVideoTrack, callStatus, activeCallType, hasRemoteVideo]);
 
   /* =====================
-     LOCAL STREAM CAPTURE
+     AGORA CLIENT CONFIGURATION
   ===================== */
-  const startLocalStream = async (type: "voice" | "video"): Promise<MediaStream> => {
+  const setupAgoraClient = () => {
+    const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+    clientRef.current = client;
+
+    // Handle remote user publishing
+    client.on("user-published", async (remoteUser: IAgoraRTCRemoteUser, mediaType: "audio" | "video") => {
+      try {
+        await client.subscribe(remoteUser, mediaType);
+        
+        if (mediaType === "video") {
+          setRemoteVideoTrack(remoteUser.videoTrack);
+          setHasRemoteVideo(true);
+        }
+        if (mediaType === "audio") {
+          remoteUser.audioTrack?.play();
+        }
+      } catch (err) {
+        console.error("Agora subscription failed:", err);
+      }
+    });
+
+    // Handle remote user unpublishing
+    client.on("user-unpublished", (remoteUser: IAgoraRTCRemoteUser, mediaType: "audio" | "video") => {
+      if (mediaType === "video") {
+        setRemoteVideoTrack(null);
+        setHasRemoteVideo(false);
+      }
+    });
+  };
+
+  const startLocalAgoraTracks = async (type: "voice" | "video") => {
     try {
-      const constraints = {
-        audio: true,
-        video: type === "video"
-      };
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      setLocalStream(stream);
-      return stream;
+      // Always capture audio
+      const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      localAudioTrackRef.current = audioTrack;
+
+      // Capture camera if video call
+      if (type === "video") {
+        const videoTrack = await AgoraRTC.createCameraVideoTrack();
+        localVideoTrackRef.current = videoTrack;
+        setLocalVideoTrack(videoTrack);
+      }
     } catch (err) {
+      console.error("Failed to start local Agora tracks:", err);
       toast.error("Failed to access camera or microphone");
       handleEndCall();
       throw err;
@@ -141,57 +175,33 @@ export function CallOverlay({
   };
 
   /* =====================
-     WEBRTC SYSTEM SETUP
-  ===================== */
-  const setupPeerConnection = (stream: MediaStream) => {
-    const pc = new RTCPeerConnection(iceConfiguration);
-    peerConnectionRef.current = pc;
-
-    // Add local tracks to PeerConnection
-    stream.getTracks().forEach((track) => {
-      pc.addTrack(track, stream);
-    });
-
-    // Handle remote stream events
-    pc.ontrack = (event) => {
-      const rStream = event.streams[0];
-      setRemoteStream(rStream);
-    };
-
-    // Gather ICE Candidates
-    pc.onicecandidate = (event) => {
-      if (event.candidate && socket) {
-        socket.emit("ice_candidate", {
-          candidate: event.candidate,
-          recipientId: targetId,
-          senderId: user?.id || user?._id
-        });
-      }
-    };
-
-    pc.oniceconnectionstatechange = () => {
-      if (pc.iceConnectionState === "disconnected" || pc.iceConnectionState === "failed") {
-        handleEndCall();
-      }
-    };
-  };
-
-  /* =====================
-     WEBRTC HANDSHAKE: INITIATOR
+     AGORA HANDSHAKE: INITIATOR
   ===================== */
   const initiateCallFlow = async () => {
     if (!socket || !user) return;
     setCallStatus("ringing");
     try {
-      const stream = await startLocalStream(activeCallType);
-      setupPeerConnection(stream);
+      setupAgoraClient();
+      await startLocalAgoraTracks(activeCallType);
 
-      const pc = peerConnectionRef.current!;
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+      const client = clientRef.current!;
+      const uid = user.id || user._id;
 
+      // Join Agora Channel using conversation ID targetId as room name
+      await client.join(AGORA_APP_ID, targetId, null, uid);
+
+      // Publish local tracks
+      const tracksToPublish = [];
+      if (localAudioTrackRef.current) tracksToPublish.push(localAudioTrackRef.current);
+      if (localVideoTrackRef.current) tracksToPublish.push(localVideoTrackRef.current);
+
+      if (tracksToPublish.length > 0) {
+        await client.publish(tracksToPublish);
+      }
+
+      // Signaling over Socket
       socket.emit("call_user", {
-        offer,
+        offer: { type: "agora", channel: targetId },
         calleeId: targetId,
         callerId: user.id || user._id,
         callerName: user.name || user.username,
@@ -199,40 +209,45 @@ export function CallOverlay({
         callType: activeCallType
       });
     } catch (err) {
-      console.error("Initiate WebRTC call failed:", err);
+      console.error("Initiate Agora call flow failed:", err);
+      handleEndCall();
     }
   };
 
   /* =====================
-     WEBRTC HANDSHAKE: RECEIVER
+     AGORA HANDSHAKE: RECEIVER
   ===================== */
   const acceptIncomingCall = async () => {
     if (!socket || !incomingCallData || !user) return;
     setCallStatus("connecting");
     try {
-      const stream = await startLocalStream(incomingCallData.callType);
-      setupPeerConnection(stream);
+      setupAgoraClient();
+      await startLocalAgoraTracks(incomingCallData.callType);
 
-      const pc = peerConnectionRef.current!;
-      await pc.setRemoteDescription(new RTCSessionDescription(incomingCallData.offer));
+      const client = clientRef.current!;
+      const uid = user.id || user._id;
 
-      // Process any queued ICE candidates
-      while (iceCandidatesQueueRef.current.length > 0) {
-        const candidate = iceCandidatesQueueRef.current.shift()!;
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      // Join Agora Channel
+      await client.join(AGORA_APP_ID, targetId, null, uid);
+
+      // Publish local tracks
+      const tracksToPublish = [];
+      if (localAudioTrackRef.current) tracksToPublish.push(localAudioTrackRef.current);
+      if (localVideoTrackRef.current) tracksToPublish.push(localVideoTrackRef.current);
+
+      if (tracksToPublish.length > 0) {
+        await client.publish(tracksToPublish);
       }
 
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
+      // Signal call accept
       socket.emit("accept_call", {
-        answer,
+        answer: { type: "agora", channel: targetId },
         callerId: targetId
       });
 
       setCallStatus("connected");
     } catch (err) {
-      console.error("Accept WebRTC call failed:", err);
+      console.error("Accept Agora call failed:", err);
       handleEndCall();
     }
   };
@@ -245,53 +260,80 @@ export function CallOverlay({
   };
 
   /* =====================
-     WEBRTC TERMINATION
+     AGORA TERMINATION
   ===================== */
-  const handleEndCall = () => {
+  const handleEndCall = async () => {
     setCallStatus("ended");
 
-    // Send end event
+    // Send end signaling event
     if (socket && callStatus !== "incoming" && callStatus !== "ended") {
       socket.emit("end_call", { recipientId: targetId });
     }
 
-    // Stop streams
-    if (localStream) {
-      localStream.getTracks().forEach((track) => track.stop());
-      setLocalStream(null);
+    // Stop and close all local media tracks (RELEASES CAMERA & MIC LIGHT)
+    if (localAudioTrackRef.current) {
+      localAudioTrackRef.current.stop();
+      localAudioTrackRef.current.close();
+      localAudioTrackRef.current = null;
+    }
+    if (localVideoTrackRef.current) {
+      localVideoTrackRef.current.stop();
+      localVideoTrackRef.current.close();
+      localVideoTrackRef.current = null;
+      setLocalVideoTrack(null);
     }
 
-    // Close PeerConnection
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
+    // Leave Agora channel
+    if (clientRef.current) {
+      try {
+        await clientRef.current.leave();
+      } catch (err) {
+        console.error("Error leaving Agora channel:", err);
+      }
+      clientRef.current = null;
     }
+
+    setRemoteVideoTrack(null);
+    setHasRemoteVideo(false);
 
     setTimeout(() => {
       onClose();
     }, 1000);
   };
 
+  // Safe unmount cleanup check
+  useEffect(() => {
+    return () => {
+      if (localAudioTrackRef.current) {
+        localAudioTrackRef.current.stop();
+        localAudioTrackRef.current.close();
+      }
+      if (localVideoTrackRef.current) {
+        localVideoTrackRef.current.stop();
+        localVideoTrackRef.current.close();
+      }
+      if (clientRef.current) {
+        clientRef.current.leave().catch((err) => console.error("Agora clean unmount failed:", err));
+      }
+    };
+  }, []);
+
   /* =====================
      MUTING CONTROLS
   ==================== */
-  const toggleMute = () => {
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsMuted(!audioTrack.enabled);
-      }
+  const toggleMute = async () => {
+    if (localAudioTrackRef.current) {
+      const nextMuteState = !isMuted;
+      await localAudioTrackRef.current.setEnabled(!nextMuteState);
+      setIsMuted(nextMuteState);
     }
   };
 
-  const toggleVideo = () => {
-    if (localStream && activeCallType === "video") {
-      const videoTrack = localStream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsVideoOff(!videoTrack.enabled);
-      }
+  const toggleVideo = async () => {
+    if (localVideoTrackRef.current && activeCallType === "video") {
+      const nextVideoState = !isVideoOff;
+      await localVideoTrackRef.current.setEnabled(!nextVideoState);
+      setIsVideoOff(nextVideoState);
     }
   };
 
@@ -305,49 +347,13 @@ export function CallOverlay({
       initiateCallFlow();
     }
 
-    socket.on("call_accepted", async (data: { answer: any }) => {
-      if (peerConnectionRef.current) {
-        try {
-          const pc = peerConnectionRef.current;
-          await pc.setRemoteDescription(
-            new RTCSessionDescription(data.answer)
-          );
-
-          // Process any queued ICE candidates on the caller side
-          while (iceCandidatesQueueRef.current.length > 0) {
-            const candidate = iceCandidatesQueueRef.current.shift()!;
-            try {
-              await pc.addIceCandidate(new RTCIceCandidate(candidate));
-            } catch (candidateErr) {
-              console.error("Error adding queued candidate on caller:", candidateErr);
-            }
-          }
-
-          setCallStatus("connected");
-        } catch (err) {
-          console.error("Failed to set remote description answer:", err);
-          handleEndCall();
-        }
-      }
+    socket.on("call_accepted", () => {
+      setCallStatus("connected");
     });
 
     socket.on("call_rejected", () => {
       toast.error("Call was declined or rejected.");
       handleEndCall();
-    });
-
-    socket.on("ice_candidate", async (data: { candidate: any }) => {
-      const pc = peerConnectionRef.current;
-      if (pc && pc.remoteDescription) {
-        try {
-          await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-        } catch (err) {
-          console.error("Error adding remote ICE candidate:", err);
-        }
-      } else {
-        // Queue candidates if remote session is not ready
-        iceCandidatesQueueRef.current.push(data.candidate);
-      }
     });
 
     socket.on("call_ended", () => {
@@ -358,7 +364,6 @@ export function CallOverlay({
     return () => {
       socket.off("call_accepted");
       socket.off("call_rejected");
-      socket.off("ice_candidate");
       socket.off("call_ended");
     };
   }, [open, socket]);
@@ -415,28 +420,22 @@ export function CallOverlay({
 
       {/* CALL SCREEN CONTENT */}
       <div className="flex-1 relative flex items-center justify-center overflow-hidden">
-        {/* REMOTE STREAM (VIDEO BACKGROUND) */}
-        <video
+        {/* REMOTE AGORA PLAYER */}
+        <div
           ref={remoteVideoRef}
-          autoPlay
-          playsInline
           className={cn(
-            "w-full h-full object-cover",
-            (callStatus !== "connected" || !remoteStream) && "hidden",
-            activeCallType === "voice" && "absolute w-0 h-0 opacity-0 pointer-events-none"
+            "w-full h-full object-cover bg-zinc-950",
+            (callStatus !== "connected" || activeCallType !== "video" || !hasRemoteVideo) && "hidden"
           )}
         />
 
-        {/* LOCAL STREAM PIP (VIDEO ON TOP) */}
+        {/* LOCAL AGORA PIP PLAYER */}
         <div className={cn(
-          "absolute top-4 left-4 w-28 h-40 rounded-xl overflow-hidden border border-white/30 z-30 shadow-md",
-          (callStatus !== "connected" || activeCallType !== "video" || !localStream || isVideoOff || isPip) && "hidden"
+          "absolute top-4 left-4 w-28 h-40 rounded-xl overflow-hidden border border-white/30 z-30 shadow-md bg-zinc-900",
+          (callStatus !== "connected" || activeCallType !== "video" || isVideoOff || isPip) && "hidden"
         )}>
-          <video
+          <div
             ref={localVideoRef}
-            autoPlay
-            muted
-            playsInline
             className="w-full h-full object-cover scale-x-[-1]"
           />
         </div>
@@ -542,15 +541,6 @@ export function CallOverlay({
           </>
         )}
       </div>
-
-      {/* INLINE LOCAL PREVIEW VIDEO ELEMENT FOR TRACK ATTACHMENT */}
-      <video
-        ref={localHiddenVideoRef}
-        autoPlay
-        muted
-        playsInline
-        className="absolute w-0 h-0 opacity-0 pointer-events-none"
-      />
     </div>
   );
 }
