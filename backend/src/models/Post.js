@@ -66,5 +66,11 @@ const postSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Indexes to optimize feed query speed (visibility + type + date)
+postSchema.index({ visibility: 1, type: 1, createdAt: -1 });
+
+// Indexes to optimize profile query speed (author + visibility + date)
+postSchema.index({ author: 1, visibility: 1, createdAt: -1 });
+
 const Post = mongoose.model("Post", postSchema);
 export default Post;
