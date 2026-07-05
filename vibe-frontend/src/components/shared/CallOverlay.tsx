@@ -23,6 +23,7 @@ import AgoraRTC, {
   IAgoraRTCRemoteUser
 } from "agora-rtc-sdk-ng";
 import { AGORA_APP_ID } from "@/config";
+import { getCallToken } from "@/api/calls";
 
 interface CallOverlayProps {
   open: boolean;
@@ -187,8 +188,11 @@ export function CallOverlay({
       const client = clientRef.current!;
       const uid = user.id || user._id;
 
+      // Fetch dynamic token from backend
+      const { token, appId } = await getCallToken(targetId);
+
       // Join Agora Channel using conversation ID targetId as room name
-      await client.join(AGORA_APP_ID, targetId, null, uid);
+      await client.join(appId, targetId, token, uid);
 
       // Publish local tracks
       const tracksToPublish = [];
@@ -228,8 +232,11 @@ export function CallOverlay({
       const client = clientRef.current!;
       const uid = user.id || user._id;
 
+      // Fetch dynamic token from backend
+      const { token, appId } = await getCallToken(targetId);
+
       // Join Agora Channel
-      await client.join(AGORA_APP_ID, targetId, null, uid);
+      await client.join(appId, targetId, token, uid);
 
       // Publish local tracks
       const tracksToPublish = [];

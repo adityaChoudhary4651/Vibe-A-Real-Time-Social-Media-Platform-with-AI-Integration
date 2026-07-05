@@ -24,6 +24,7 @@ import communityRoutes from "./routes/communityRoutes.js";
 import vibeAIRoutes from "./routes/vibeAIRoutes.js";
 import highlightRoutes from "./routes/highlightRoutes.js";
 import tipRoutes from "./routes/tipRoutes.js";
+import callRoutes from "./routes/callRoutes.js";
 
 console.log("SERVER.JS LOADED ✅");
 
@@ -126,6 +127,7 @@ app.use("/api/communities", communityRoutes);
 app.use("/api/vibe-ai", vibeAIRoutes);
 app.use("/api/highlights", highlightRoutes);
 app.use("/api/tips", tipRoutes);
+app.use("/api/calls", callRoutes);
 
 // GLOBAL ERROR HANDLER
 app.use((err, req, res, next) => {
