@@ -286,9 +286,21 @@ export function CallOverlay({
     socket.on("call_accepted", async (data: { answer: any }) => {
       if (peerConnectionRef.current) {
         try {
-          await peerConnectionRef.current.setRemoteDescription(
+          const pc = peerConnectionRef.current;
+          await pc.setRemoteDescription(
             new RTCSessionDescription(data.answer)
           );
+
+          // Process any queued ICE candidates on the caller side
+          while (iceCandidatesQueueRef.current.length > 0) {
+            const candidate = iceCandidatesQueueRef.current.shift()!;
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            } catch (candidateErr) {
+              console.error("Error adding queued candidate on caller:", candidateErr);
+            }
+          }
+
           setCallStatus("connected");
         } catch (err) {
           console.error("Failed to set remote description answer:", err);

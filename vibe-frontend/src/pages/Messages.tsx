@@ -194,7 +194,15 @@ export default function Messages() {
   useEffect(() => {
     if (!selectedChat || !socket) return;
 
-    socket.emit("join_conversation", selectedChat);
+    const joinRoom = () => {
+      socket.emit("join_conversation", selectedChat);
+    };
+
+    // Join room immediately
+    joinRoom();
+
+    // Re-join the conversation room if the socket reconnects
+    socket.on("connect", joinRoom);
 
     getMessages(selectedChat)
       .then((msgs) => {
@@ -226,6 +234,7 @@ export default function Messages() {
     socket.on("receive_message", handleReceiveMessage);
 
     return () => {
+      socket.off("connect", joinRoom);
       socket.off("receive_message", handleReceiveMessage);
     };
   }, [selectedChat, socket]);
