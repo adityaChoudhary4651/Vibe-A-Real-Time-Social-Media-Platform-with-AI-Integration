@@ -1,6 +1,8 @@
 import express from "express";
-import { RtcTokenBuilder, RtcRole } from "agora-token";
+import agoraToken from "agora-token";
 import auth from "../middleware/authMiddleware.js";
+
+const { RtcTokenBuilder, RtcRole } = agoraToken;
 
 const router = express.Router();
 
