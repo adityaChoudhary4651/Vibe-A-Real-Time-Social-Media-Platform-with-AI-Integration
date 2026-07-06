@@ -13,8 +13,15 @@ router.get("/token", auth, (req, res) => {
       return res.status(400).json({ message: "channelName query parameter is required" });
     }
 
-    const appId = process.env.AGORA_APP_ID;
-    const appCertificate = process.env.AGORA_PRIMARY_CERTIFICATE || process.env.AGORA_APP_CERTIFICATE;
+    const appId = process.env.AGORA_APP_ID?.replace(/['"]/g, "").trim();
+    const appCertificate = (process.env.AGORA_PRIMARY_CERTIFICATE || process.env.AGORA_APP_CERTIFICATE)?.replace(/['"]/g, "").trim();
+
+    console.log("Agora Server-Side Token Generation Params:", {
+      appId: appId ? `${appId.substring(0, 4)}...${appId.substring(appId.length - 4)}` : "missing",
+      appCertificate: appCertificate ? `${appCertificate.substring(0, 4)}...${appCertificate.substring(appCertificate.length - 4)}` : "missing",
+      channelName,
+      userAccount: req.user._id.toString()
+    });
 
     if (!appId || !appCertificate) {
       return res.status(500).json({

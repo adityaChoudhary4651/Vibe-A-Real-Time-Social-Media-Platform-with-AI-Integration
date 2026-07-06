@@ -191,6 +191,13 @@ export function CallOverlay({
       // Fetch dynamic token from backend
       const { token, appId } = await getCallToken(targetId);
 
+      console.log("Agora initiator client.join params:", {
+        appId,
+        channel: targetId,
+        token: token ? `${token.substring(0, 10)}...` : "missing",
+        uid
+      });
+
       // Join Agora Channel using conversation ID targetId as room name
       await client.join(appId, targetId, token, uid);
 
@@ -234,6 +241,13 @@ export function CallOverlay({
 
       // Fetch dynamic token from backend
       const { token, appId } = await getCallToken(targetId);
+
+      console.log("Agora receiver client.join params:", {
+        appId,
+        channel: targetId,
+        token: token ? `${token.substring(0, 10)}...` : "missing",
+        uid
+      });
 
       // Join Agora Channel
       await client.join(appId, targetId, token, uid);
