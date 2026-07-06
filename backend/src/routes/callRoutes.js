@@ -6,6 +6,16 @@ const { RtcTokenBuilder, RtcRole } = agoraToken;
 
 const router = express.Router();
 
+router.get("/debug", (req, res) => {
+  const appId = process.env.AGORA_APP_ID?.replace(/['"]/g, "").trim();
+  const appCertificate = (process.env.AGORA_PRIMARY_CERTIFICATE || process.env.AGORA_APP_CERTIFICATE)?.replace(/['"]/g, "").trim();
+  res.json({
+    appId: appId ? `${appId.substring(0, 4)}...${appId.substring(appId.length - 4)}` : "missing",
+    hasCertificate: !!appCertificate,
+    nodeEnv: process.env.NODE_ENV || "development"
+  });
+});
+
 router.get("/token", auth, (req, res) => {
   try {
     const { channelName } = req.query;
