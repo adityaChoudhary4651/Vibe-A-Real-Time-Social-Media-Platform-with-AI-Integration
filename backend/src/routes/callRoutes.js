@@ -25,8 +25,6 @@ router.get("/token", auth, (req, res) => {
     const userAccount = req.user._id.toString();
     const role = RtcRole.PUBLISHER;
     const expirationTimeInSeconds = 3600; // 1 hour
-    const currentTimestamp = Math.floor(Date.now() / 1000);
-    const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
 
     const token = RtcTokenBuilder.buildTokenWithUserAccount(
       appId,
@@ -34,7 +32,8 @@ router.get("/token", auth, (req, res) => {
       channelName,
       userAccount,
       role,
-      privilegeExpiredTs
+      expirationTimeInSeconds, // tokenExpire duration in seconds
+      expirationTimeInSeconds  // privilegeExpire duration in seconds
     );
 
     res.status(200).json({
