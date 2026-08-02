@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +58,46 @@ export function CommentsSheet({
   const [liking, setLiking] = useState<Set<string>>(new Set());
   const [openMenuCommentId, setOpenMenuCommentId] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 640);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+
+  const queryClient = useQueryClient();
+
+  const { data: commentsData, isLoading: isCommentsLoading } = useQuery<Comment[]>({
+    queryKey: ["comments", postId, page],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/comments/${postId}?page=${page}&limit=15`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      return await res.json();
+    },
+    enabled: open && !!token && !!postId,
+  });
+
+  // Sync state values
+  useEffect(() => {
+    if (commentsData) {
+      if (page === 1) {
+        setComments(commentsData);
+      } else {
+        setComments((prev) => {
+          const existingIds = new Set(prev.map(c => c._id));
+          const newComments = commentsData.filter(c => !existingIds.has(c._id));
+          return [...prev, ...newComments];
+        });
+      }
+      setHasMore(commentsData.length === 15);
+    }
+  }, [commentsData, page]);
+
+  useEffect(() => {
+    setLoading(isCommentsLoading);
+  }, [isCommentsLoading]);
+
+  // Reset page when switching posts
+  useEffect(() => {
+    setPage(1);
+  }, [postId]);
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 640);
@@ -85,6 +127,12 @@ export function CommentsSheet({
       } else if (data.type === "delete" && data.commentId) {
         setComments((prev) => prev.filter(c => c._id !== data.commentId));
       }
+      queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["reels"] });
+      queryClient.invalidateQueries({ queryKey: ["userPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["savedPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["postDetail", postId] });
     };
 
     socket.on("comment_update", handleCommentUpdate);
@@ -101,33 +149,6 @@ export function CommentsSheet({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [comments.length]);
-
-  /* ======================
-     FETCH COMMENTS
-     ====================== */
-  useEffect(() => {
-    if (!open || !token) return;
-
-    const fetchComments = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(
-          `${API_BASE_URL}/api/comments/${postId}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        const data = await res.json();
-        setComments(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Failed to load comments", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchComments();
-  }, [open, postId, token]);
 
   /* ======================
      ADD COMMENT
@@ -155,6 +176,12 @@ export function CommentsSheet({
         if (prev.find(c => c._id === data._id)) return prev;
         return [data, ...prev];
       });
+      queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["reels"] });
+      queryClient.invalidateQueries({ queryKey: ["userPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["savedPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["postDetail", postId] });
       onCommentAdded?.(data.commentsCount);
       setNewComment("");
     } catch (err) {
@@ -181,6 +208,12 @@ export function CommentsSheet({
 
       const data = await res.json();
       setComments((prev) => prev.filter((c) => c._id !== commentId));
+      queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["reels"] });
+      queryClient.invalidateQueries({ queryKey: ["userPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["savedPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["postDetail", postId] });
       onCommentAdded?.(data.commentsCount);
     } catch (err) {
       console.error("Failed to delete comment", err);
@@ -216,6 +249,7 @@ const handleLikeComment = async (commentId: string) => {
         c._id === updatedComment._id ? updatedComment : c
       )
     );
+    queryClient.invalidateQueries({ queryKey: ["comments", postId] });
   } catch (err) {
     console.error("Like error:", err);
   }
@@ -315,6 +349,14 @@ const handleLikeComment = async (commentId: string) => {
               </div>
             </div>
           ))}
+          {hasMore && comments.length > 0 && !loading && (
+            <button
+              onClick={() => setPage(p => p + 1)}
+              className="w-full text-center text-xs font-semibold py-2.5 text-muted-foreground hover:text-foreground border border-dashed rounded-lg border-border mt-2"
+            >
+              Load more comments
+            </button>
+          )}
         </div>
 
         {/* ADD COMMENT */}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -30,10 +31,18 @@ export default function Following() {
     return () => window.removeEventListener("themeChange", handleThemeChange);
   }, []);
 
+  const { data: followingData = [] } = useQuery<User[]>({
+    queryKey: ["followingList", username],
+    queryFn: () => getFollowing(token!, username!),
+    enabled: !!token && !!username,
+    staleTime: 1000 * 60 * 5,
+  });
+
   useEffect(() => {
-    if (!token || !username) return;
-    getFollowing(token, username).then(setUsers);
-  }, [token, username]);
+    if (followingData) {
+      setUsers(followingData);
+    }
+  }, [followingData]);
 
   // Dynamic Theme Colors
   const themeCard = isDark ? "bg-[#2A1D16]" : "bg-[#FFFDF9]";

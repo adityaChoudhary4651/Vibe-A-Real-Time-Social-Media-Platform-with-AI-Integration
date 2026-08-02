@@ -30,4 +30,7 @@ const storySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+storySchema.index({ user: 1 });
+storySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
 export default mongoose.model("Story", storySchema);

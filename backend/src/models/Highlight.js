@@ -22,4 +22,6 @@ const highlightSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+highlightSchema.index({ user: 1 });
+
 export default mongoose.model("Highlight", highlightSchema);

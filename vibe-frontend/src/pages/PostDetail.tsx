@@ -7,68 +7,67 @@ import { FeedPost } from "@/components/post/FeedPostCard";
 import { toggleLike } from "@/api/posts";
 import { CommentsSheet } from "@/components/shared/CommentsSheet";
 import { ShareSheet } from "@/components/shared/ShareSheet";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function PostDetail() {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
   const { token, user } = useAuth();
+  const queryClient = useQueryClient();
 
   const [post, setPost] = useState<FeedPost | null>(null);
   const [activeCommentsPostId, setActiveCommentsPostId] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
 
-  useEffect(() => {
-    if (!token || !postId) return;
+  const { data: postData } = useQuery<FeedPost | null>({
+    queryKey: ["post", postId],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/posts/${postId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    const loadPost = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/posts/${postId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) {
-          navigate(-1);
-          return;
-        }
-
-        const data = await res.json();
-
-        const rawImage = data.mediaUrl || data.imageUrl || data.image || "";
-        const imageUrl = resolveUrl(rawImage);
-
-        const isLiked = user && Array.isArray(data.likes)
-          ? data.likes.includes(user.id || (user as any)._id)
-          : false;
-
-        const formattedPost: FeedPost = {
-          _id: data._id,
-          imageUrl,
-          caption: data.caption || "",
-          author: {
-            _id: data.author?._id || "",
-            name: data.author?.name || data.author?.username || "Unknown",
-            username: data.author?.username,
-            avatar: resolveUrl(data.author?.avatar),
-          },
-          likes: data.likes || [],
-          comments: data.comments || [],
-          commentsCount: data.commentsCount || data.comments?.length || 0,
-          sharesCount: data.sharesCount || 0,
-          createdAt: data.createdAt ? new Date(data.createdAt).toLocaleDateString() : "Just now",
-          isLiked,
-        };
-
-        setPost(formattedPost);
-      } catch (err) {
-        console.error(err);
+      if (!res.ok) {
         navigate(-1);
+        return null;
       }
-    };
 
-    loadPost();
-  }, [token, postId, navigate, user]);
+      const data = await res.json();
+
+      const rawImage = data.mediaUrl || data.imageUrl || data.image || "";
+      const imageUrl = resolveUrl(rawImage);
+
+      const isLiked = user && Array.isArray(data.likes)
+        ? data.likes.includes(user.id || (user as any)._id)
+        : false;
+
+      return {
+        _id: data._id,
+        imageUrl,
+        caption: data.caption || "",
+        author: {
+          _id: data.author?._id || "",
+          name: data.author?.name || data.author?.username || "Unknown",
+          username: data.author?.username,
+          avatar: resolveUrl(data.author?.avatar),
+        },
+        likes: data.likes || [],
+        comments: data.comments || [],
+        commentsCount: data.commentsCount || data.comments?.length || 0,
+        sharesCount: data.sharesCount || 0,
+        createdAt: data.createdAt ? new Date(data.createdAt).toLocaleDateString() : "Just now",
+        isLiked,
+      };
+    },
+    enabled: !!token && !!postId,
+  });
+
+  useEffect(() => {
+    if (postData) {
+      setPost(postData);
+    }
+  }, [postData]);
 
   const handleLikePost = async (id: string) => {
     if (!token || !post) return;
@@ -79,9 +78,10 @@ export default function PostDetail() {
         ...post,
         isLiked: !isCurrentlyLiked,
         likes: isCurrentlyLiked
-          ? post.likes.slice(1) // simple optimistic remove
-          : [...post.likes, "new_like_id"], // simple optimistic add
+          ? post.likes.slice(1)
+          : [...post.likes, "new_like_id"],
       });
+      queryClient.invalidateQueries({ queryKey: ["post", id] });
     } catch (err) {
       console.error("Failed to like post", err);
     }
@@ -111,6 +111,7 @@ export default function PostDetail() {
       <ShareSheet
         open={showShare}
         onOpenChange={setShowShare}
+        postId={post._id}
       />
     </>
   );

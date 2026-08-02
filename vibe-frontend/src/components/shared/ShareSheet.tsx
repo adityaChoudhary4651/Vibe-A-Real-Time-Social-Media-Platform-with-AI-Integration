@@ -8,6 +8,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchFollowers } from "@/api/profile";
 import { createConversation } from "@/api/conversations";
 import { sendMessage } from "@/api/messages";
+import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
+import { API_BASE_URL } from "@/config";
 
 const shareOptions = [
   { id: "copy", icon: Link2, label: "Copy Link", color: "bg-secondary" },
@@ -20,10 +23,12 @@ const shareOptions = [
 interface ShareSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  postId?: string;
 }
 
-export function ShareSheet({ open, onOpenChange }: ShareSheetProps) {
+export function ShareSheet({ open, onOpenChange, postId }: ShareSheetProps) {
   const { user, token } = useAuth();
+  const queryClient = useQueryClient();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -37,13 +42,32 @@ export function ShareSheet({ open, onOpenChange }: ShareSheetProps) {
     }
   }, [open, user, token]);
 
-  const handleShare = (option: string) => {
+  const incrementPostShare = async () => {
+    if (!postId || !token) return;
+    try {
+      await axios.put(
+        `${API_BASE_URL}/api/posts/${postId}/share`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["reels"] });
+      queryClient.invalidateQueries({ queryKey: ["userPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["savedPosts"] });
+      queryClient.invalidateQueries({ queryKey: ["postDetail", postId] });
+    } catch (err) {
+      console.error("Failed to increment share count:", err);
+    }
+  };
+
+  const handleShare = async (option: string) => {
     if (option === "copy") {
       navigator.clipboard.writeText(window.location.href);
       toast.success("Link copied to clipboard!");
     } else {
       toast.success(`Shared via ${option}!`);
     }
+    await incrementPostShare();
     onOpenChange(false);
   };
 
@@ -53,6 +77,7 @@ export function ShareSheet({ open, onOpenChange }: ShareSheetProps) {
       const shareLink = window.location.href;
       await sendMessage(conv._id, `Check this out: ${shareLink}`);
       toast.success(`Sent to ${username}!`);
+      await incrementPostShare();
     } catch (err) {
       toast.error("Failed to share in chat");
     }

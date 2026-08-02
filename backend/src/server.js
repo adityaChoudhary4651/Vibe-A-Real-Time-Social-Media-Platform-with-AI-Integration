@@ -1,12 +1,13 @@
 
 
-import dotenv from "dotenv";
-dotenv.config(); // Load environment variables first
+import { env } from "./config/env.js";
+import logger from "./config/logger.js";
 
 import express from "express";
 import cors from "cors";
 import path from "path";
 import helmet from "helmet";
+import fs from "fs";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import connectDB from "./config/db.js";
@@ -26,15 +27,15 @@ import highlightRoutes from "./routes/highlightRoutes.js";
 import tipRoutes from "./routes/tipRoutes.js";
 import callRoutes from "./routes/callRoutes.js";
 
-console.log("SERVER.JS LOADED ✅");
+logger.info("SERVER.JS LOADED ✅");
 
 const app = express();
 
 // Trust reverse proxy (Render, Vercel, etc.)
 app.set("trust proxy", 1);
 
-// HTTP request logging
-app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+// HTTP request logging piped into Winston
+app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev", { stream: logger.stream }));
 
 // Security headers with adjustments for cross-origin assets (Cloudinary)
 app.use(
@@ -51,8 +52,8 @@ const allowedOrigins = [
   "http://localhost:8080",
   "http://127.0.0.1:8080",
 ];
-if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL.replace(/\/$/, ""));
+if (env.FRONTEND_URL) {
+  allowedOrigins.push(env.FRONTEND_URL.replace(/\/$/, ""));
 }
 
 app.use(
@@ -63,13 +64,13 @@ app.use(
       const isAllowed =
         allowedOrigins.includes(origin) ||
         origin.endsWith(".vercel.app") ||
-        (process.env.FRONTEND_URL &&
-          origin.startsWith(process.env.FRONTEND_URL.replace(/\/$/, "")));
+        (env.FRONTEND_URL &&
+          origin.startsWith(env.FRONTEND_URL.replace(/\/$/, "")));
 
       if (isAllowed) {
         callback(null, true);
       } else {
-        console.warn(`Blocked by CORS: ${origin}`);
+        logger.warn(`Blocked by CORS: ${origin}`);
         callback(null, false);
       }
     },
@@ -95,7 +96,7 @@ const authLimiter = rateLimit({
 });
 
 // Apply global rate limiting to all api endpoints in production only
-if (process.env.NODE_ENV === "production") {
+if (env.NODE_ENV === "production") {
   app.use("/api", globalLimiter);
   app.use("/api/users/login", authLimiter);
   app.post("/api/users", authLimiter);
@@ -107,7 +108,9 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 
 
-connectDB();
+if (env.NODE_ENV !== "test") {
+  connectDB();
+}
 
 app.get("/", (req, res) => {
   res.send("Backend + MongoDB connected 🚀");
@@ -131,22 +134,69 @@ app.use("/api/calls", callRoutes);
 
 // GLOBAL ERROR HANDLER
 app.use((err, req, res, next) => {
-  console.error("Global Error Handler ❌:", err);
+  logger.error("Global Error Handler ❌", err);
   const status = err.status || err.statusCode || 500;
   res.status(status).json({
     message: err.message || "An unexpected error occurred on the server.",
-    stack: process.env.NODE_ENV === "production" ? undefined : err.stack,
+    stack: env.NODE_ENV === "production" ? undefined : err.stack,
   });
 });
 
 import { createServer } from "http";
 import { initSocket } from "./socket.js";
 
-const PORT = process.env.PORT || 5000;
+const PORT = env.PORT;
 const httpServer = createServer(app);
 
 initSocket(httpServer);
 
-httpServer.listen(PORT, () => {
-  console.log(`Backend running on http://localhost:${PORT}`);
-});
+// 🧹 ORPHANED TEMP FILE CLEANUP
+const cleanupTempFolder = () => {
+  const tempDir = path.join(process.cwd(), "temp");
+  if (!fs.existsSync(tempDir)) return;
+
+  fs.readdir(tempDir, (err, files) => {
+    if (err) {
+      logger.error("Error reading temp directory for cleanup", err);
+      return;
+    }
+
+    const now = Date.now();
+    const THREE_HOURS = 3 * 60 * 60 * 1000;
+
+    files.forEach((file) => {
+      const filePath = path.join(tempDir, file);
+      fs.stat(filePath, (statErr, stats) => {
+        if (statErr) {
+          logger.error(`Error getting stats for file ${filePath}`, statErr);
+          return;
+        }
+
+        if (now - stats.mtimeMs > THREE_HOURS) {
+          fs.unlink(filePath, (unlinkErr) => {
+            if (unlinkErr) {
+              logger.error(`Failed to delete orphaned temp file ${filePath}`, unlinkErr);
+            } else {
+              logger.info(`🧹 Cleaned up orphaned temp file: ${file}`);
+            }
+          });
+        }
+      });
+    });
+  });
+};
+
+// Run on startup
+if (env.NODE_ENV !== "test") {
+  cleanupTempFolder();
+  // Schedule cleanup once every 3 hours
+  setInterval(cleanupTempFolder, 3 * 60 * 60 * 1000);
+}
+
+if (env.NODE_ENV !== "test") {
+  httpServer.listen(PORT, () => {
+    logger.info(`Backend running on http://localhost:${PORT}`);
+  });
+}
+
+export { app, httpServer };

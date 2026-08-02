@@ -16,14 +16,17 @@ export const createUser = async (req, res) => {
       return res.status(400).json({ message: "All fields required" });
     }
 
+    const sanitizedEmail = email.trim().toLowerCase();
+    const sanitizedUsername = username.trim().toLowerCase();
+
     // check existing email
-    const emailExists = await User.findOne({ email });
+    const emailExists = await User.findOne({ email: sanitizedEmail });
     if (emailExists) {
       return res.status(400).json({ message: "Email already exists" });
     }
 
     // check existing username
-    const usernameExists = await User.findOne({ username });
+    const usernameExists = await User.findOne({ username: sanitizedUsername });
     if (usernameExists) {
       return res.status(400).json({ message: "Username already taken" });
     }
@@ -31,9 +34,9 @@ export const createUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = await User.create({
-      name,
-      username,
-      email,
+      name: name.trim(),
+      username: sanitizedUsername,
+      email: sanitizedEmail,
       password: hashedPassword,
     });
 
@@ -54,6 +57,7 @@ export const createUser = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 // LOGIN
 export const loginUser = async (req, res) => {
   try {
@@ -63,7 +67,16 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "All fields required" });
     }
 
-    const user = await User.findOne({ email });
+    const identifier = email.trim().toLowerCase();
+
+    // Search by email or username (case-insensitive)
+    const user = await User.findOne({
+      $or: [
+        { email: identifier },
+        { username: identifier }
+      ]
+    });
+
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
@@ -300,7 +313,15 @@ export const getDiscoveryUsers = async (req, res) => {
     // Randomize result (only if not searching for a specific query)
     const result = q ? users : users.sort(() => 0.5 - Math.random());
 
-    res.json(result);
+    const resultWithFollowing = result.map((u) => {
+      const plain = u.toObject();
+      plain.isFollowing = followingIds.some(
+        (id) => id.toString() === u._id.toString()
+      );
+      return plain;
+    });
+
+    res.json(resultWithFollowing);
   } catch (error) {
     res.status(500).json({ message: "Discovery failed" });
   }

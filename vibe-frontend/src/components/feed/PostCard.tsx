@@ -307,7 +307,7 @@ export function PostCard({ post }: PostCardProps) {
         onCommentAdded={setCommentsCount}
       />
 
-      <ShareSheet open={showShare} onOpenChange={setShowShare} />
+      <ShareSheet open={showShare} onOpenChange={setShowShare} postId={post._id} />
 
       <TipModal
         open={showTip}

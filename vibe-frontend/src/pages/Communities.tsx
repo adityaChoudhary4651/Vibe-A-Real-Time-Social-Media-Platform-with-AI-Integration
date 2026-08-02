@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useOutletContext, Link } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -89,6 +90,45 @@ export default function Communities() {
 
   const isInChat = selectedCommunityId !== null;
 
+  const queryClient = useQueryClient();
+
+  const { data: communitiesData = [], isLoading: isCommunitiesLoading } = useQuery<Community[]>({
+    queryKey: ["communities", searchQuery],
+    queryFn: async () => {
+      const data = await fetchCommunities(searchQuery);
+      return data.map((c: any) => ({
+        ...c,
+        memberCount: c.members.length,
+        isJoined: c.members.includes(user?.id)
+      }));
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: messagesData = [] } = useQuery({
+    queryKey: ["communityMessages", selectedCommunityId],
+    queryFn: () => fetchCommunityMessages(selectedCommunityId!),
+    enabled: !!selectedCommunityId,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  useEffect(() => {
+    if (communitiesData) {
+      setCommunities(communitiesData);
+    }
+  }, [communitiesData]);
+
+  useEffect(() => {
+    setLoading(isCommunitiesLoading);
+  }, [isCommunitiesLoading]);
+
+  useEffect(() => {
+    if (messagesData) {
+      setMessages(messagesData);
+    }
+  }, [messagesData]);
+
   /* =====================
      THEME OBSERVER
      ===================== */
@@ -109,19 +149,15 @@ export default function Communities() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  useEffect(() => {
-    loadCommunities();
-  }, [searchQuery]);
-
+  // 1. Room joining & Socket messages listener
   useEffect(() => {
     if (selectedCommunityId && socket) {
-      loadMessages();
-
       // Join community room
       socket.emit("join_community", selectedCommunityId);
 
       // Listen for messages
       const handleReceiveCommunityMessage = (msg: any) => {
+        queryClient.invalidateQueries({ queryKey: ["communityMessages", selectedCommunityId] });
         setMessages((prev) => {
           if (prev.find(m => m._id === msg._id)) return prev;
           return [...prev, msg];
@@ -134,37 +170,13 @@ export default function Communities() {
         socket.off("receive_community_message", handleReceiveCommunityMessage);
       };
     }
-  }, [selectedCommunityId, socket]);
+  }, [selectedCommunityId, socket, queryClient]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const loadCommunities = async () => {
-    try {
-      const data = await fetchCommunities(searchQuery);
-      const transformed = data.map((c: any) => ({
-        ...c,
-        memberCount: c.members.length,
-        isJoined: c.members.includes(user?.id)
-      }));
-      setCommunities(transformed);
-    } catch (err) {
-      toast.error("Failed to load communities");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const loadMessages = async () => {
-    if (!selectedCommunityId) return;
-    try {
-      const data = await fetchCommunityMessages(selectedCommunityId);
-      setMessages(data);
-    } catch (err) {
-      console.error("Message load failed");
-    }
-  };
 
   const toggleJoin = async (id: string) => {
     try {
@@ -172,6 +184,7 @@ export default function Communities() {
       setCommunities(prev => prev.map(c =>
         c._id === id ? { ...c, isJoined: result.isJoined, memberCount: result.memberCount } : c
       ));
+      queryClient.invalidateQueries({ queryKey: ["communities", searchQuery] });
       if (result.isJoined) {
         toast.success("Joined community!");
       } else {
@@ -194,6 +207,7 @@ export default function Communities() {
       setMessage("");
       setSelectedImageFile(null);
       setImagePreviewUrl(null);
+      queryClient.invalidateQueries({ queryKey: ["communityMessages", selectedCommunityId] });
     } catch (err) {
       toast.error("Failed to send message");
     } finally {
@@ -210,6 +224,7 @@ export default function Communities() {
       });
       setCommunities(prev => [newComm, ...prev]);
       setSelectedCommunityId(newComm._id);
+      queryClient.invalidateQueries({ queryKey: ["communities", searchQuery] });
       toast.success("Community created!");
     } catch (err) {
       toast.error("Creation failed");

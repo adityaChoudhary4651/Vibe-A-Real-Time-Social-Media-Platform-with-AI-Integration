@@ -27,6 +27,7 @@ import {
   X,
   SlidersHorizontal,
   ChevronDown,
+  ChevronUp,
   Eye,
   EyeOff,
   IndianRupee,
@@ -43,6 +44,7 @@ import { MobileBottomNav, MobileHeader } from "@/components/layout/Navigation";
 import { API_BASE_URL, resolveUrl } from "../config";
 import api from "@/lib/axios";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { FeedPostCard, FeedPost } from "@/components/post/FeedPostCard";
 import { ProfileFeedViewer } from "@/components/profile/ProfileFeedViewer";
@@ -134,6 +136,105 @@ export default function Index() {
   const [loadingCommunities, setLoadingCommunities] = useState(false);
   const [loadingReels, setLoadingReels] = useState(false);
 
+  const queryClient = useQueryClient();
+
+  // React Query Fetching
+  const { data: postsData, isLoading: isPostsLoading } = useQuery<FeedPost[]>({
+    queryKey: ["posts", 1],
+    queryFn: async () => {
+      const res = await api.get("/posts?page=1&limit=10");
+      if (res.data && Array.isArray(res.data)) {
+        return res.data.map((post: any) => ({
+          _id: post._id,
+          imageUrl: resolveUrl(post.mediaUrl),
+          caption: post.caption || "",
+          author: {
+            _id: post.author?._id || "",
+            name: post.author?.username || "anonymous",
+            username: post.author?.username || "anonymous",
+            avatar: resolveUrl(post.author?.avatar),
+            category: "Member",
+          },
+          likes: Array.isArray(post.likes) ? post.likes : [],
+          commentsCount: typeof post.commentsCount === "number" ? post.commentsCount : (Array.isArray(post.comments) ? post.comments.length : 0),
+          comments: post.comments || [],
+          sharesCount: Math.floor(Math.random() * 20) + 1,
+          createdAt: new Date(post.createdAt).toLocaleDateString(),
+          isLiked: user ? post.likes?.includes(user.id || user._id) : false,
+        }));
+      }
+      return [];
+    },
+    enabled: !!token,
+    staleTime: 1000 * 60 * 5, // 5 minutes fresh time
+  });
+
+  const { data: storiesData, isLoading: isStoriesLoading } = useQuery<StoryGroup[]>({
+    queryKey: ["stories"],
+    queryFn: async () => {
+      const res = await api.get("/stories");
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    enabled: !!token,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: creatorsData, isLoading: isCreatorsLoading } = useQuery<DiscoveryUser[]>({
+    queryKey: ["discoveryUsers"],
+    queryFn: async () => {
+      const res = await api.get("/users/discovery");
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    enabled: !!token,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: communitiesData, isLoading: isCommunitiesLoading } = useQuery<Community[]>({
+    queryKey: ["communities"],
+    queryFn: async () => {
+      const res = await api.get("/communities");
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    enabled: !!token,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: reelsData, isLoading: isReelsLoading } = useQuery<Reel[]>({
+    queryKey: ["reels"],
+    queryFn: async () => {
+      const res = await api.get("/reels");
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    enabled: !!token,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Synchronize Query Data to Local States (to preserve interactive edits like liking, joining, etc.)
+  useEffect(() => {
+    setLoadingPosts(isPostsLoading);
+    if (postsData) setPosts(postsData);
+  }, [postsData, isPostsLoading]);
+
+  useEffect(() => {
+    setLoadingStories(isStoriesLoading);
+    if (storiesData) setStories(storiesData);
+  }, [storiesData, isStoriesLoading]);
+
+  useEffect(() => {
+    setLoadingCreators(isCreatorsLoading);
+    if (creatorsData) setSuggestedCreators(creatorsData);
+  }, [creatorsData, isCreatorsLoading]);
+
+  useEffect(() => {
+    setLoadingCommunities(isCommunitiesLoading);
+    if (communitiesData) setCommunities(communitiesData);
+  }, [communitiesData, isCommunitiesLoading]);
+
+  useEffect(() => {
+    setLoadingReels(isReelsLoading);
+    if (reelsData) setReels(reelsData);
+  }, [reelsData, isReelsLoading]);
+
   // Layout Adjustability States
   const [showLayoutAdjuster, setShowLayoutAdjuster] = useState(false);
   const [sectionOrder, setSectionOrder] = useState<string[]>(["stories", "posts", "suggested", "reels"]);
@@ -156,6 +257,7 @@ export default function Index() {
   const [activeCommentsPostId, setActiveCommentsPostId] = useState<string | null>(null);
   const [feedViewerPostId, setFeedViewerPostId] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
+  const [sharePostId, setSharePostId] = useState<string | null>(null);
 
   // Carousel scroll position tracker
   const postsCarouselRef = useRef<HTMLDivElement>(null);
@@ -224,100 +326,7 @@ export default function Index() {
     }
   }, []);
 
-  // Fetch all backend data
-  const loadBackendData = async () => {
-    if (!token) return;
 
-    // 1. Fetch Posts (Bug 2 Fix: resolve mediaUrl and author avatar, maps username to author name)
-    try {
-      setLoadingPosts(true);
-      const res = await api.get("/posts?page=1&limit=10");
-      if (res.data && Array.isArray(res.data)) {
-        const formatted = res.data.map((post: any) => ({
-          _id: post._id,
-          imageUrl: resolveUrl(post.mediaUrl),
-          caption: post.caption || "",
-          author: {
-            _id: post.author?._id || "",
-            name: post.author?.username || "anonymous",
-            username: post.author?.username || "anonymous",
-            avatar: resolveUrl(post.author?.avatar),
-            category: "Member",
-          },
-          likes: Array.isArray(post.likes) ? post.likes : [],
-          commentsCount: typeof post.commentsCount === "number" ? post.commentsCount : (Array.isArray(post.comments) ? post.comments.length : 0),
-          comments: post.comments || [],
-          sharesCount: Math.floor(Math.random() * 20) + 1,
-          createdAt: new Date(post.createdAt).toLocaleDateString(),
-          isLiked: user ? post.likes?.includes(user.id || user._id) : false,
-        }));
-        setPosts(formatted);
-      } else {
-        setPosts([]);
-      }
-    } catch (e) {
-      console.error("Error loading posts:", e);
-      setPosts([]);
-    } finally {
-      setLoadingPosts(false);
-    }
-
-    // 2. Fetch Stories
-    try {
-      setLoadingStories(true);
-      const res = await api.get("/stories");
-      if (res.data && Array.isArray(res.data)) {
-        setStories(res.data);
-      }
-    } catch (e) {
-      console.error("Error loading stories:", e);
-    } finally {
-      setLoadingStories(false);
-    }
-
-    // 3. Fetch Discovery Users (Featured & Suggested)
-    try {
-      setLoadingCreators(true);
-      const res = await api.get("/users/discovery");
-      if (res.data && Array.isArray(res.data)) {
-        setSuggestedCreators(res.data);
-      }
-    } catch (e) {
-      console.error("Error loading discovery users:", e);
-    } finally {
-      setLoadingCreators(false);
-    }
-
-    // 4. Fetch Communities
-    try {
-      setLoadingCommunities(true);
-      const res = await api.get("/communities");
-      if (res.data && Array.isArray(res.data)) {
-        setCommunities(res.data);
-      }
-    } catch (e) {
-      console.error("Error loading communities:", e);
-    } finally {
-      setLoadingCommunities(false);
-    }
-
-    // 5. Fetch Reels
-    try {
-      setLoadingReels(true);
-      const res = await api.get("/reels");
-      if (res.data && Array.isArray(res.data)) {
-        setReels(res.data);
-      }
-    } catch (e) {
-      console.error("Error loading reels:", e);
-    } finally {
-      setLoadingReels(false);
-    }
-  };
-
-  useEffect(() => {
-    loadBackendData();
-  }, [token]);
 
   // Story Viewer helper functions
   const openStories = (group: StoryGroup) => {
@@ -619,11 +628,11 @@ export default function Index() {
         <main className="flex-1 pt-0 lg:pt-8 pb-4 lg:pb-8 px-0 sm:px-4 lg:px-6 md:px-10 overflow-y-auto max-h-screen scrollbar-hide space-y-6 lg:space-y-8">
           <MobileHeader />
 
-          {/* Main Top Header with Layout Customizer toggle (Hidden on mobile) */}
-          <div className="hidden lg:flex items-center justify-between border-b pb-4 border-[#C8B9A6]/20 px-4 sm:px-0">
+          {/* Main Top Header with Layout Customizer toggle */}
+          <div className="flex items-center justify-between border-b pb-4 border-[#C8B9A6]/20 px-4 sm:px-0">
             <div>
-              <p className="text-xs opacity-60 tracking-wider font-semibold uppercase">Feed</p>
-              <h1 className="text-2xl font-bold tracking-wide font-serif">Vibe Dashboard</h1>
+              <p className="text-xs opacity-60 tracking-wider font-semibold uppercase hidden sm:block">Feed</p>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-wide font-serif">Vibe Dashboard</h1>
             </div>
 
             {/* Custom Adjust Layout Button */}
@@ -976,7 +985,7 @@ export default function Index() {
 
                               <div className="absolute bottom-3 left-3 flex items-center gap-1 text-[10px] font-semibold text-white drop-shadow-md">
                                 <Play className="h-3 w-3 fill-white" />
-                                <span>{reel.views || `${reel.likes.length * 4 + 7}K`}</span>
+                                <span>{reel.views || 0}</span>
                               </div>
                             </div>
                           );
@@ -1315,7 +1324,7 @@ export default function Index() {
         open={showAddStory}
         onOpenChange={setShowAddStory}
         onStoryAdded={() => {
-          loadBackendData();
+          queryClient.invalidateQueries({ queryKey: ["stories"] });
           toast.success("Story added successfully!");
         }}
       />
@@ -1330,6 +1339,7 @@ export default function Index() {
       <ShareSheet
         open={showShare}
         onOpenChange={setShowShare}
+        postId={sharePostId || undefined}
       />
       {feedViewerPostId && (
         <ProfileFeedViewer
@@ -1338,7 +1348,10 @@ export default function Index() {
           onClose={() => setFeedViewerPostId(null)}
           onLike={handleLike}
           onCommentClick={setActiveCommentsPostId}
-          onShareClick={() => setShowShare(true)}
+          onShareClick={(postId) => {
+            setSharePostId(postId);
+            setShowShare(true);
+          }}
           onTipClick={setTipModalPost}
         />
       )}

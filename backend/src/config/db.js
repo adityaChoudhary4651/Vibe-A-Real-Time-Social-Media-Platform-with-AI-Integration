@@ -1,11 +1,13 @@
 import mongoose from "mongoose";
+import { env } from "./env.js";
+import logger from "./logger.js";
 
 const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("MongoDB Atlas connected ✅");
+    await mongoose.connect(env.MONGO_URI);
+    logger.info("MongoDB Atlas connected ✅");
   } catch (error) {
-    console.error("MongoDB connection failed ❌", error.message);
+    logger.error("MongoDB connection failed ❌", error);
     process.exit(1);
   }
 };

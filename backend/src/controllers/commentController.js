@@ -67,25 +67,34 @@ export const addComment = async (req, res) => {
 
 // GET COMMENTS
 export const getComments = async (req, res) => {
-  const { postId } = req.params;
+  try {
+    const { postId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 15;
+    const skip = (page - 1) * limit;
 
-  const comments = await Comment.find({ post: postId })
-    .populate("user", "username avatar")
-    .sort({ createdAt: -1 });
+    const comments = await Comment.find({ post: postId })
+      .populate("user", "username avatar")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-  const response = comments.map((c) => ({
-    _id: c._id,
-    text: c.text,
-    createdAt: c.createdAt,
-    author: c.user,
-    likesCount: c.likes.length,
-    isLiked: c.likes.some(
-      (id) => id.toString() === req.user._id.toString()
-    ),
-    canDelete: c.user._id.toString() === req.user._id.toString(),
-  }));
+    const response = comments.map((c) => ({
+      _id: c._id,
+      text: c.text,
+      createdAt: c.createdAt,
+      author: c.user,
+      likesCount: c.likes.length,
+      isLiked: c.likes.some(
+        (id) => id.toString() === req.user._id.toString()
+      ),
+      canDelete: c.user && c.user._id.toString() === req.user._id.toString(),
+    }));
 
-  res.json(response);
+    res.json(response);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch comments" });
+  }
 };
 
   // DELETE COMMENT

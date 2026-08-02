@@ -47,6 +47,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 /* =====================
    TYPES
@@ -126,6 +127,53 @@ export default function Messages() {
 
   const isInChat = selectedChat !== null;
 
+  const queryClient = useQueryClient();
+
+  // React Query Fetching
+  const { data: convsData } = useQuery<Conversation[]>({
+    queryKey: ["conversations"],
+    queryFn: getConversations,
+    enabled: !!user,
+  });
+
+  const { data: msgsData } = useQuery<Message[]>({
+    queryKey: ["messages", selectedChat],
+    queryFn: () => getMessages(selectedChat!),
+    enabled: !!selectedChat && !!user,
+  });
+
+  const { data: followersData } = useQuery<ChatUser[]>({
+    queryKey: ["followers", user?.username],
+    queryFn: () => fetchFollowers(user!.username!, user!.token!),
+    enabled: !!user?.username && !!user?.token,
+  });
+
+  // Sync state values
+  useEffect(() => {
+    if (convsData) setConversations(convsData);
+  }, [convsData]);
+
+  useEffect(() => {
+    if (msgsData) setMessages(msgsData);
+  }, [msgsData]);
+
+  useEffect(() => {
+    if (followersData) setFollowers(followersData);
+  }, [followersData]);
+
+  // Sync unread read status in sidebar when chat is opened
+  useEffect(() => {
+    if (selectedChat) {
+      setConversations((prev) =>
+        prev.map((c) =>
+          c._id === selectedChat && c.lastMessage
+            ? { ...c, lastMessage: { ...c.lastMessage, isRead: true } }
+            : c
+        )
+      );
+    }
+  }, [selectedChat]);
+
   /* =====================
      THEME OBSERVER
      ===================== */
@@ -149,22 +197,53 @@ export default function Messages() {
     return () => setHideBottomNav?.(false);
   }, [isInChat, setHideBottomNav]);
 
+  // 1. Room Joining & Reconnection
   useEffect(() => {
-    getConversations()
-      .then(setConversations)
-      .catch(console.error);
+    if (!selectedChat || !socket) return;
 
+    const joinRoom = () => {
+      socket.emit("join_conversation", selectedChat);
+    };
+
+    joinRoom();
+    socket.on("connect", joinRoom);
+
+    window.dispatchEvent(new CustomEvent("messagesRead"));
+
+    return () => {
+      socket.off("connect", joinRoom);
+    };
+  }, [selectedChat, socket]);
+
+  // 2. Unified WebSocket Listener
+  useEffect(() => {
     if (!socket) return;
 
-    const handleGlobalMessage = (msg: Message) => {
+    const handleReceiveMessage = (msg: Message) => {
+      const msgConvId = (msg as any).conversation;
+
+      // Invalidate cache in background to sync database state
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+
+      if (selectedChat && msgConvId === selectedChat) {
+        queryClient.invalidateQueries({ queryKey: ["messages", selectedChat] });
+
+        // Instantly append to state for real-time responsiveness
+        setMessages((prev) => {
+          if (prev.find((m) => m._id === msg._id)) return prev;
+          return [...prev, msg];
+        });
+      }
+
+      // Dynamic sorting & update in conversations list state
       setConversations((prev) => {
-        const convIndex = prev.findIndex(c => c._id === (msg as any).conversation);
+        const convIndex = prev.findIndex((c) => c._id === msgConvId);
         if (convIndex === -1) return prev;
 
         const newConversations = [...prev];
         newConversations[convIndex] = {
           ...newConversations[convIndex],
-          lastMessage: msg
+          lastMessage: msg,
         };
 
         const [movedConv] = newConversations.splice(convIndex, 1);
@@ -182,62 +261,14 @@ export default function Messages() {
       setCallOpen(true);
     };
 
-    socket.on("receive_message", handleGlobalMessage);
+    socket.on("receive_message", handleReceiveMessage);
     socket.on("incoming_call", handleIncomingCall);
 
     return () => {
-      socket.off("receive_message", handleGlobalMessage);
+      socket.off("receive_message", handleReceiveMessage);
       socket.off("incoming_call", handleIncomingCall);
     };
-  }, [socket, callOpen]);
-
-  useEffect(() => {
-    if (!selectedChat || !socket) return;
-
-    const joinRoom = () => {
-      socket.emit("join_conversation", selectedChat);
-    };
-
-    // Join room immediately
-    joinRoom();
-
-    // Re-join the conversation room if the socket reconnects
-    socket.on("connect", joinRoom);
-
-    getMessages(selectedChat)
-      .then((msgs) => {
-        setMessages(msgs);
-
-        setConversations(prev => prev.map(c =>
-          c._id === selectedChat && c.lastMessage
-            ? { ...c, lastMessage: { ...c.lastMessage, isRead: true } }
-            : c
-        ));
-
-        window.dispatchEvent(new CustomEvent("messagesRead"));
-      })
-      .catch(console.error);
-
-    const handleReceiveMessage = (msg: Message) => {
-      setMessages((prev) => {
-        if (prev.find(m => m._id === msg._id)) return prev;
-        return [...prev, msg];
-      });
-
-      setConversations((prev) =>
-        prev.map((c) =>
-          c._id === selectedChat ? { ...c, lastMessage: msg } : c
-        )
-      );
-    };
-
-    socket.on("receive_message", handleReceiveMessage);
-
-    return () => {
-      socket.off("connect", joinRoom);
-      socket.off("receive_message", handleReceiveMessage);
-    };
-  }, [selectedChat, socket]);
+  }, [socket, selectedChat, callOpen, queryClient]);
 
   /* =====================
      SEND MESSAGE
@@ -262,6 +293,8 @@ export default function Messages() {
           c._id === selectedChat ? { ...c, lastMessage: msg } : c
         )
       );
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["messages", selectedChat] });
     } catch (err) {
       console.error(err);
       toast.error("Failed to send message");
@@ -296,16 +329,8 @@ export default function Messages() {
   /* =====================
      NEW CHAT LOGIC
      ===================== */
-  const handleOpenNewChat = async () => {
+  const handleOpenNewChat = () => {
     setIsNewChatOpen(true);
-    if (!user?.username || !user?.token) return;
-
-    try {
-      const data = await fetchFollowers(user.username, user.token);
-      setFollowers(data);
-    } catch (err) {
-      console.error("Failed to fetch followers:", err);
-    }
   };
 
   const handleSelectUser = async (userId: string) => {
@@ -318,6 +343,7 @@ export default function Messages() {
       setSelectedChat(conv._id);
       setIsNewChatOpen(false);
       setSearchParams({ conversation: conv._id }, { replace: true });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
     } catch (err) {
       console.error("Failed to start chat:", err);
     }
@@ -350,6 +376,7 @@ export default function Messages() {
         console.error(err);
       }
     }
+    queryClient.invalidateQueries({ queryKey: ["conversations"] });
   };
 
   /* =====================
@@ -400,6 +427,7 @@ export default function Messages() {
           )
         );
       }
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
     } catch (err) {
       console.error(err);
       toast.error("Action failed");

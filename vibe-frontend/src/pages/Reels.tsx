@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_BASE_URL } from "../config";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -31,6 +32,7 @@ type Reel = {
   caption: string;
   category: string;
   likes: string[];
+  views?: number;
   commentsCount?: number;
   author: {
     _id: string;
@@ -68,6 +70,7 @@ export default function Reels() {
   const [params] = useSearchParams();
 
   const filterUser = params.get("user"); // 👈 from profile
+  const reelIdParam = params.get("reelId");
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const [reels, setReels] = useState<Reel[]>([]);
@@ -85,75 +88,14 @@ export default function Reels() {
   const [hasMore, setHasMore] = useState(true);
   const [fetchingMore, setFetchingMore] = useState(false);
 
-  const reelIdParam = params.get("reelId");
+  const queryClient = useQueryClient();
 
-  /* ======================
-     FETCH REELS
-  ====================== */
-  useEffect(() => {
-    if (!token) return;
-
-    const fetchInitialReels = async () => {
-      try {
-        setFetchingMore(true);
-        const query = new URLSearchParams();
-        query.set("category", activeCategory);
-        query.set("page", "1");
-        query.set("limit", "5");
-        if (filterUser) query.set("user", filterUser);
-
-        const res = await axios.get(`${API_BASE_URL}/api/reels?${query.toString()}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        let loadedReels = res.data;
-        if (reelIdParam) {
-          const exists = loadedReels.some((r: any) => r._id === reelIdParam);
-          if (!exists) {
-            try {
-              const singleRes = await axios.get(`${API_BASE_URL}/api/posts/${reelIdParam}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              if (singleRes.data && singleRes.data.type === "reel") {
-                loadedReels = [singleRes.data, ...loadedReels];
-              }
-            } catch (err) {
-              console.error("Error fetching single reel:", err);
-            }
-          } else {
-            const selectedIdx = loadedReels.findIndex((r: any) => r._id === reelIdParam);
-            if (selectedIdx > -1) {
-              const selectedItem = loadedReels[selectedIdx];
-              loadedReels = [selectedItem, ...loadedReels.filter((r: any) => r._id !== reelIdParam)];
-            }
-          }
-        }
-
-        setReels(loadedReels);
-        setCurrentReel(0);
-        setPage(1);
-        setHasMore(res.data.length === 5);
-      } catch (error) {
-        console.error("Error fetching reels:", error);
-        setReels([]);
-        setHasMore(false);
-      } finally {
-        setFetchingMore(false);
-      }
-    };
-
-    fetchInitialReels();
-  }, [activeCategory, filterUser, token, reelIdParam]);
-
-  const fetchMoreReels = async () => {
-    if (!token || fetchingMore || !hasMore) return;
-
-    try {
-      setFetchingMore(true);
-      const nextPage = page + 1;
+  const { data: reelsData, isLoading: isReelsLoading } = useQuery<Reel[]>({
+    queryKey: ["reels", activeCategory, filterUser, reelIdParam, page],
+    queryFn: async () => {
       const query = new URLSearchParams();
       query.set("category", activeCategory);
-      query.set("page", nextPage.toString());
+      query.set("page", page.toString());
       query.set("limit", "5");
       if (filterUser) query.set("user", filterUser);
 
@@ -161,32 +103,90 @@ export default function Reels() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (res.data.length > 0) {
+      let loadedReels = res.data;
+      if (page === 1 && reelIdParam) {
+        const exists = loadedReels.some((r: any) => r._id === reelIdParam);
+        if (!exists) {
+          try {
+            const singleRes = await axios.get(`${API_BASE_URL}/api/posts/${reelIdParam}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (singleRes.data && singleRes.data.type === "reel") {
+              loadedReels = [singleRes.data, ...loadedReels];
+            }
+          } catch (err) {
+            console.error("Error fetching single reel:", err);
+          }
+        } else {
+          const selectedIdx = loadedReels.findIndex((r: any) => r._id === reelIdParam);
+          if (selectedIdx > -1) {
+            const selectedItem = loadedReels[selectedIdx];
+            loadedReels = [selectedItem, ...loadedReels.filter((r: any) => r._id !== reelIdParam)];
+          }
+        }
+      }
+      return loadedReels;
+    },
+    enabled: !!token,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Sync state values
+  useEffect(() => {
+    if (reelsData) {
+      if (page === 1) {
+        setReels(reelsData);
+        setCurrentReel(0);
+      } else {
         setReels((prev) => {
           const existingIds = new Set(prev.map((r) => r._id));
-          const newReels = res.data.filter((r: Reel) => !existingIds.has(r._id));
+          const newReels = reelsData.filter((r: Reel) => !existingIds.has(r._id));
           return [...prev, ...newReels];
         });
-        setPage(nextPage);
-        setHasMore(res.data.length === 5);
-      } else {
-        setHasMore(false);
       }
-    } catch (error) {
-      console.error("Error fetching more reels:", error);
-      setHasMore(false);
-    } finally {
-      setFetchingMore(false);
+      setHasMore(reelsData.length === 5);
     }
-  };
+  }, [reelsData, page]);
 
   useEffect(() => {
-    if (reels.length > 0 && currentReel >= reels.length - 2) {
-      fetchMoreReels();
+    setFetchingMore(isReelsLoading);
+  }, [isReelsLoading]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [activeCategory, filterUser, reelIdParam]);
+
+
+
+  // Infinite scroll trigger: load next page when viewing the second-to-last reel
+  useEffect(() => {
+    if (reels.length > 0 && currentReel >= reels.length - 2 && hasMore && !fetchingMore) {
+      setPage((p) => p + 1);
     }
-  }, [currentReel, reels.length]);
+  }, [currentReel, reels.length, hasMore, fetchingMore]);
 
   const reel = reels[currentReel];
+  const activeReelId = reel?._id;
+
+  // View Counter Effect
+  useEffect(() => {
+    if (activeReelId && token) {
+      axios.put(`${API_BASE_URL}/api/posts/${activeReelId}/view`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).then(() => {
+        setReels((prev) =>
+          prev.map((r) =>
+            r._id === activeReelId ? { ...r, views: (r.views || 0) + 1 } : r
+          )
+        );
+        queryClient.invalidateQueries({ queryKey: ["reels"] });
+        queryClient.invalidateQueries({ queryKey: ["posts"] });
+      }).catch((err) => {
+        console.error("Failed to increment views:", err);
+      });
+    }
+  }, [activeReelId, token]);
 
   /* ======================
      SWIPE
@@ -233,6 +233,7 @@ export default function Reels() {
           return { ...r, likes: updatedLikes };
         })
       );
+      queryClient.invalidateQueries({ queryKey: ["reels"] });
     } catch (error) {
       console.error("Failed to like reel:", error);
       toast.error("Failed to update like status");
@@ -255,6 +256,7 @@ export default function Reels() {
 
       setReels((prev) => prev.filter((r) => r._id !== reel._id));
       setCurrentReel((i) => Math.max(0, i - 1));
+      queryClient.invalidateQueries({ queryKey: ["reels"] });
     } catch {
       toast.error("Failed to delete reel");
     } finally {
@@ -466,7 +468,7 @@ export default function Reels() {
           );
         }}
       />
-      <ShareSheet open={showShare} onOpenChange={setShowShare} />
+      <ShareSheet open={showShare} onOpenChange={setShowShare} postId={reel._id} />
       <TipModal
         open={showTip}
         onOpenChange={setShowTip}

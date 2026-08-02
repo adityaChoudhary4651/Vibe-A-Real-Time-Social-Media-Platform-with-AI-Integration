@@ -4,6 +4,28 @@ import Notification from "../models/notification.js";
 import { getIO } from "../socket.js";
 import User from "../models/User.js";
 
+const populateCommentsCount = async (postsOrReels) => {
+  if (!Array.isArray(postsOrReels) || postsOrReels.length === 0) {
+    return postsOrReels;
+  }
+  const plainList = postsOrReels.map(item => 
+    typeof item.toObject === 'function' ? item.toObject() : item
+  );
+  const ids = plainList.map(item => item._id);
+  const commentCounts = await Comment.aggregate([
+    { $match: { post: { $in: ids } } },
+    { $group: { _id: "$post", count: { $sum: 1 } } }
+  ]);
+  const countsMap = commentCounts.reduce((map, item) => {
+    map[item._id.toString()] = item.count;
+    return map;
+  }, {});
+  return plainList.map(item => ({
+    ...item,
+    commentsCount: countsMap[item._id.toString()] || 0
+  }));
+};
+
 // CREATE POST
 export const createPost = async (req, res) => {
   try {
@@ -48,9 +70,11 @@ export const getPosts = async (req, res) => {
       .populate("author", "username avatar")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
-    res.json(posts);
+    const postsWithCounts = await populateCommentsCount(posts);
+    res.json(postsWithCounts);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch feed posts" });
   }
@@ -162,10 +186,12 @@ export const getMyPosts = async (req, res) => {
   try {
     const posts = await Post.find({ author: req.user._id })
       .populate("author", "username name avatar")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    res.json(posts);
-  } catch {
+    const postsWithCounts = await populateCommentsCount(posts);
+    res.json(postsWithCounts);
+  } catch (error) {
     res.status(500).json({ message: "Failed to fetch my posts" });
   }
 };
@@ -195,9 +221,11 @@ export const getPostsByUsername = async (req, res) => {
       .populate("author", "username name avatar")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
-    res.json(posts);
+    const postsWithCounts = await populateCommentsCount(posts);
+    res.json(postsWithCounts);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch user posts" });
   }
@@ -206,17 +234,17 @@ export const getPostsByUsername = async (req, res) => {
 // GET POST BY ID
 export const getPostById = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).populate(
-      "author",
-      "username name avatar"
-    );
+    const post = await Post.findById(req.params.id)
+      .populate("author", "username name avatar")
+      .lean();
 
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    res.json(post);
-  } catch {
+    const [postWithCount] = await populateCommentsCount([post]);
+    res.json(postWithCount);
+  } catch (error) {
     res.status(500).json({ message: "Failed to fetch post" });
   }
 };
@@ -253,15 +281,7 @@ export const getReels = async (req, res) => {
       .limit(limit)
       .lean();
 
-    const reelsWithCounts = await Promise.all(
-      reels.map(async (reel) => {
-        const commentsCount = await Comment.countDocuments({
-          post: reel._id,
-        });
-        return { ...reel, commentsCount };
-      })
-    );
-
+    const reelsWithCounts = await populateCommentsCount(reels);
     res.json(reelsWithCounts);
   } catch (error) {
     console.error("GET REELS ERROR ❌", error);
@@ -279,10 +299,12 @@ export const getMyReels = async (req, res) => {
       mediaType: "video",
     })
       .populate("author", "username avatar")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    res.json(reels);
-  } catch {
+    const reelsWithCounts = await populateCommentsCount(reels);
+    res.json(reelsWithCounts);
+  } catch (error) {
     res.status(500).json({ message: "Failed to fetch reels" });
   }
 };
@@ -302,10 +324,13 @@ export const getReelsByUsername = async (req, res) => {
         match: { username },
         select: "username avatar",
       })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    res.json(reels.filter((r) => r.author));
-  } catch {
+    const filteredReels = reels.filter((r) => r.author);
+    const reelsWithCounts = await populateCommentsCount(filteredReels);
+    res.json(reelsWithCounts);
+  } catch (error) {
     res.status(500).json({ message: "Failed to fetch reels" });
   }
 };
@@ -346,17 +371,55 @@ export const toggleSave = async (req, res) => {
 // GET SAVED POSTS
 export const getSavedPosts = async (req, res) => {
   try {
-    const userObj = await User.findById(req.user._id).populate({
-      path: "savedPosts",
-      populate: { path: "author", select: "username avatar" }
-    });
+    const userObj = await User.findById(req.user._id)
+      .populate({
+        path: "savedPosts",
+        populate: { path: "author", select: "username avatar" }
+      })
+      .lean();
+      
     if (!userObj) {
       return res.status(404).json({ message: "User not found" });
     }
     const saved = (userObj.savedPosts || []).filter(p => p !== null);
-    res.json(saved);
+    const savedWithCounts = await populateCommentsCount(saved);
+    res.json(savedWithCounts);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to fetch saved posts" });
+  }
+};
+
+// INCREMENT VIEWS
+export const incrementViews = async (req, res) => {
+  try {
+    const post = await Post.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { views: 1 } },
+      { new: true }
+    );
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+    res.json({ success: true, views: post.views });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to increment views" });
+  }
+};
+
+// INCREMENT SHARES
+export const incrementShares = async (req, res) => {
+  try {
+    const post = await Post.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { sharesCount: 1 } },
+      { new: true }
+    );
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+    res.json({ success: true, sharesCount: post.sharesCount });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to increment shares" });
   }
 };

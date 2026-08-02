@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchDiscoveryUsers, toggleFollow, uploadAvatar } from "@/api/users";
@@ -539,6 +540,29 @@ export default function Discover() {
   const [swiping, setSwiping] = useState<"left" | "right" | null>(null);
 
   const filterRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+
+  const { data: discoveryData = [], isLoading: isDiscoveryLoading } = useQuery({
+    queryKey: ["discoveryUsers", genderFilter, searchQuery],
+    queryFn: () => fetchDiscoveryUsers(
+      genderFilter === "All" ? undefined : genderFilter,
+      searchQuery || undefined
+    ),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  useEffect(() => {
+    if (discoveryData) {
+      setProfiles(discoveryData);
+      setCurrentIndex(0);
+      setImageIndex(0);
+    }
+  }, [discoveryData]);
+
+  useEffect(() => {
+    setIsLoading(isDiscoveryLoading);
+  }, [isDiscoveryLoading]);
+
   const currentProfile = profiles[currentIndex] ?? null;
 
   /* ── Build attributes ── */
@@ -562,25 +586,7 @@ export default function Discover() {
     ];
   }
 
-  /* ── Load profiles ── */
-  const loadProfiles = useCallback(async () => {
-    setIsLoading(true);
-    setCurrentIndex(0);
-    setImageIndex(0);
-    try {
-      const data = await fetchDiscoveryUsers(
-        genderFilter === "All" ? undefined : genderFilter,
-        searchQuery || undefined
-      );
-      setProfiles(data ?? []);
-    } catch { toast.error("Failed to load users"); }
-    finally { setIsLoading(false); }
-  }, [genderFilter, searchQuery]);
 
-  useEffect(() => {
-    const t = setTimeout(loadProfiles, 350);
-    return () => clearTimeout(t);
-  }, [loadProfiles]);
 
   useEffect(() => setImageIndex(0), [currentIndex]);
 
@@ -624,7 +630,9 @@ export default function Discover() {
         open={editModalOpen}
         token={token}
         onClose={() => setEditModalOpen(false)}
-        onSaved={loadProfiles}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ["discoveryUsers"] });
+        }}
       />
 
       <div

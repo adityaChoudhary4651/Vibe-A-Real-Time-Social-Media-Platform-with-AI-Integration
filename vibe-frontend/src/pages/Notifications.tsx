@@ -22,6 +22,7 @@ import {
 import { getPublicProfile } from "@/api/profile";
 import { useAuth } from "@/contexts/AuthContext";
 import { resolveUrl } from "../config";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 /* ======================
    TYPES
@@ -72,56 +73,52 @@ export default function Notifications() {
     return () => window.removeEventListener("themeChange", handleThemeChange);
   }, []);
 
+  const queryClient = useQueryClient();
+
   /* ======================
-     FETCH NOTIFICATIONS
+     REACT QUERY FETCHING
      ===================== */
-  useEffect(() => {
-    const fetch = async () => {
+  const { data: notificationsData = [], isLoading: isNotificationsLoading } = useQuery<Notification[]>({
+    queryKey: ["notifications"],
+    queryFn: getNotifications,
+    enabled: !!user,
+  });
+
+  const { data: profilePreviewData } = useQuery({
+    queryKey: ["publicProfile", hoveredUser?.username],
+    queryFn: async () => {
       try {
-        const data = await getNotifications();
-        setNotifications(data);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetch();
-  }, []);
-
-  /* ======================
-     FETCH HOVERED USER PROFILE
-     ====================== */
-  useEffect(() => {
-    if (!hoveredUser || !user?.token) {
-      setHoveredProfileDetails(null);
-      return;
-    }
-
-    let active = true;
-    getPublicProfile(hoveredUser.username, user.token)
-      .then((data) => {
-        if (active) {
-          setHoveredProfileDetails(data);
-        }
-      })
-      .catch((err) => {
+        return await getPublicProfile(hoveredUser!.username, user!.token!);
+      } catch (err) {
         console.error("Failed to load profile preview:", err);
-        // Fallback mock details for preview if API fails or is offline
-        if (active) {
-          setHoveredProfileDetails({
-            bio: "Vibe Creator • Passionate photographer & storyteller 📷✨",
-            followers: [],
-            following: [],
-            followersCount: 1420,
-            followingCount: 382
-          });
-        }
-      });
+        return {
+          bio: "Vibe Creator • Passionate photographer & storyteller 📷✨",
+          followers: [],
+          following: [],
+          followersCount: 1420,
+          followingCount: 382
+        };
+      }
+    },
+    enabled: !!hoveredUser && !!user?.token,
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+  });
 
-    return () => {
-      active = false;
-    };
-  }, [hoveredUser, user?.token]);
+  // Sync state values
+  useEffect(() => {
+    setLoading(isNotificationsLoading);
+    if (notificationsData) {
+      setNotifications(notificationsData);
+    }
+  }, [notificationsData, isNotificationsLoading]);
+
+  useEffect(() => {
+    if (profilePreviewData) {
+      setHoveredProfileDetails(profilePreviewData);
+    } else if (!hoveredUser) {
+      setHoveredProfileDetails(null);
+    }
+  }, [profilePreviewData, hoveredUser]);
 
   /* ======================
      HELPERS
@@ -173,6 +170,7 @@ export default function Notifications() {
   const handleClick = async (n: Notification) => {
     if (!n.isRead) {
       await markNotificationRead(n._id);
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       setNotifications((prev) =>
         prev.map((x) =>
           x._id === n._id ? { ...x, isRead: true } : x
@@ -189,6 +187,7 @@ export default function Notifications() {
 
   const handleMarkAllRead = async () => {
     await markAllNotificationsRead();
+    queryClient.invalidateQueries({ queryKey: ["notifications"] });
     setNotifications((prev) =>
       prev.map((n) => ({ ...n, isRead: true }))
     );

@@ -12,7 +12,7 @@ import { Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
 import { useAuth } from "@/contexts/AuthContext";
-import { API_BASE_URL } from "../../config";
+import { API_BASE_URL, resolveUrl } from "../../config";
 
 interface EditProfileModalProps {
   open: boolean;
@@ -141,7 +141,7 @@ export function EditProfileModal({
           <div className="flex flex-col items-center gap-2">
             <div className="relative">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={avatar} />
+                <AvatarImage src={resolveUrl(avatar, { thumbnail: true })} />
                 <AvatarFallback className="text-2xl">
                   {name.charAt(0).toUpperCase()}
                 </AvatarFallback>

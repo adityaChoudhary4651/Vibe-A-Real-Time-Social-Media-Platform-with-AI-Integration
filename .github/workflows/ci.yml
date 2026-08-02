@@ -1,0 +1,80 @@
+name: Vibe CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  backend-test:
+    name: Backend Test Suite
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: backend
+
+      - name: Run Backend Integration Tests
+        run: npm run test
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          PORT: 5000
+          MONGO_URI: mongodb://localhost:27017/vibe_test
+          JWT_SECRET: test_jwt_secret_key_long_enough_for_qa_security_purposes_123
+          AGORA_APP_ID: test_agora_app_id_value
+          AGORA_APP_CERTIFICATE: test_agora_app_certificate_value
+          CLOUDINARY_CLOUD_NAME: test_cloud_name
+          CLOUDINARY_API_KEY: test_api_key
+          CLOUDINARY_API_SECRET: test_api_secret
+          SMTP_HOST: smtp.mailtrap.io
+          SMTP_PORT: 2525
+          SMTP_USER: test_user
+          SMTP_PASS: test_pass
+          EMAIL_FROM: noreply@vibe.com
+          GEMINI_API_KEY: test_gemini_key
+
+  frontend-build:
+    name: Frontend Lint & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: vibe-frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: vibe-frontend
+
+      - name: Run ESLint Checks
+        run: npm run lint
+        working-directory: vibe-frontend
+
+      - name: Compile Frontend Build
+        run: npm run build
+        working-directory: vibe-frontend

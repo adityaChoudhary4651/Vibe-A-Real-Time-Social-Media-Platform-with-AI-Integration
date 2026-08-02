@@ -32,6 +32,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { API_BASE_URL, resolveUrl } from "../config";
 import axios from "axios";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { EditProfileModal } from "@/components/shared/EditProfileModal";
 import { SettingsSheet } from "@/components/shared/SettingsSheet";
@@ -103,6 +104,7 @@ export default function Profile() {
   
   const [activeCommentsPostId, setActiveCommentsPostId] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
+  const [sharePostId, setSharePostId] = useState<string | null>(null);
 
   const [postsPage, setPostsPage] = useState(1);
   const [postsHasMore, setPostsHasMore] = useState(true);
@@ -112,17 +114,137 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState<"posts" | "reels" | "saved" | "tagged">("posts");
 
   // Suggested users list state with follow actions
-  const [suggestedList, setSuggestedList] = useState([
-    { username: "ary273", name: "bhatiya", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150", isFollowing: false },
-    { username: "anoopb", name: "Annu", avatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150", isFollowing: false },
-    { username: "aditya", name: "Aditya_123", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150", isFollowing: false },
-    { username: "anchal", name: "Anchal", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150", isFollowing: false },
-    { username: "mannu", name: "Mannu05", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150", isFollowing: false },
-  ]);
+  const [suggestedList, setSuggestedList] = useState<any[]>([]);
 
   // Nightmode state tracking
   const isDarkState = () => localStorage.getItem("vibe_theme") === "dark";
   const [isDark, setIsDark] = useState(isDarkState);
+
+  const queryClient = useQueryClient();
+
+  // 1. Fetch Profile User
+  const { data: profileData, isLoading: loadingProfile } = useQuery<ProfileUser>({
+    queryKey: ["profile", username || authUser?.username],
+    queryFn: async () => {
+      if (isPublicProfile && username) {
+        return await getPublicProfile(token!, username);
+      } else {
+        const res = await fetch(`${API_BASE_URL}/api/users/profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        return await res.json();
+      }
+    },
+    enabled: !!token,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // 2. Fetch Highlights
+  const { data: highlightsData } = useQuery({
+    queryKey: ["highlights", user?.username],
+    queryFn: () => fetchHighlights(user!.username),
+    enabled: !!user?.username,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // 3. Fetch Profile Posts
+  const { data: postsData, isLoading: isPostsLoading } = useQuery<ProfilePost[]>({
+    queryKey: ["userPosts", user?.username, postsPage],
+    queryFn: async () => {
+      const limit = 12;
+      const res = await fetch(
+        `${API_BASE_URL}/api/posts/user/${user!.username}?page=${postsPage}&limit=${limit}&type=post`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      return await res.json();
+    },
+    enabled: !!token && !!user?.username && activeTab === "posts",
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // 4. Fetch Saved Posts (loads only when on saved tab)
+  const { data: savedPostsData, isLoading: loadingSavedData } = useQuery<ProfilePost[]>({
+    queryKey: ["savedPosts"],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/posts/saved`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return await res.json();
+    },
+    enabled: !!token && activeTab === "saved",
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // 5. Fetch Suggested/Discovery Users
+  const { data: discoveryUsersData } = useQuery<any[]>({
+    queryKey: ["discoveryUsers"],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/users/discovery?limit=5`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return await res.json();
+    },
+    enabled: !!token,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Synchronize Query Data to Local States
+  useEffect(() => {
+    if (profileData) {
+      setUser(profileData);
+    }
+  }, [profileData]);
+
+  useEffect(() => {
+    if (discoveryUsersData && Array.isArray(discoveryUsersData)) {
+      setSuggestedList(
+        discoveryUsersData.map((u: any) => ({
+          username: u.username,
+          name: u.name,
+          avatar: u.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${u.username}`,
+          isFollowing: u.isFollowing || false,
+        }))
+      );
+    }
+  }, [discoveryUsersData]);
+
+  useEffect(() => {
+    setLoading(loadingProfile);
+  }, [loadingProfile]);
+
+  useEffect(() => {
+    if (highlightsData) {
+      setHighlights(highlightsData);
+    }
+  }, [highlightsData]);
+
+  useEffect(() => {
+    setPostsLoading(isPostsLoading);
+    if (postsData) {
+      if (postsPage === 1) {
+        setPosts(postsData);
+      } else {
+        setPosts((prev) => {
+          const existingIds = new Set(prev.map((p) => p._id));
+          const newPosts = postsData.filter((p: ProfilePost) => !existingIds.has(p._id));
+          return [...prev, ...newPosts];
+        });
+      }
+      setPostsHasMore(postsData.length === 12);
+    }
+  }, [postsData, postsPage, isPostsLoading]);
+
+  useEffect(() => {
+    if (savedPostsData) {
+      setSavedPosts(savedPostsData);
+    }
+  }, [savedPostsData]);
+
+  useEffect(() => {
+    setLoadingSaved(loadingSavedData);
+  }, [loadingSavedData]);
 
   /* ======================
      THEME OBSERVER
@@ -135,103 +257,7 @@ export default function Profile() {
     return () => window.removeEventListener("themeChange", handleThemeChange);
   }, []);
 
-  /* ======================
-     FETCH PROFILE
-     ===================== */
-  const fetchProfilePosts = async (usernameStr: string, pageNumber: number) => {
-    if (!token || postsLoading) return;
-    try {
-      setPostsLoading(true);
-      const limit = 12;
-      const res = await fetch(
-        `${API_BASE_URL}/api/posts/user/${usernameStr}?page=${pageNumber}&limit=${limit}&type=post`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      const data = await res.json();
-      if (res.ok) {
-        if (pageNumber === 1) {
-          setPosts(data);
-        } else {
-          setPosts((prev) => {
-            const existingIds = new Set(prev.map((p) => p._id));
-            const newPosts = data.filter((p: ProfilePost) => !existingIds.has(p._id));
-            return [...prev, ...newPosts];
-          });
-        }
-        setPostsHasMore(data.length === limit);
-      }
-    } catch (err) {
-      console.error("Error fetching profile posts:", err);
-    } finally {
-      setPostsLoading(false);
-    }
-  };
 
-  const fetchSavedPosts = async () => {
-    if (!token) return;
-    try {
-      setLoadingSaved(true);
-      const res = await fetch(`${API_BASE_URL}/api/posts/saved`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSavedPosts(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch saved posts", err);
-    } finally {
-      setLoadingSaved(false);
-    }
-  };
-
-  const loadProfile = async () => {
-    if (!token) return;
-
-    try {
-      let profileData: ProfileUser;
-
-      if (isPublicProfile && username) {
-        profileData = await getPublicProfile(token, username);
-      } else {
-        const res = await fetch(`${API_BASE_URL}/api/users/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        profileData = await res.json();
-      }
-
-      setUser(profileData);
-
-      // Fetch highlights
-      const h = await fetchHighlights(profileData.username);
-      setHighlights(h);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadProfile();
-  }, [token, username]);
-
-  useEffect(() => {
-    if (token && user?.username) {
-      setPostsPage(1);
-      setPostsHasMore(true);
-      fetchProfilePosts(user.username, 1);
-    }
-  }, [token, user?.username]);
-
-  // Handle Fetching Saved Posts on tab click
-  useEffect(() => {
-    if (token && activeTab === "saved") {
-      fetchSavedPosts();
-    }
-  }, [token, activeTab]);
 
   useEffect(() => {
     const handleScroll = (e: any) => {
@@ -240,7 +266,6 @@ export default function Profile() {
       if (target.scrollHeight - target.scrollTop <= target.clientHeight + 150) {
         const nextPage = postsPage + 1;
         setPostsPage(nextPage);
-        fetchProfilePosts(user.username, nextPage);
       }
     };
 
@@ -263,6 +288,7 @@ export default function Profile() {
       followers: res.followers,
       isFollowing: res.isFollowing,
     });
+    queryClient.invalidateQueries({ queryKey: ["profile", user.username] });
     toast.success(res.isFollowing ? `Following @${user.username}` : `Unfollowed @${user.username}`);
   };
 
@@ -298,6 +324,7 @@ export default function Profile() {
       );
 
       setUser((u) => (u ? { ...u, avatar: res.data.avatar } : u));
+      queryClient.invalidateQueries({ queryKey: ["profile", username || authUser?.username] });
       toast.success("Profile photo updated");
     } catch {
       toast.error("Avatar upload failed");
@@ -324,6 +351,7 @@ export default function Profile() {
       );
 
       setUser((u) => (u ? { ...u, coverPhoto: res.data.coverPhoto } : u));
+      queryClient.invalidateQueries({ queryKey: ["profile", username || authUser?.username] });
       toast.success("Cover photo updated");
     } catch {
       toast.error("Cover photo upload failed");
@@ -340,6 +368,7 @@ export default function Profile() {
       await deleteHighlight(id);
       toast.success("Highlight deleted");
       setHighlights((prev) => prev.filter((h) => h._id !== id));
+      queryClient.invalidateQueries({ queryKey: ["highlights", username || authUser?.username] });
     } catch {
       toast.error("Failed to delete highlight");
     }
@@ -361,6 +390,8 @@ export default function Profile() {
         toast.success("Post deleted successfully");
         setPosts((prev) => prev.filter((p) => p._id !== postId));
         setSavedPosts((prev) => prev.filter((p) => p._id !== postId));
+        queryClient.invalidateQueries({ queryKey: ["userPosts", username || authUser?.username] });
+        queryClient.invalidateQueries({ queryKey: ["savedPosts"] });
       } else {
         toast.error("Failed to delete post");
       }
@@ -391,6 +422,8 @@ export default function Profile() {
 
     try {
       await toggleFollow(token, sugUsername);
+      queryClient.invalidateQueries({ queryKey: ["profile", sugUsername] });
+      queryClient.invalidateQueries({ queryKey: ["discoveryUsers"] });
     } catch (err) {
       console.warn("Suggested user follow error (expected if mock user):", err);
     }
@@ -514,7 +547,7 @@ export default function Profile() {
             <div className="flex items-end gap-3 text-left">
               <label className={cn("relative flex-shrink-0 block", isOwnProfile && "cursor-pointer")}>
                 <Avatar className="h-24 w-24 border-4 border-[#FFFDF9] dark:border-[#2A1D16] shadow-sm">
-                  <AvatarImage src={resolveUrl(user.avatar)} />
+                  <AvatarImage src={resolveUrl(user.avatar, { thumbnail: true })} />
                   <AvatarFallback className="text-xl">
                     {user.username[0].toUpperCase()}
                   </AvatarFallback>
@@ -1040,6 +1073,7 @@ export default function Profile() {
             if (!token) return;
             const updated = await updateProfile(token, data);
             setUser((u) => (u ? { ...u, ...updated } : u));
+            queryClient.invalidateQueries({ queryKey: ["profile", username || authUser?.username] });
           }}
         />
       )}
@@ -1049,7 +1083,9 @@ export default function Profile() {
       <CreateHighlightSheet
         open={showCreateHighlight}
         onOpenChange={setShowCreateHighlight}
-        onHighlightCreated={loadProfile}
+        onHighlightCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ["highlights", user?.username] });
+        }}
       />
 
       {showViewer && activeViewerStories.length > 0 && (
@@ -1097,7 +1133,10 @@ export default function Profile() {
             }
           }}
           onCommentClick={setActiveCommentsPostId}
-          onShareClick={() => setShowShare(true)}
+          onShareClick={(postId) => {
+            setSharePostId(postId);
+            setShowShare(true);
+          }}
           onTipClick={() => {}}
         />
       )}
@@ -1114,6 +1153,7 @@ export default function Profile() {
       <ShareSheet
         open={showShare}
         onOpenChange={setShowShare}
+        postId={sharePostId || undefined}
       />
     </div>
   );
