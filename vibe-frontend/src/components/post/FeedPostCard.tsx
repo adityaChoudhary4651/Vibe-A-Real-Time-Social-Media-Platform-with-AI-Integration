@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Heart,
@@ -10,6 +10,11 @@ import {
   CheckCircle2,
   IndianRupee,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { deletePost, editPost } from "@/api/posts";
+import { PostOptionsSheet } from "@/components/shared/PostOptionsSheet";
+import { toast } from "sonner";
 
 export interface FeedPost {
   _id: string;
@@ -56,9 +61,42 @@ export function FeedPostCard({
   variant = "default",
 }: FeedPostCardProps) {
   const navigate = useNavigate();
+  const { token, user: authUser } = useAuth();
+  const queryClient = useQueryClient();
+
+  const [showOptions, setShowOptions] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedCaption, setEditedCaption] = useState(post.caption ?? "");
+
+  const isOwner = Boolean(
+    authUser?.username &&
+    post.author?.username &&
+    authUser.username === post.author.username
+  );
+
+  const handleDeletePost = async () => {
+    if (!token) return;
+    try {
+      await deletePost(token, post._id);
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["reels"] });
+      queryClient.invalidateQueries({ queryKey: ["userPosts"] });
+      setShowOptions(false);
+      toast.success("Post deleted successfully");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete post");
+    }
+  };
+
+  const handleEditPost = () => {
+    setEditedCaption(post.caption ?? "");
+    setIsEditing(true);
+  };
 
   return (
-    <div
+    <>
+      <div
       className={`w-full ${
         variant === "large"
           ? "sm:w-[600px] md:w-[800px] lg:w-[1000px] sm:h-[450px] md:h-[550px] lg:h-[650px]"
@@ -83,16 +121,22 @@ export function FeedPostCard({
       </div>
 
       {/* Top Right Options (Mobile Only or Default Variant) */}
-      <div className={`absolute top-4 right-4 z-10 text-white ${variant === "large" ? "sm:hidden" : ""}`}>
+      <button 
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowOptions(true);
+        }}
+        className={`absolute top-4 right-4 z-10 text-white hover:scale-105 active:scale-95 transition-all cursor-pointer pointer-events-auto ${variant === "large" ? "sm:hidden" : ""}`}
+      >
         <MoreHorizontal className="h-6 w-6 opacity-80" />
-      </div>
+      </button>
 
       {/* Overlay / Right Panel for Large Variant */}
       <div className={`absolute inset-0 z-10 w-full ${
         variant === "large" ? "sm:relative sm:w-[35%] md:w-[35%] lg:w-[30%] sm:flex sm:bg-inherit sm:border-l" : "flex bg-transparent sm:bg-transparent sm:border-l-0"
       } p-4 sm:p-5 flex-col justify-end sm:justify-between pointer-events-none sm:pointer-events-auto bg-transparent border-l-0 border-[#C8B9A6]/20 dark:border-[#3D2A1F]/30 overflow-hidden`}>
         {/* Desktop Author Header */}
-        <div className={`hidden ${variant === "large" ? "sm:flex" : "sm:hidden"} items-center justify-between`}>
+        <div className={`hidden ${variant === "large" ? "sm:flex" : "sm:hidden"} items-center justify-between w-full`}>
           <div
             onClick={() => navigate(`/profile/${post.author.username || post.author.name}`)}
             className="flex flex-col xl:flex-row items-center gap-2.5 min-w-0 cursor-pointer group/author"
@@ -119,6 +163,17 @@ export function FeedPostCard({
               </span>
             </div>
           </div>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowOptions(true);
+            }}
+            className="text-[#8B5E3C] dark:text-[#F5F0E8] hover:opacity-85 transition-opacity cursor-pointer p-1 pointer-events-auto"
+            title="Options"
+          >
+            <MoreHorizontal className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Desktop Caption */}
@@ -251,5 +306,14 @@ export function FeedPostCard({
         </div>
       </div>
     </div>
+
+    <PostOptionsSheet
+        open={showOptions}
+        onOpenChange={setShowOptions}
+        isOwner={isOwner}
+        onDelete={handleDeletePost}
+        onEdit={handleEditPost}
+      />
+    </>
   );
 }

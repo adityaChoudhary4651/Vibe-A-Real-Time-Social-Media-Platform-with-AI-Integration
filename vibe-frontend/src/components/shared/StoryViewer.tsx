@@ -4,11 +4,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Trash2,
+  MessageCircle,
 } from "lucide-react";
 import { BackendStory } from "@/types/story";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_BASE_URL, resolveUrl } from "../../config";
 import axios from "axios";
+import { CommentsSheet } from "./CommentsSheet";
 
 /* ======================
    TIME FORMATTER
@@ -59,6 +61,7 @@ export function StoryViewer({
 }: Props) {
   const { token } = useAuth();
   const [index, setIndex] = useState(0);
+  const [showComments, setShowComments] = useState(false);
   const story = stories[index];
 
   useEffect(() => {
@@ -156,6 +159,15 @@ export function StoryViewer({
           )}
         </div>
 
+        {/* STORY CAPTION */}
+        {story.caption && (
+          <div className="absolute bottom-16 left-0 right-0 z-20 px-6 py-4 bg-gradient-to-t from-black/80 to-transparent text-center">
+            <p className="text-sm text-white font-medium drop-shadow-md">
+              {story.caption}
+            </p>
+          </div>
+        )}
+
         {/* NAVIGATION */}
         {index > 0 && (
           <button
@@ -174,7 +186,30 @@ export function StoryViewer({
             <ChevronRight size={36} />
           </button>
         )}
+
+        {/* BOTTOM INTERACTION BAR */}
+        <div className="absolute bottom-4 inset-x-4 z-30 flex items-center gap-3">
+          <div
+            onClick={() => setShowComments(true)}
+            className="flex-1 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full py-2.5 px-4 text-left text-xs font-semibold text-white/70 backdrop-blur-md cursor-pointer transition-all active:scale-[0.98]"
+          >
+            Reply...
+          </div>
+          <button
+            onClick={() => setShowComments(true)}
+            className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white backdrop-blur-md cursor-pointer transition-all"
+            title="Comments"
+          >
+            <MessageCircle size={18} />
+          </button>
+        </div>
       </div>
+
+      <CommentsSheet
+        open={showComments}
+        onOpenChange={setShowComments}
+        storyId={story._id}
+      />
     </div>
   );
 }

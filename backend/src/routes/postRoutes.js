@@ -82,7 +82,15 @@ router.put("/:id/save", authMiddleware, toggleSave);
 router.put("/:id/view", authMiddleware, incrementViews);
 router.put("/:id/share", authMiddleware, incrementShares);
 router.delete("/:id", authMiddleware, deletePost);
-router.put("/:postId", authMiddleware, editPost);
+router.put(
+  "/:postId",
+  authMiddleware,
+  uploadPost.fields([
+    { name: "image", maxCount: 1 },
+    { name: "media", maxCount: 1 }
+  ]),
+  editPost
+);
 router.get("/:id", authMiddleware, getPostById);
 
 export default router;

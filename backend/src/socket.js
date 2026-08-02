@@ -63,6 +63,17 @@ export const initSocket = (server) => {
       console.log(`User ${socket.id} left post room: post_${postId}`);
     });
 
+    // Join a story room for live likes/comments
+    socket.on("join_story", (storyId) => {
+      socket.join(`story_${storyId}`);
+      console.log(`User ${socket.id} joined story room: story_${storyId}`);
+    });
+
+    socket.on("leave_story", (storyId) => {
+      socket.leave(`story_${storyId}`);
+      console.log(`User ${socket.id} left story room: story_${storyId}`);
+    });
+
     // Send community message event
     socket.on("send_community_message", (data) => {
       // data: { communityId, message }

@@ -89,6 +89,7 @@ export default function Profile() {
   const [user, setUser] = useState<ProfileUser | null>(null);
   const [posts, setPosts] = useState<ProfilePost[]>([]);
   const [savedPosts, setSavedPosts] = useState<ProfilePost[]>([]);
+  const [drafts, setDrafts] = useState<ProfilePost[]>([]);
   const [highlights, setHighlights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingSaved, setLoadingSaved] = useState(false);
@@ -111,7 +112,7 @@ export default function Profile() {
   const [postsLoading, setPostsLoading] = useState(false);
 
   // Tabs navigation
-  const [activeTab, setActiveTab] = useState<"posts" | "reels" | "saved" | "tagged">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "reels" | "saved" | "tagged" | "drafts">("posts");
 
   // Suggested users list state with follow actions
   const [suggestedList, setSuggestedList] = useState<any[]>([]);
@@ -190,7 +191,26 @@ export default function Profile() {
     staleTime: 1000 * 60 * 5,
   });
 
+  // 6. Fetch Draft Posts (loads only when on drafts tab)
+  const { data: draftsData } = useQuery<ProfilePost[]>({
+    queryKey: ["drafts"],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/api/posts/user/${profileData?.username || authUser?.username}?type=post&status=Draft`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return await res.json();
+    },
+    enabled: !!token && !!(profileData?.username || authUser?.username) && activeTab === "drafts",
+    staleTime: 1000 * 60 * 5,
+  });
+
   // Synchronize Query Data to Local States
+  useEffect(() => {
+    if (draftsData) {
+      setDrafts(draftsData);
+    }
+  }, [draftsData]);
+
   useEffect(() => {
     if (profileData) {
       setUser(profileData);
@@ -449,7 +469,12 @@ export default function Profile() {
   const aboutStatus = (isOwnProfile || isAdityaProfile) ? "Currently: Building Vibe" : `Loc: ${user.location || "Nearby"}`;
 
   // Filter which posts should display
-  const displayedPosts = activeTab === "saved" ? savedPosts : posts;
+  const displayedPosts =
+    activeTab === "saved"
+      ? savedPosts
+      : activeTab === "drafts"
+        ? drafts
+        : posts;
 
   // Dynamic Theme Colors
   const themeCard = isDark ? "bg-[#2A1D16]" : "bg-[#FFFDF9]";
@@ -829,6 +854,7 @@ export default function Profile() {
               { id: "reels" as const, label: "Reels", icon: Film },
               { id: "saved" as const, label: "Saved", icon: Bookmark },
               { id: "tagged" as const, label: "Tagged", icon: Tag },
+              ...(isOwnProfile ? [{ id: "drafts" as const, label: "Drafts", icon: Settings }] : []),
             ].map((tab) => {
               const isActive = activeTab === tab.id;
               const Icon = tab.icon;
@@ -895,12 +921,18 @@ export default function Profile() {
 
                 {/* Hover overlay with Like count and Deletion triggers */}
                 <div 
-                  onClick={() => setFeedViewerPostId(post._id)}
+                  onClick={() => {
+                    if (activeTab === "drafts") {
+                      navigate(`/create?draftId=${post._id}`);
+                    } else {
+                      setFeedViewerPostId(post._id);
+                    }
+                  }}
                   className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-between p-3.5 text-white cursor-pointer"
                 >
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] font-bold text-white/90 hover:underline">
-                      View Post
+                      {activeTab === "drafts" ? "✏️ Edit Draft" : "View Post"}
                     </span>
                     {isOwnProfile && (
                       <button

@@ -22,6 +22,7 @@ export const createStory = async (req, res) => {
       mediaUrl,      //FULL HTTPS
       mediaType,
       expiresAt,
+      caption: req.body.caption || "",
     });
 
     res.status(201).json(story);

@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -189,6 +189,40 @@ export default function Create() {
   const [aiTopic, setAiTopic] = useState("");
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
+  const [searchParams] = useSearchParams();
+  const draftId = searchParams.get("draftId");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  useEffect(() => {
+    if (!draftId || !token) return;
+
+    const fetchDraft = async () => {
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/posts/${draftId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const d = res.data;
+        if (d) {
+          setCaption(d.caption || "");
+          setMediaType(d.type === "reel" ? "reel" : d.type === "story" ? "story" : "photo");
+          setVisibility(d.visibility?.toLowerCase() === "public" ? "public" : "private");
+          if (d.category) setCategory(d.category);
+          setAllowComments(d.allowComments !== false);
+          setAllowLikes(d.allowLikes !== false);
+          setShareToFeed(d.shareToFeed !== false);
+          if (d.mediaUrl) {
+            setPreviewUrl(resolveUrl(d.mediaUrl));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load draft:", err);
+        toast.error("Failed to load draft details");
+      }
+    };
+
+    fetchDraft();
+  }, [draftId, token]);
+
   const canShare =
     mediaType === "story"
       ? Boolean(selectedFile)
@@ -281,21 +315,51 @@ export default function Create() {
   /* ======================
      DRAFT ACTION
      ====================== */
-  const handleSaveDraft = () => {
-    const draft = {
-      caption,
-      mediaType,
-      visibility,
-      category,
-      location: locationValue,
-      allowComments,
-      allowLikes,
-      shareToFeed
-    };
-    localStorage.setItem("vibe_draft", JSON.stringify(draft));
-    toast.success("Draft saved successfully 🎉", {
-      description: "Retrieved automatically when you next open this creator studio.",
-    });
+  const handleSaveDraft = async () => {
+    if (!token) {
+      toast.error("You must be logged in to save drafts");
+      return;
+    }
+
+    try {
+      setIsSharing(true);
+      const formData = new FormData();
+      if (selectedFile) {
+        formData.append("image", selectedFile);
+      }
+      formData.append("type", mediaType === "reel" ? "reel" : "post");
+      formData.append("caption", caption);
+      formData.append("visibility", visibility === "public" ? "Public" : "Private");
+      formData.append("category", category || "General");
+      formData.append("status", "Draft");
+      formData.append("allowComments", String(allowComments));
+      formData.append("allowLikes", String(allowLikes));
+      formData.append("shareToFeed", String(shareToFeed));
+
+      if (draftId) {
+        await axios.put(`${API_BASE_URL}/api/posts/${draftId}`, formData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success("Draft updated successfully 🎉");
+      } else {
+        await axios.post(`${API_BASE_URL}/api/posts`, formData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success("Draft saved successfully to your profile 🎉");
+      }
+
+      // Clear draft locally too
+      localStorage.removeItem("vibe_draft");
+      clearSelected();
+      setCaption("");
+      queryClient.invalidateQueries({ queryKey: ["drafts"] });
+      navigate(`/profile`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save draft");
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   /* ======================
@@ -322,10 +386,11 @@ export default function Create() {
 
       // STORY FLOW
       if (mediaType === "story") {
-        await uploadStory(selectedFile!, token);
+        await uploadStory(selectedFile!, token, caption);
         toast.success("Story uploaded successfully 🎉");
         localStorage.removeItem("vibe_draft");
         clearSelected();
+        setCaption("");
         queryClient.invalidateQueries({ queryKey: ["stories"] });
         navigate("/");
         return;
@@ -352,21 +417,33 @@ export default function Create() {
       }
 
       formData.append("visibility", visibility === "public" ? "Public" : "Private");
+      formData.append("status", "Published");
+      formData.append("allowComments", String(allowComments));
+      formData.append("allowLikes", String(allowLikes));
+      formData.append("shareToFeed", String(shareToFeed));
 
       if (mediaType === "reel") {
         formData.append("category", category || "General");
       }
 
-      const endpoint =
-        mediaType === "reel"
-          ? `${API_BASE_URL}/api/reels`
-          : `${API_BASE_URL}/api/posts`;
+      if (draftId) {
+        await axios.put(`${API_BASE_URL}/api/posts/${draftId}`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } else {
+        const endpoint =
+          mediaType === "reel"
+            ? `${API_BASE_URL}/api/reels`
+            : `${API_BASE_URL}/api/posts`;
 
-      await axios.post(endpoint, formData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+        await axios.post(endpoint, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
 
       toast.success(mediaType === "reel" ? "Reel published successfully 🎬" : "Vibe post shared successfully ✨");
 
@@ -381,6 +458,9 @@ export default function Create() {
 
       queryClient.invalidateQueries({
         queryKey: mediaType === "reel" ? ["reels"] : ["posts"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["drafts"],
       });
 
       navigate("/");
@@ -671,9 +751,32 @@ export default function Create() {
                     >
                       <Sparkles className="h-3 w-3 stroke-[2]" />
                     </button>
-                    <button className={cn("p-1 rounded-full opacity-80 hover:opacity-100 transition-opacity", themeTextSecondary)}>
+                    <button
+                      type="button"
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className={cn("p-1 rounded-full opacity-80 hover:opacity-100 transition-opacity cursor-pointer", themeTextSecondary)}
+                    >
                       <Smile className="h-3.5 w-3.5 stroke-[2]" />
                     </button>
+                    {showEmojiPicker && (
+                      <div className="absolute right-0 bottom-8 z-50 bg-[#FFFDF9] dark:bg-[#2A1D16] border border-[#8B5E3C]/20 dark:border-[#3D2A1F] rounded-xl p-2 shadow-lg w-44">
+                        <div className="grid grid-cols-5 gap-1 text-center">
+                          {["😀", "😂", "🤣", "😊", "😍", "😘", "😜", "😎", "🤩", "🥳", "😭", "👍", "🔥", "✨", "❤️", "💖", "🎉", "👏", "🙌", "👋"].map((emoji) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={() => {
+                                setCaption((prev) => prev + emoji);
+                                setShowEmojiPicker(false);
+                              }}
+                              className="hover:scale-125 transition-transform text-base cursor-pointer p-0.5"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

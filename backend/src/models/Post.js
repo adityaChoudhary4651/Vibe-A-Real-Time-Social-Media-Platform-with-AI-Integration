@@ -49,6 +49,27 @@ const postSchema = new mongoose.Schema(
       default: "Public",
     },
 
+    status: {
+      type: String,
+      enum: ["Published", "Draft"],
+      default: "Published",
+    },
+
+    allowComments: {
+      type: Boolean,
+      default: true,
+    },
+
+    allowLikes: {
+      type: Boolean,
+      default: true,
+    },
+
+    shareToFeed: {
+      type: Boolean,
+      default: true,
+    },
+
     /* ======================
        INTERACTIONS
     ====================== */

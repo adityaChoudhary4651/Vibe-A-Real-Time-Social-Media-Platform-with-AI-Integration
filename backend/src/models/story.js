@@ -16,6 +16,10 @@ const storySchema = new mongoose.Schema(
       enum: ["image", "video"],
       required: true,
     },
+    caption: {
+      type: String,
+      default: "",
+    },
     expiresAt: {
       type: Date,
       required: true,

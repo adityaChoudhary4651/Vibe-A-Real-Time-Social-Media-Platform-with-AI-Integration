@@ -255,6 +255,7 @@ export default function Index() {
   const [customTip, setCustomTip] = useState("");
   const [tippingSuccess, setTippingSuccess] = useState(false);
   const [activeCommentsPostId, setActiveCommentsPostId] = useState<string | null>(null);
+  const [commentsStoryId, setCommentsStoryId] = useState<string | null>(null);
   const [feedViewerPostId, setFeedViewerPostId] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [sharePostId, setSharePostId] = useState<string | null>(null);
@@ -1311,8 +1312,37 @@ export default function Index() {
               </div>
 
               {/* Story Footer message */}
-              <div className="relative z-10 text-center pb-2">
-                <p className="text-xs text-white/60">Tap left to go back, right to advance</p>
+              <div className="relative z-10 text-center pb-4 bg-gradient-to-t from-black/80 to-transparent pt-4 px-4 w-full flex flex-col gap-3">
+                {activeStoryViewer.stories[storyIndex].caption && (
+                  <p className="text-sm font-semibold text-white drop-shadow-md">
+                    {activeStoryViewer.stories[storyIndex].caption}
+                  </p>
+                )}
+
+                {/* BOTTOM STORY INTERACTION BAR */}
+                <div className="flex items-center gap-3 w-full pointer-events-auto px-2">
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCommentsStoryId(activeStoryViewer.stories[storyIndex]._id);
+                    }}
+                    className="flex-1 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full py-2 px-4 text-left text-xs font-semibold text-white/70 backdrop-blur-md cursor-pointer transition-all active:scale-[0.98]"
+                  >
+                    Reply...
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCommentsStoryId(activeStoryViewer.stories[storyIndex]._id);
+                    }}
+                    className="p-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white backdrop-blur-md cursor-pointer transition-all"
+                    title="Comments"
+                  >
+                    <MessageCircle className="h-4.5 w-4.5" />
+                  </button>
+                </div>
+
+                <p className="text-[10px] text-white/40">Tap left to go back, right to advance</p>
               </div>
             </div>
           </div>
@@ -1334,6 +1364,12 @@ export default function Index() {
         onOpenChange={(open) => !open && setActiveCommentsPostId(null)}
         postId={activeCommentsPostId || ""}
         onCommentAdded={(count) => activeCommentsPostId && handleCommentAdded(activeCommentsPostId, count)}
+      />
+
+      <CommentsSheet
+        open={commentsStoryId !== null}
+        onOpenChange={(open) => !open && setCommentsStoryId(null)}
+        storyId={commentsStoryId || ""}
       />
 
       <ShareSheet

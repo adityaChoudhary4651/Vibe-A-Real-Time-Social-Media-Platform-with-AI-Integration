@@ -23,9 +23,12 @@ export async function fetchStories(token: string): Promise<StoryGroup[]> {
 /* ======================
    UPLOAD STORY
 ====================== */
-export async function uploadStory(file: File, token: string) {
+export async function uploadStory(file: File, token: string, caption?: string) {
   const formData = new FormData();
   formData.append("media", file); // 🔒 MUST MATCH uploadStory.single("media")
+  if (caption) {
+    formData.append("caption", caption);
+  }
 
   const res = await fetch(API_URL, {
     method: "POST",

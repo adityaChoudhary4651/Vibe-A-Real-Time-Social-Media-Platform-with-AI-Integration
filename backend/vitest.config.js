@@ -7,6 +7,9 @@ export default defineConfig({
     setupFiles: ["src/tests/setup.js"],
     include: ["src/**/*.test.js"],
     testTimeout: 20000, // 20s timeout in case database connections are slow
-    hookTimeout: 20000
+    hookTimeout: 20000,
+    fileParallelism: false,
+    maxWorkers: 1,
+    minWorkers: 1
   }
 });

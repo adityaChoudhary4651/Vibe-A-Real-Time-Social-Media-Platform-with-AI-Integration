@@ -3,6 +3,7 @@ import Comment from "../models/Comment.js";
 import Notification from "../models/notification.js";
 import { getIO } from "../socket.js";
 import User from "../models/User.js";
+import { uploadPostToCloudinary, uploadReelToCloudinary } from "../middleware/upload.js";
 
 const populateCommentsCount = async (postsOrReels) => {
   if (!Array.isArray(postsOrReels) || postsOrReels.length === 0) {
@@ -26,16 +27,28 @@ const populateCommentsCount = async (postsOrReels) => {
   }));
 };
 
-// CREATE POST
 export const createPost = async (req, res) => {
   try {
-    const { caption, type = "post", category, visibility = "Public" } = req.body;
+    const { 
+      caption, 
+      type = "post", 
+      category, 
+      visibility = "Public",
+      status = "Published",
+      allowComments = true,
+      allowLikes = true,
+      shareToFeed = true
+    } = req.body;
 
     const postData = {
       author: req.user._id,
       caption,
       type,
       visibility,
+      status,
+      allowComments: allowComments === "true" || allowComments === true,
+      allowLikes: allowLikes === "true" || allowLikes === true,
+      shareToFeed: shareToFeed === "true" || shareToFeed === true,
     };
 
     if (req.file && req.file.path) {
@@ -66,6 +79,8 @@ export const getPosts = async (req, res) => {
     const posts = await Post.find({
       visibility: "Public",
       type: "post",
+      status: { $ne: "Draft" },
+      shareToFeed: { $ne: false },
     })
       .populate("author", "username avatar")
       .sort({ createdAt: -1 })
@@ -85,6 +100,10 @@ export const toggleLike = async (req, res) => {
 
   if (!post) {
     return res.status(404).json({ message: "Post not found" });
+  }
+
+  if (post.allowLikes === false) {
+    return res.status(400).json({ message: "Likes are disabled for this post" });
   }
 
   const userId = req.user._id;
@@ -159,7 +178,7 @@ export const deletePost = async (req, res) => {
   }
 };
 
-// DELETE POST
+// EDIT POST
 export const editPost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId);
@@ -172,12 +191,49 @@ export const editPost = async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    post.caption = req.body.caption;
-    await post.save();
+    // Update textual properties if provided
+    if (req.body.caption !== undefined) post.caption = req.body.caption;
+    if (req.body.visibility !== undefined) post.visibility = req.body.visibility;
+    if (req.body.category !== undefined) post.category = req.body.category;
+    if (req.body.status !== undefined) post.status = req.body.status;
+    if (req.body.allowComments !== undefined) {
+      post.allowComments = req.body.allowComments === "true" || req.body.allowComments === true;
+    }
+    if (req.body.allowLikes !== undefined) {
+      post.allowLikes = req.body.allowLikes === "true" || req.body.allowLikes === true;
+    }
+    if (req.body.shareToFeed !== undefined) {
+      post.shareToFeed = req.body.shareToFeed === "true" || req.body.shareToFeed === true;
+    }
 
-    res.json({ message: "Post updated", post });
-  } catch {
-    res.status(500).json({ message: "Server error" });
+    // Process new file upload if present
+    let fileToUpload = null;
+    if (req.file) {
+      fileToUpload = req.file;
+    } else if (req.files) {
+      if (req.files.image && req.files.image[0]) {
+        fileToUpload = req.files.image[0];
+      } else if (req.files.media && req.files.media[0]) {
+        fileToUpload = req.files.media[0];
+      }
+    }
+
+    if (fileToUpload) {
+      const isVideo = fileToUpload.mimetype.startsWith("video/");
+      if (isVideo) {
+        post.mediaUrl = await uploadReelToCloudinary(fileToUpload.path);
+        post.mediaType = "video";
+      } else {
+        post.mediaUrl = await uploadPostToCloudinary(fileToUpload.path);
+        post.mediaType = "image";
+      }
+    }
+
+    await post.save();
+    res.json({ message: "Post updated successfully", post });
+  } catch (err) {
+    console.error("EDIT POST ERROR ❌", err);
+    res.status(500).json({ message: "Server error updating post" });
   }
 };
 
@@ -209,11 +265,22 @@ export const getPostsByUsername = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    const isSelf = req.user && req.user._id.toString() === userObj._id.toString();
+    const { status } = req.query;
+
     const filter = {
       author: userObj._id,
-      visibility: "Public",
-      mediaUrl: { $ne: null },
     };
+
+    if (isSelf && status === "Draft") {
+      filter.status = "Draft";
+    } else {
+      filter.status = { $ne: "Draft" };
+      filter.mediaUrl = { $ne: null };
+      if (!isSelf) {
+        filter.visibility = "Public";
+      }
+    }
 
     if (type) filter.type = type;
 
@@ -261,6 +328,7 @@ export const getReels = async (req, res) => {
       visibility: "Public",
       mediaType: "video",
       mediaUrl: { $ne: null },
+      status: { $ne: "Draft" },
     };
 
     if (req.query.category && req.query.category !== "All") {
