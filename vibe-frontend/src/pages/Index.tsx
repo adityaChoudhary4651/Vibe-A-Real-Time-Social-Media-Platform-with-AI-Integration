@@ -31,7 +31,8 @@ import {
   Eye,
   EyeOff,
   IndianRupee,
-  MoreHorizontal
+  MoreHorizontal,
+  Trash2
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSocket } from "@/contexts/SocketContext";
@@ -613,7 +614,7 @@ export default function Index() {
             {/* "Made with Love" Small Footer Card */}
             <div className={`flex items-center gap-2 p-2 rounded-[14px] ${theme.card} border ${theme.cardBorder}`}>
               <img
-                src={user?.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"}
+                src={user?.avatar ? resolveUrl(user.avatar) : `https://api.dicebear.com/7.x/initials/svg?seed=${user?.username || "user"}`}
                 alt="user avatar"
                 className="h-6 w-6 rounded-full object-cover border border-[#8B5E3C]/30"
               />
@@ -711,8 +712,18 @@ export default function Index() {
               if (!visibleSections[sectionKey]) return null;
 
               // Render Stories Section
+              // Render Stories Section
               if (sectionKey === "stories") {
-                const hasStories = stories && stories.length > 0;
+                const currentUserId = user?.id || user?._id;
+                const myStoryGroup = stories?.find(
+                  (group) => group.user?._id?.toString() === currentUserId?.toString()
+                );
+                const hasMyStory = !!myStoryGroup && myStoryGroup.stories.length > 0;
+                const otherStories = stories?.filter(
+                  (group) => group.user?._id?.toString() !== currentUserId?.toString()
+                ) || [];
+                const hasOtherStories = otherStories.length > 0;
+
                 return (
                   <section key="stories" className="space-y-4">
                     {/* Mobile Search Bar */}
@@ -730,43 +741,110 @@ export default function Index() {
                     </div>
 
                     <div className="flex gap-4 overflow-x-auto scrollbar-hide py-1">
-                      {/* Create Story vertical card */}
-                      <div
-                        onClick={() => setShowAddStory(true)}
-                        className="w-[90px] h-[140px] shrink-0 relative rounded-[20px] overflow-hidden shadow-xs group cursor-pointer border border-[#E3D8C8]/10 bg-neutral-900"
-                      >
-                        <img
-                          src={user?.avatar ? resolveUrl(user.avatar) : "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"}
-                          alt="Your avatar"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-60"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-
-                        {/* Avatar top-left */}
-                        <div className="absolute top-2 left-2">
-                          <div className="h-7 w-7 rounded-full overflow-hidden border border-[#8B5E3C] bg-white">
+                      {/* USER STORY CARD (Case 1 or Case 2) */}
+                      {!hasMyStory ? (
+                        /* Case 1: User has NO active story */
+                        <div
+                          onClick={() => setShowAddStory(true)}
+                          className="w-[90px] h-[140px] shrink-0 relative rounded-[20px] overflow-hidden shadow-xs group cursor-pointer border border-[#E3D8C8]/10 bg-neutral-900"
+                        >
+                          {user?.avatar ? (
                             <img
-                              src={user?.avatar ? resolveUrl(user.avatar) : "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"}
-                              alt="Your story"
-                              className="w-full h-full object-cover"
+                              src={resolveUrl(user.avatar)}
+                              alt="Add to Story background"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-40 blur-[1px]"
                             />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-[#8B5E3C]/30 via-[#2A1F1A] to-[#E8AC7D]/10 group-hover:scale-105 transition-transform duration-500" />
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+
+                          {/* Avatar top-left: profile picture with "+" badge */}
+                          <div className="absolute top-2 left-2">
+                            <div className="relative">
+                              <div className="h-7 w-7 rounded-full overflow-hidden border border-[#8B5E3C] bg-white">
+                                <img
+                                  src={user?.avatar ? resolveUrl(user.avatar) : `https://api.dicebear.com/7.x/initials/svg?seed=${user?.username || "user"}`}
+                                  alt="Your profile"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-[#E8AC7D] flex items-center justify-center border border-black">
+                                <Plus className="h-2 w-2 text-black" strokeWidth={4} />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Text and plus icon bottom */}
+                          <div className="absolute bottom-2 left-2 right-2 flex flex-col items-center gap-1 text-center">
+                            <span className="text-[10px] font-bold text-white drop-shadow-md">
+                              Add to Story
+                            </span>
+                            <div className="h-6 w-6 rounded-full bg-[#E8AC7D] hover:bg-[#d89c6d] flex items-center justify-center shadow-md transition-colors shrink-0">
+                              <Plus className="h-4 w-4 text-black" strokeWidth={3} />
+                            </div>
                           </div>
                         </div>
+                      ) : (
+                        /* Case 2: User HAS active story */
+                        (() => {
+                          const latestMyStory = myStoryGroup.stories[0];
+                          const isVideo = latestMyStory?.mediaType === "video" || 
+                                          (latestMyStory?.mediaUrl && 
+                                           (latestMyStory.mediaUrl.endsWith(".mp4") || 
+                                            latestMyStory.mediaUrl.endsWith(".mov") || 
+                                            latestMyStory.mediaUrl.includes("/video/upload/")));
 
-                        {/* Text and Plus icon bottom */}
-                        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                          <span className="text-[10px] font-medium text-white truncate drop-shadow-md">
-                            Your story
-                          </span>
-                          <div className="h-4 w-4 rounded-full bg-[#E8AC7D] flex items-center justify-center shrink-0">
-                            <Plus className="h-3 w-3 text-black" strokeWidth={3} />
-                          </div>
-                        </div>
-                      </div>
+                          return (
+                            <div
+                              onClick={() => openStories(myStoryGroup)}
+                              className="w-[90px] h-[140px] shrink-0 relative rounded-[20px] overflow-hidden shadow-xs group cursor-pointer border border-[#E3D8C8]/10 bg-neutral-900"
+                            >
+                              {/* Background story preview */}
+                              {isVideo ? (
+                                <video
+                                  src={resolveUrl(latestMyStory.mediaUrl)}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                  preload="metadata"
+                                  muted
+                                  playsInline
+                                />
+                              ) : (
+                                <img
+                                  src={resolveUrl(latestMyStory?.mediaUrl)}
+                                  alt="Your story preview"
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                />
+                              )}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
-                      {/* Real Backend / Fallback Stories */}
-                      {hasStories ? (
-                        stories.map((group) => {
+                              {/* Avatar top-left with active ring */}
+                              <div className="absolute top-2 left-2">
+                                <div className="h-7 w-7 rounded-full p-[1.5px] bg-gradient-to-tr from-[#FA709A] to-[#FEE140]">
+                                  <div className="h-full w-full rounded-full overflow-hidden border border-black bg-white">
+                                    <img
+                                      src={user?.avatar ? resolveUrl(user.avatar) : `https://api.dicebear.com/7.x/initials/svg?seed=${user?.username || "user"}`}
+                                      alt="Your profile"
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Text bottom */}
+                              <div className="absolute bottom-2 left-2 right-2">
+                                <span className="text-[10px] font-bold text-white truncate block drop-shadow-md text-center">
+                                  Your Story
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })()
+                      )}
+
+                      {/* Other Users' Stories */}
+                      {hasOtherStories ? (
+                        otherStories.map((group) => {
                           const latestStory = group.stories[0];
                           return (
                             <div
@@ -814,9 +892,7 @@ export default function Index() {
                           );
                         })
                       ) : (
-                        <div className="text-[11px] opacity-50 flex items-center justify-center w-[90px] h-[140px] px-2 text-center border border-dashed rounded-[20px]">
-                          No stories
-                        </div>
+                        null
                       )}
                     </div>
                   </section>
@@ -1281,9 +1357,40 @@ export default function Index() {
                   />
                   <span className="text-sm font-bold text-white">@{activeStoryViewer.user.username}</span>
                 </div>
-                <button onClick={() => setActiveStoryViewer(null)} className="p-1 rounded-full bg-black/40 text-white hover:bg-black/60">
-                  <X className="h-5 w-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {activeStoryViewer.user._id.toString() === (user?.id || user?._id)?.toString() && (
+                    <button
+                      onClick={async () => {
+                        const storyId = activeStoryViewer.stories[storyIndex]._id;
+                        try {
+                          await api.delete(`/stories/${storyId}`);
+                          toast.success("Story deleted successfully!");
+                          queryClient.invalidateQueries({ queryKey: ["stories"] });
+                          
+                          if (activeStoryViewer.stories.length <= 1) {
+                            setActiveStoryViewer(null);
+                          } else {
+                            const updatedGroup = {
+                              ...activeStoryViewer,
+                              stories: activeStoryViewer.stories.filter((s) => s._id !== storyId)
+                            };
+                            setActiveStoryViewer(updatedGroup);
+                            setStoryIndex(0);
+                          }
+                        } catch (err) {
+                          toast.error("Failed to delete story");
+                        }
+                      }}
+                      className="p-1.5 rounded-full bg-black/40 text-red-500 hover:bg-black/60 hover:text-red-600 transition-colors cursor-pointer"
+                      title="Delete Story"
+                    >
+                      <Trash2 className="h-4.5 w-4.5" />
+                    </button>
+                  )}
+                  <button onClick={() => setActiveStoryViewer(null)} className="p-1 rounded-full bg-black/40 text-white hover:bg-black/60">
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
               </div>
 
               {/* Story Content Area */}

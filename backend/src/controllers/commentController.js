@@ -292,15 +292,21 @@ export const replyToComment = async (req, res) => {
       return res.status(404).json({ message: "Parent comment not found" });
     }
 
+    const parentCommentId = parent.parentComment ? parent.parentComment : parent._id;
+
     const comment = await Comment.create({
       post: parent.post || undefined,
       story: parent.story || undefined,
-      parentComment: parent._id,
+      parentComment: parentCommentId,
+      replyToUser: parent.user,
       user: userId,
       text,
     });
 
-    const populated = await comment.populate("user", "username avatar");
+    const populated = await comment.populate([
+      { path: "user", select: "username avatar" },
+      { path: "replyToUser", select: "username" }
+    ]);
 
     const responseData = {
       _id: populated._id,
@@ -308,6 +314,7 @@ export const replyToComment = async (req, res) => {
       createdAt: populated.createdAt,
       author: populated.user,
       parentComment: populated.parentComment,
+      replyToUser: populated.replyToUser,
       likesCount: 0,
       isLiked: false,
       canDelete: true,
@@ -320,14 +327,14 @@ export const replyToComment = async (req, res) => {
         io.to(`post_${parent.post}`).emit("reply_update", {
           type: "add",
           postId: parent.post,
-          parentCommentId: parent._id,
+          parentCommentId: parentCommentId,
           comment: responseData,
         });
       } else if (parent.story) {
         io.to(`story_${parent.story}`).emit("reply_update", {
           type: "add",
           storyId: parent.story,
-          parentCommentId: parent._id,
+          parentCommentId: parentCommentId,
           comment: responseData,
         });
       }
@@ -349,6 +356,7 @@ export const getReplies = async (req, res) => {
 
     const comments = await Comment.find({ parentComment: commentId })
       .populate("user", "username avatar")
+      .populate("replyToUser", "username")
       .sort({ createdAt: 1 }); // Thread chronological order
 
     const response = comments.map((c) => ({
@@ -357,6 +365,7 @@ export const getReplies = async (req, res) => {
       createdAt: c.createdAt,
       author: c.user,
       parentComment: c.parentComment,
+      replyToUser: c.replyToUser,
       likesCount: c.likes.length,
       isLiked: c.likes.some(
         (id) => id.toString() === req.user._id.toString()

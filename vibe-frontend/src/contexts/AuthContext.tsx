@@ -72,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           username: profile.username,
           name: profile.name,
           email: profile.email ?? "",
+          avatar: profile.avatar || "",
         });
       } catch {
         setUser(null);
@@ -108,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         username: data.username,
         name: data.name,
         email: data.email,
+        avatar: data.avatar || "",
       };
 
       setUser(userData);
@@ -152,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         username: data.username,
         name: data.name,
         email: data.email,
+        avatar: data.avatar || "",
       };
 
       setUser(userData);

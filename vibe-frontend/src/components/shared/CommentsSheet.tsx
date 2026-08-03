@@ -27,6 +27,9 @@ interface Comment {
     username: string;
     avatar?: string;
   };
+  replyToUser?: {
+    username: string;
+  };
   likesCount: number;
   isLiked: boolean;
   canDelete: boolean;
@@ -134,8 +137,13 @@ function RepliesSection({
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <p className="text-[11px] font-semibold text-foreground/80">
-                  {reply.author?.username ?? "user"}
+                <p className="text-[11px] font-semibold text-foreground/80 flex items-center flex-wrap gap-1">
+                  <span>{reply.author?.username ?? "user"}</span>
+                  {reply.replyToUser && (
+                    <span className="text-[10px] font-normal text-muted-foreground flex items-center gap-0.5">
+                      replied to <span className="font-semibold text-foreground/75">@{reply.replyToUser.username}</span>
+                    </span>
+                  )}
                 </p>
                 <p className="text-[11px] text-foreground">{reply.text}</p>
                 <div className="flex gap-2.5 mt-1 text-[10px] text-muted-foreground font-semibold">
@@ -209,6 +217,11 @@ export function CommentsSheet({
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
 
   const queryClient = useQueryClient();
+
+  const handleTriggerReply = (parentComment: Comment) => {
+    setReplyingTo(parentComment);
+    setNewComment(`@${parentComment.author?.username} `);
+  };
 
   const isStory = Boolean(storyId);
   const targetId = storyId || postId;
@@ -484,7 +497,7 @@ export function CommentsSheet({
                   <p className="text-sm">{comment.text}</p>
                   <div className="flex gap-2.5 mt-1 text-xs text-muted-foreground font-semibold">
                     <button
-                      onClick={() => setReplyingTo(comment)}
+                      onClick={() => handleTriggerReply(comment)}
                       className="hover:text-foreground cursor-pointer"
                     >
                       Reply
@@ -548,7 +561,7 @@ export function CommentsSheet({
               <RepliesSection
                 parentCommentId={comment._id}
                 token={token}
-                onReplyTo={(parentReply) => setReplyingTo(parentReply)}
+                onReplyTo={handleTriggerReply}
                 onDeleteComment={handleDeleteComment}
                 onLikeComment={handleLikeComment}
                 isDesktop={isDesktop}

@@ -65,6 +65,17 @@ describe("Threaded Comments and Story Comments API", () => {
 
     expect(replyRes.statusCode).toEqual(201);
     expect(replyRes.body).toHaveProperty("parentComment", parentCommentId);
+    const replyId = replyRes.body._id;
+
+    // 2.5. Reply to the reply (R2 replying to R1)
+    const replyToReplyRes = await request(app)
+      .post(`/api/comments/reply/${replyId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Reply to reply text" });
+
+    expect(replyToReplyRes.statusCode).toEqual(201);
+    // Verify that parentComment is still resolved as the root parent comment ID (parentCommentId)
+    expect(replyToReplyRes.body).toHaveProperty("parentComment", parentCommentId);
 
     // 3. Fetch replies
     const fetchRepliesRes = await request(app)
@@ -73,8 +84,9 @@ describe("Threaded Comments and Story Comments API", () => {
 
     expect(fetchRepliesRes.statusCode).toEqual(200);
     expect(fetchRepliesRes.body).toBeInstanceOf(Array);
-    expect(fetchRepliesRes.body.length).toBeGreaterThanOrEqual(1);
+    expect(fetchRepliesRes.body.length).toEqual(2);
     expect(fetchRepliesRes.body[0]).toHaveProperty("text", "Threaded reply text");
+    expect(fetchRepliesRes.body[1]).toHaveProperty("text", "Reply to reply text");
   });
 
   it("should successfully comment on a story and retrieve it", async () => {
