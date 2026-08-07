@@ -11,6 +11,7 @@ import {
   Users,
   Sparkles,
   Plus,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -492,6 +493,14 @@ export function MobileHeader() {
         <div className="flex items-center gap-2">
           {isHome && (
             <div className="flex items-center gap-4">
+              <Link
+                to="/activity"
+                className="relative transition-transform active:scale-95"
+                aria-label="Activity"
+              >
+                <Activity className={cn("h-[22px] w-[22px]", isDark ? "text-[#F5F0E8]" : "text-[#4A3428]")} />
+              </Link>
+
               <Link
                 to="/notifications"
                 className="relative transition-transform active:scale-95"

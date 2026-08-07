@@ -28,6 +28,7 @@ import Followers from "./pages/Followers";
 import Following from "./pages/Following";
 import PostDetail from "./pages/PostDetail";
 import VibeAI from "./pages/VibeAI";
+import Activity from "./pages/Activity";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -72,6 +73,7 @@ const App = () => (
                 <Route path="/communities" element={<Communities />} />
                 <Route path="/create" element={<Create />} />
                 <Route path="/vibe-ai" element={<VibeAI />} />
+                <Route path="/activity" element={<Activity />} />
               </Route>
 
               {/* ✅ POST DETAIL — OUTSIDE MAIN LAYOUT */}

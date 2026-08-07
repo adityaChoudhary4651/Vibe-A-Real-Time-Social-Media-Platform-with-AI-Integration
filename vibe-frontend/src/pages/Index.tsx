@@ -51,6 +51,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { FeedPostCard, FeedPost } from "@/components/post/FeedPostCard";
 import { ProfileFeedViewer } from "@/components/profile/ProfileFeedViewer";
+import { ActivitySidebar } from "@/components/shared/ActivitySidebar";
 
 interface Story {
   _id: string;
@@ -1281,152 +1282,8 @@ export default function Index() {
         </main>
 
         {/* ==================== RIGHT SIDEBAR ==================== */}
-        <aside className={`hidden 2xl:flex w-[300px] xl:w-[320px] shrink-0 sticky top-0 h-screen py-8 border-l ${theme.border} pl-6 flex-col justify-between overflow-y-auto scrollbar-hide`}>
-
-          <div className="space-y-7">
-            {/* Header Discover */}
-            <div>
-              <h2 className="text-xl font-bold tracking-wide font-serif">Discover</h2>
-            </div>
-
-
-
-
-            {/* Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-0.5">
-              {["For You", "Trending", "People", "Topics", "Events"].map((tab) => {
-                const isTabActive = activeDiscoverTab === tab;
-                return (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveDiscoverTab(tab)}
-                    className={`px-3 py-1.5 rounded-full text-[10px] font-semibold transition-all duration-300 shrink-0 ${isTabActive
-                      ? "bg-[#8B5E3C] text-white"
-                      : `${theme.card} opacity-80 hover:opacity-100`
-                      }`}
-                  >
-                    {tab}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Trending Topics List (Bug 5a Fix: sorted based on real post caption hashtag occurrences) */}
-            <div className="space-y-3.5">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider opacity-65 flex items-center gap-1.5">
-                  <TrendingUp className="h-3.5 w-3.5 text-[#8B5E3C]" />
-                  <span>Trending Topics</span>
-                </h3>
-                <button className={`text-[10px] font-semibold ${theme.textSecondary} hover:underline`}>See all</button>
-              </div>
-
-              <div className="space-y-3">
-                {getTrendingHashtags().length > 0 ? (
-                  getTrendingHashtags().map((topic, i) => (
-                    <div key={i} className="flex items-center justify-between gap-3 group cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <img src={topic.image} alt={topic.title} className="h-10 w-10 rounded-[12px] object-cover border border-[#8B5E3C]/10" />
-                        <div>
-                          <p className="text-xs font-bold leading-tight group-hover:text-[#8B5E3C] transition-colors">{topic.title}</p>
-                          <p className="text-[10px] opacity-60 font-medium">{topic.posts}</p>
-                        </div>
-                      </div>
-                      <ArrowRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-[#8B5E3C]" />
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-[11px] opacity-50 italic py-1">No trending topics active</p>
-                )}
-              </div>
-            </div>
-
-            {/* Popular Communities List (Bug 5b Fix: sorted by members count descending) */}
-            <div className="space-y-3.5">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider opacity-65 flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5 text-[#8B5E3C]" />
-                  <span>Popular Communities</span>
-                </h3>
-                <button className={`text-[10px] font-semibold ${theme.textSecondary} hover:underline`}>See all</button>
-              </div>
-
-              <div className="space-y-3">
-                {sortedCommunities.map((comm) => {
-                  const isJoined = comm.members?.includes(user?.id || user?._id);
-                  return (
-                    <div key={comm._id} className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <img
-                          src={resolveUrl(comm.avatar) || "https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=100"}
-                          alt={comm.name}
-                          className="h-10 w-10 rounded-[12px] object-cover border border-[#8B5E3C]/10"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=100";
-                          }}
-                        />
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold leading-tight truncate max-w-[130px]">{comm.name}</p>
-                          <p className="text-[10px] opacity-60 font-medium truncate">
-                            {comm.memberCount || comm.members?.length || 0} members
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleCommunityJoinToggle(comm)}
-                        className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider transition-colors duration-300 border ${isJoined
-                          ? "bg-[#C8B9A6]/20 border-[#C8B9A6]/30 text-opacity-80"
-                          : "border-[#8B5E3C] text-[#8B5E3C] hover:bg-[#8B5E3C] hover:text-white"
-                          }`}
-                      >
-                        {isJoined ? "Joined" : "Join"}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Featured Creators Section (Bug 5c Fix: sorted by followers count descending) */}
-            <div className="space-y-3.5">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider opacity-65 flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-[#8B5E3C]" />
-                  <span>Featured Creators</span>
-                </h3>
-                <button className={`text-[10px] font-semibold ${theme.textSecondary} hover:underline`}>See all</button>
-              </div>
-
-              <div className="flex justify-between items-center gap-2 overflow-x-auto scrollbar-hide py-1">
-                {sortedFeaturedCreators.slice(0, 4).map((creator) => (
-                  <div key={creator._id} className="flex flex-col items-center text-center shrink-0 w-[68px]">
-                    {/* Bug 4: Suggested creator link - navigates to profile when clicking featured creator */}
-                    <div
-                      onClick={() => navigate(`/profile/${creator.username}`)}
-                      className="relative mb-1 cursor-pointer group/featured"
-                    >
-                      <img
-                        src={resolveUrl(creator.avatar) || "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150"}
-                        alt={creator.username}
-                        className="h-14 w-14 rounded-full object-cover border-2 border-[#8B5E3C] p-0.5 transition-transform group-hover/featured:scale-105"
-                      />
-                    </div>
-                    <p className="text-[10px] font-bold truncate w-full">{creator.name.split(" ")[0]}</p>
-                    <p className="text-[8px] opacity-60 truncate w-full">{creator.followers?.length || 0} followers</p>
-                    <button
-                      onClick={() => handleFollowCreator(creator)}
-                      className={`mt-1.5 px-2 py-1 rounded-full text-[8px] font-bold uppercase transition-colors duration-200 border ${creator.isFollowing
-                        ? "bg-[#C8B9A6]/20 border-[#C8B9A6]/30 text-opacity-80"
-                        : "border-[#8B5E3C] text-[#8B5E3C] hover:bg-[#8B5E3C] hover:text-white"
-                        }`}
-                    >
-                      {creator.isFollowing ? "Followed" : "Follow"}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+        <aside className={`hidden 2xl:flex w-[300px] xl:w-[320px] shrink-0 sticky top-0 h-screen py-8 border-l ${theme.border} pl-6 flex-col justify-start overflow-hidden`}>
+          <ActivitySidebar />
         </aside>
       </div>
 
