@@ -28,6 +28,8 @@ import {
   SlidersHorizontal,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Eye,
   EyeOff,
   IndianRupee,
@@ -141,7 +143,7 @@ export default function Index() {
 
   // React Query Fetching
   const { data: postsData, isLoading: isPostsLoading } = useQuery<FeedPost[]>({
-    queryKey: ["posts", 1],
+    queryKey: ["posts", user?.id || "guest", 1],
     queryFn: async () => {
       const res = await api.get("/posts?page=1&limit=10");
       if (res.data && Array.isArray(res.data)) {
@@ -159,7 +161,7 @@ export default function Index() {
           likes: Array.isArray(post.likes) ? post.likes : [],
           commentsCount: typeof post.commentsCount === "number" ? post.commentsCount : (Array.isArray(post.comments) ? post.comments.length : 0),
           comments: post.comments || [],
-          sharesCount: Math.floor(Math.random() * 20) + 1,
+          sharesCount: typeof post.sharesCount === "number" ? post.sharesCount : 0,
           createdAt: new Date(post.createdAt).toLocaleDateString(),
           isLiked: user ? post.likes?.includes(user.id || user._id) : false,
         }));
@@ -171,7 +173,7 @@ export default function Index() {
   });
 
   const { data: storiesData, isLoading: isStoriesLoading } = useQuery<StoryGroup[]>({
-    queryKey: ["stories"],
+    queryKey: ["stories", user?.id || "guest"],
     queryFn: async () => {
       const res = await api.get("/stories");
       return Array.isArray(res.data) ? res.data : [];
@@ -181,7 +183,7 @@ export default function Index() {
   });
 
   const { data: creatorsData, isLoading: isCreatorsLoading } = useQuery<DiscoveryUser[]>({
-    queryKey: ["discoveryUsers"],
+    queryKey: ["discoveryUsers", user?.id || "guest"],
     queryFn: async () => {
       const res = await api.get("/users/discovery");
       return Array.isArray(res.data) ? res.data : [];
@@ -191,7 +193,7 @@ export default function Index() {
   });
 
   const { data: communitiesData, isLoading: isCommunitiesLoading } = useQuery<Community[]>({
-    queryKey: ["communities"],
+    queryKey: ["communities", user?.id || "guest"],
     queryFn: async () => {
       const res = await api.get("/communities");
       return Array.isArray(res.data) ? res.data : [];
@@ -201,9 +203,9 @@ export default function Index() {
   });
 
   const { data: reelsData, isLoading: isReelsLoading } = useQuery<Reel[]>({
-    queryKey: ["reels"],
+    queryKey: ["reels", user?.id || "guest"],
     queryFn: async () => {
-      const res = await api.get("/reels");
+      const res = await api.get("/reels?limit=12");
       return Array.isArray(res.data) ? res.data : [];
     },
     enabled: !!token,
@@ -263,7 +265,79 @@ export default function Index() {
 
   // Carousel scroll position tracker
   const postsCarouselRef = useRef<HTMLDivElement>(null);
+  const suggestedCarouselRef = useRef<HTMLDivElement>(null);
+  const reelsCarouselRef = useRef<HTMLDivElement>(null);
   const [postsScrollProgress, setPostsScrollProgress] = useState(0);
+
+  const scrollCarousel = (ref: React.RefObject<HTMLDivElement>, direction: 'left' | 'right') => {
+    if (ref.current) {
+      const isPosts = ref === postsCarouselRef;
+      const scrollAmount = isPosts ? 560 : 340;
+      if (direction === 'left') {
+        ref.current.scrollLeft -= scrollAmount;
+      } else {
+        ref.current.scrollLeft += scrollAmount;
+      }
+    }
+  };
+
+  // Carousel overflow detection states
+  const [canScrollPosts, setCanScrollPosts] = useState(false);
+  const [canScrollSuggested, setCanScrollSuggested] = useState(false);
+  const [canScrollReels, setCanScrollReels] = useState(false);
+
+  const checkOverflow = () => {
+    setTimeout(() => {
+      if (postsCarouselRef.current) {
+        const el = postsCarouselRef.current;
+        setCanScrollPosts(el.scrollWidth > el.clientWidth);
+      }
+      if (suggestedCarouselRef.current) {
+        const el = suggestedCarouselRef.current;
+        setCanScrollSuggested(el.scrollWidth > el.clientWidth);
+      }
+      if (reelsCarouselRef.current) {
+        const el = reelsCarouselRef.current;
+        setCanScrollReels(el.scrollWidth > el.clientWidth);
+      }
+    }, 100);
+  };
+
+  useEffect(() => {
+    checkOverflow();
+  }, [posts, suggestedCreators, reels]);
+
+  useEffect(() => {
+    window.addEventListener("resize", checkOverflow);
+    return () => window.removeEventListener("resize", checkOverflow);
+  }, []);
+
+  // Mouse drag-to-scroll swipe handlers for carousels
+  const handleDragStart = (e: React.MouseEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    container.dataset.isDown = "true";
+    container.dataset.startX = (e.pageX - container.offsetLeft).toString();
+    container.dataset.scrollLeft = container.scrollLeft.toString();
+    container.dataset.hasMoved = "false";
+  };
+
+  const handleDragEnd = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.dataset.isDown = "false";
+  };
+
+  const handleDragMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    if (container.dataset.isDown !== "true") return;
+    e.preventDefault();
+    const x = e.pageX - container.offsetLeft;
+    const startX = parseFloat(container.dataset.startX || "0");
+    if (Math.abs(x - startX) > 5) {
+      container.dataset.hasMoved = "true";
+    }
+    const scrollLeftVal = parseFloat(container.dataset.scrollLeft || "0");
+    const walk = (x - startX) * 1.5; // drag scroll speed factor
+    container.scrollLeft = scrollLeftVal - walk;
+  };
 
 
 
@@ -378,6 +452,26 @@ export default function Index() {
       await api.put(`/posts/${postId}/like`);
     } catch (error) {
       console.error("Error liking post:", error);
+    }
+  };
+
+  // Share interaction handler
+  const handleShare = async (postId: string) => {
+    setSharePostId(postId);
+    setShowShare(true);
+    try {
+      // Optimistically update the share count locally
+      setPosts(prevPosts =>
+        prevPosts.map(post =>
+          post._id === postId
+            ? { ...post, sharesCount: (post.sharesCount || 0) + 1 }
+            : post
+        )
+      );
+      await api.put(`/posts/${postId}/share`);
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    } catch (error) {
+      console.error("Error sharing post:", error);
     }
   };
 
@@ -789,11 +883,11 @@ export default function Index() {
                         /* Case 2: User HAS active story */
                         (() => {
                           const latestMyStory = myStoryGroup.stories[0];
-                          const isVideo = latestMyStory?.mediaType === "video" || 
-                                          (latestMyStory?.mediaUrl && 
-                                           (latestMyStory.mediaUrl.endsWith(".mp4") || 
-                                            latestMyStory.mediaUrl.endsWith(".mov") || 
-                                            latestMyStory.mediaUrl.includes("/video/upload/")));
+                          const isVideo = latestMyStory?.mediaType === "video" ||
+                            (latestMyStory?.mediaUrl &&
+                              (latestMyStory.mediaUrl.endsWith(".mp4") ||
+                                latestMyStory.mediaUrl.endsWith(".mov") ||
+                                latestMyStory.mediaUrl.includes("/video/upload/")));
 
                           return (
                             <div
@@ -905,7 +999,7 @@ export default function Index() {
                   <section key="posts" className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h2 className="text-lg font-bold tracking-wide font-serif">Posts</h2>
-                      <button 
+                      <button
                         onClick={() => posts.length > 0 && setFeedViewerPostId(posts[0]._id)}
                         className={`text-xs font-semibold ${theme.textSecondary} hover:underline`}
                       >
@@ -913,28 +1007,56 @@ export default function Index() {
                       </button>
                     </div>
 
-                    <div
-                      ref={postsCarouselRef}
-                      onScroll={handleScroll}
-                      className="flex flex-col sm:flex-row gap-6 sm:overflow-x-auto scrollbar-hide py-2 smooth-scroll"
-                    >
-                      {posts.length > 0 ? (
-                        posts.map((post) => (
-                          <FeedPostCard
-                            key={post._id}
-                            post={post}
-                            theme={theme}
-                            onLike={handleLike}
-                            onCommentClick={setActiveCommentsPostId}
-                            onShareClick={() => setShowShare(true)}
-                            onTipClick={setTipModalPost}
-                          />
-                        ))
-                      ) : (
-                        <div className="w-full py-8 text-center text-xs opacity-50 border border-dashed rounded-[24px] font-bold">
-                          No posts available. Be the first to create one!
-                        </div>
+                    <div className="relative group">
+                      {/* Left Navigation Arrow */}
+                      {canScrollPosts && (
+                        <button
+                          onClick={() => scrollCarousel(postsCarouselRef, 'left')}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-[#8B5E3C]/85 hover:bg-[#8B5E3C] text-[#F5F0E8] rounded-full p-2 transition-all hidden sm:flex items-center justify-center shadow-md active:scale-95 cursor-pointer"
+                          aria-label="Previous posts"
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </button>
                       )}
+
+                      {/* Right Navigation Arrow */}
+                      {canScrollPosts && (
+                        <button
+                          onClick={() => scrollCarousel(postsCarouselRef, 'right')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-[#8B5E3C]/85 hover:bg-[#8B5E3C] text-[#F5F0E8] rounded-full p-2 transition-all hidden sm:flex items-center justify-center shadow-md active:scale-95 cursor-pointer"
+                          aria-label="Next posts"
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
+                      )}
+
+                      <div
+                        ref={postsCarouselRef}
+                        onScroll={handleScroll}
+                        onMouseDown={handleDragStart}
+                        onMouseLeave={handleDragEnd}
+                        onMouseUp={handleDragEnd}
+                        onMouseMove={handleDragMove}
+                        className="flex flex-row gap-6 overflow-x-auto scrollbar-hide py-2 smooth-scroll cursor-grab active:cursor-grabbing select-none"
+                      >
+                        {posts.length > 0 ? (
+                          posts.map((post) => (
+                            <FeedPostCard
+                              key={post._id}
+                              post={post}
+                              theme={theme}
+                              onLike={handleLike}
+                              onCommentClick={setActiveCommentsPostId}
+                              onShareClick={handleShare}
+                              onTipClick={setTipModalPost}
+                            />
+                          ))
+                        ) : (
+                          <div className="w-full py-8 text-center text-xs opacity-50 border border-dashed rounded-[24px] font-bold">
+                            No posts available. Be the first to create one!
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex justify-center pt-2">
@@ -961,31 +1083,68 @@ export default function Index() {
                       </Link>
                     </div>
 
-                    <div className="flex gap-4 overflow-x-auto scrollbar-hide py-1">
-                      {suggestedCreators.length > 0 ? (
-                        suggestedCreators.map((creator) => (
-                          <div
-                            key={creator._id}
-                            className={`w-[170px] shrink-0 p-5 rounded-[24px] border ${theme.cardBorder} ${theme.card} ${theme.shadow} flex flex-col items-center justify-between hover:-translate-y-1 transition-transform duration-300`}
-                          >
-                            {/* Bug 4: Suggested creator link - navigates to profile when clicking ID/avatar */}
-                            <div
-                              onClick={() => navigate(`/profile/${creator.username}`)}
-                              className="flex flex-col items-center text-center cursor-pointer group/suggested"
-                            >
-                              <div className="relative mb-3.5">
-                                <img
-                                  src={resolveUrl(creator.avatar) || "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150"}
-                                  alt={creator.username}
-                                  className="h-16 w-16 rounded-full object-cover border border-[#8B5E3C]/30 shadow-xs transition-transform group-hover/suggested:scale-105"
-                                />
-                                <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-[#8B5E3C] border border-[#EFE6DA] flex items-center justify-center text-white text-[9px] font-bold">+</span>
-                              </div>
-                              <h4 className="text-xs font-bold truncate max-w-[130px] group-hover/suggested:underline">{creator.name}</h4>
-                              <p className="text-[9px] opacity-65 font-medium mt-0.5 truncate max-w-[130px]">{creator.bio || "Content Creator"}</p>
-                            </div>
+                    <div className="relative group">
+                      {/* Left Navigation Arrow */}
+                      {canScrollSuggested && (
+                        <button
+                          onClick={() => scrollCarousel(suggestedCarouselRef, 'left')}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-[#8B5E3C]/85 hover:bg-[#8B5E3C] text-[#F5F0E8] rounded-full p-2 transition-all hidden sm:flex items-center justify-center shadow-md active:scale-95 cursor-pointer"
+                          aria-label="Previous creators"
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </button>
+                      )}
 
-                            <button
+                      {/* Right Navigation Arrow */}
+                      {canScrollSuggested && (
+                        <button
+                          onClick={() => scrollCarousel(suggestedCarouselRef, 'right')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-[#8B5E3C]/85 hover:bg-[#8B5E3C] text-[#F5F0E8] rounded-full p-2 transition-all hidden sm:flex items-center justify-center shadow-md active:scale-95 cursor-pointer"
+                          aria-label="Next creators"
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
+                      )}
+
+                      <div
+                        ref={suggestedCarouselRef}
+                        onMouseDown={handleDragStart}
+                        onMouseLeave={handleDragEnd}
+                        onMouseUp={handleDragEnd}
+                        onMouseMove={handleDragMove}
+                        className="flex gap-4 overflow-x-auto scrollbar-hide py-1 cursor-grab active:cursor-grabbing select-none"
+                      >
+                        {suggestedCreators.length > 0 ? (
+                          suggestedCreators.map((creator) => (
+                            <div
+                              key={creator._id}
+                              className={`w-[170px] shrink-0 p-5 rounded-[24px] border ${theme.cardBorder} ${theme.card} ${theme.shadow} flex flex-col items-center justify-between hover:-translate-y-1 transition-transform duration-300`}
+                            >
+                              {/* Bug 4: Suggested creator link - navigates to profile when clicking ID/avatar */}
+                              <div
+                                onClick={(e) => {
+                                  const container = suggestedCarouselRef.current;
+                                  if (container && container.dataset.hasMoved === "true") {
+                                    container.dataset.hasMoved = "false";
+                                    return;
+                                  }
+                                  navigate(`/profile/${creator.username}`);
+                                }}
+                                className="flex flex-col items-center text-center cursor-pointer group/suggested"
+                              >
+                                <div className="relative mb-3.5">
+                                  <img
+                                    src={resolveUrl(creator.avatar) || "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150"}
+                                    alt={creator.username}
+                                    className="h-16 w-16 rounded-full object-cover border border-[#8B5E3C]/30 shadow-xs transition-transform group-hover/suggested:scale-105"
+                                  />
+                                  <span className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-[#8B5E3C] border border-[#EFE6DA] flex items-center justify-center text-white text-[9px] font-bold">+</span>
+                                </div>
+                                <h4 className="text-xs font-bold truncate max-w-[130px] group-hover/suggested:underline">{creator.name}</h4>
+                                <p className="text-[9px] opacity-65 font-medium mt-0.5 truncate max-w-[130px]">{creator.bio || "Content Creator"}</p>
+                              </div>
+
+                              <button
                                 onClick={() => handleFollowCreator(creator)}
                                 className={`w-full mt-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${creator.isFollowing ? theme.accentButtonSecondary : theme.accentButton
                                   }`}
@@ -1000,6 +1159,7 @@ export default function Index() {
                           </div>
                         )}
                       </div>
+                    </div>
                   </section>
                 );
               }
@@ -1019,59 +1179,97 @@ export default function Index() {
                       </button>
                     </div>
 
-                    <div className="flex gap-4 overflow-x-auto scrollbar-hide py-1">
-                      {reels.length > 0 ? (
-                        reels.map((reel) => {
-                          const isVideo = reel.mediaUrl && (reel.mediaUrl.endsWith(".mp4") || reel.mediaUrl.endsWith(".mov") || reel.mediaUrl.includes("/video/upload/"));
-                          const fullMediaUrl = reel.mediaUrl?.startsWith("http") ? reel.mediaUrl : `${API_BASE_URL}/${reel.mediaUrl?.replace(/\\/g, "/")}`;
+                    <div className="relative group">
+                      {/* Left Navigation Arrow */}
+                      {canScrollReels && (
+                        <button
+                          onClick={() => scrollCarousel(reelsCarouselRef, 'left')}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-[#8B5E3C]/85 hover:bg-[#8B5E3C] text-[#F5F0E8] rounded-full p-2 transition-all hidden sm:flex items-center justify-center shadow-md active:scale-95 cursor-pointer"
+                          aria-label="Previous reels"
+                        >
+                          <ChevronLeft className="h-5 w-5" />
+                        </button>
+                      )}
 
-                          return (
-                            <div
-                              key={reel._id}
-                              /* Bug 3a: Click specific reel card navigates to Reels page and opens that specific reel */
-                              onClick={() => navigate(`/reels?reelId=${reel._id}`)}
-                              className="w-[140px] h-[210px] shrink-0 relative rounded-[24px] overflow-hidden shadow-xs group cursor-pointer bg-neutral-900"
-                            >
-                              {isVideo ? (
-                                <video
-                                  src={fullMediaUrl}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                  preload="metadata"
-                                  muted
-                                  playsInline
-                                />
-                              ) : (
-                                <img
-                                  src={reel.mediaUrl || "https://images.unsplash.com/photo-1520156473395-82c498be7bfc?w=400"}
-                                  alt="Reel Thumbnail"
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1520156473395-82c498be7bfc?w=400";
-                                  }}
-                                />
-                              )}
+                      {/* Right Navigation Arrow */}
+                      {canScrollReels && (
+                        <button
+                          onClick={() => scrollCarousel(reelsCarouselRef, 'right')}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-[#8B5E3C]/85 hover:bg-[#8B5E3C] text-[#F5F0E8] rounded-full p-2 transition-all hidden sm:flex items-center justify-center shadow-md active:scale-95 cursor-pointer"
+                          aria-label="Next reels"
+                        >
+                          <ChevronRight className="h-5 w-5" />
+                        </button>
+                      )}
 
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                      <div
+                        ref={reelsCarouselRef}
+                        onMouseDown={handleDragStart}
+                        onMouseLeave={handleDragEnd}
+                        onMouseUp={handleDragEnd}
+                        onMouseMove={handleDragMove}
+                        className="flex gap-4 overflow-x-auto scrollbar-hide py-1 cursor-grab active:cursor-grabbing select-none"
+                      >
+                        {reels.length > 0 ? (
+                          reels.map((reel) => {
+                            const isVideo = reel.mediaUrl && (reel.mediaUrl.endsWith(".mp4") || reel.mediaUrl.endsWith(".mov") || reel.mediaUrl.includes("/video/upload/"));
+                            const fullMediaUrl = reel.mediaUrl?.startsWith("http") ? reel.mediaUrl : `${API_BASE_URL}/${reel.mediaUrl?.replace(/\\/g, "/")}`;
 
-                              {/* Play icon overlay */}
-                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                <div className="h-10 w-10 rounded-full bg-white/25 backdrop-blur-xs flex items-center justify-center text-white scale-90 group-hover:scale-100 transition-transform duration-300">
-                                  <Play className="h-4.5 w-4.5 fill-white ml-0.5" />
+                            return (
+                              <div
+                                key={reel._id}
+                                /* Bug 3a: Click specific reel card navigates to Reels page and opens that specific reel */
+                                onClick={(e) => {
+                                  const container = reelsCarouselRef.current;
+                                  if (container && container.dataset.hasMoved === "true") {
+                                    container.dataset.hasMoved = "false";
+                                    return;
+                                  }
+                                  navigate(`/reels?reelId=${reel._id}`);
+                                }}
+                                className="w-[140px] h-[210px] shrink-0 relative rounded-[24px] overflow-hidden shadow-xs group cursor-pointer bg-neutral-900"
+                              >
+                                {isVideo ? (
+                                  <video
+                                    src={fullMediaUrl}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    preload="metadata"
+                                    muted
+                                    playsInline
+                                  />
+                                ) : (
+                                  <img
+                                    src={reel.mediaUrl || "https://images.unsplash.com/photo-1520156473395-82c498be7bfc?w=400"}
+                                    alt="Reel Thumbnail"
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1520156473395-82c498be7bfc?w=400";
+                                    }}
+                                  />
+                                )}
+
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+
+                                {/* Play icon overlay */}
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                  <div className="h-10 w-10 rounded-full bg-white/25 backdrop-blur-xs flex items-center justify-center text-white scale-90 group-hover:scale-100 transition-transform duration-300">
+                                    <Play className="h-4.5 w-4.5 fill-white ml-0.5" />
+                                  </div>
+                                </div>
+
+                                <div className="absolute bottom-3 left-3 flex items-center gap-1 text-[10px] font-semibold text-white drop-shadow-md">
+                                  <Play className="h-3 w-3 fill-white" />
+                                  <span>{reel.views || 0}</span>
                                 </div>
                               </div>
-
-                              <div className="absolute bottom-3 left-3 flex items-center gap-1 text-[10px] font-semibold text-white drop-shadow-md">
-                                <Play className="h-3 w-3 fill-white" />
-                                <span>{reel.views || 0}</span>
-                              </div>
-                            </div>
-                          );
-                        })
-                      ) : (
-                        <div className="w-full py-8 text-center text-xs opacity-50 border border-dashed rounded-[24px] font-bold">
-                          No reels found.
-                        </div>
-                      )}
+                            );
+                          })
+                        ) : (
+                          <div className="w-full py-8 text-center text-xs opacity-50 border border-dashed rounded-[24px] font-bold">
+                            No reels found.
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </section>
                 );
@@ -1366,7 +1564,7 @@ export default function Index() {
                           await api.delete(`/stories/${storyId}`);
                           toast.success("Story deleted successfully!");
                           queryClient.invalidateQueries({ queryKey: ["stories"] });
-                          
+
                           if (activeStoryViewer.stories.length <= 1) {
                             setActiveStoryViewer(null);
                           } else {
@@ -1491,10 +1689,7 @@ export default function Index() {
           onClose={() => setFeedViewerPostId(null)}
           onLike={handleLike}
           onCommentClick={setActiveCommentsPostId}
-          onShareClick={(postId) => {
-            setSharePostId(postId);
-            setShowShare(true);
-          }}
+          onShareClick={handleShare}
           onTipClick={setTipModalPost}
         />
       )}

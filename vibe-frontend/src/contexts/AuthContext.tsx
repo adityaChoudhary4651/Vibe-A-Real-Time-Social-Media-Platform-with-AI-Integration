@@ -6,6 +6,7 @@ import {
   useEffect,
 } from "react";
 import { fetchProfile } from "@/api/profile";
+import { queryClient } from "../queryClient";
 
 /* =====================
    TYPES
@@ -15,7 +16,7 @@ interface User {
   username: string;
   name: string;
   email: string;
-    avatar?: string; // ✅ ADD THIS
+  avatar?: string; // ✅ ADD THIS
 }
 
 interface AuthContextType {
@@ -31,6 +32,7 @@ interface AuthContextType {
     password: string
   ) => Promise<boolean>;
   logout: () => void;
+  updateUser: (updatedUser: Partial<User>) => void;
 }
 
 import { API_BASE_URL } from "../config";
@@ -79,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(null);
         localStorage.removeItem("vibe_user");
         localStorage.removeItem("vibe_token");
+        queryClient.clear();
       } finally {
         setLoading(false);
       }
@@ -112,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatar: data.avatar || "",
       };
 
+      queryClient.clear();
       setUser(userData);
       setToken(data.token);
 
@@ -157,6 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         avatar: data.avatar || "",
       };
 
+      queryClient.clear();
       setUser(userData);
       setToken(data.token);
 
@@ -178,6 +183,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     localStorage.removeItem("vibe_user");
     localStorage.removeItem("vibe_token");
+    queryClient.clear();
+  };
+
+  /* =====================
+     UPDATE USER
+  ===================== */
+  const updateUser = (updatedUser: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const next = { ...prev, ...updatedUser };
+      localStorage.setItem("vibe_user", JSON.stringify(next));
+      return next;
+    });
   };
 
   return (
@@ -190,6 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         signup,
         logout,
+        updateUser,
       }}
     >
       {children}

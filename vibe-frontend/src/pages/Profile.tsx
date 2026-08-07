@@ -79,7 +79,7 @@ type ProfilePost = FeedPost & {
 };
 
 export default function Profile() {
-  const { token, user: authUser } = useAuth();
+  const { token, user: authUser, updateUser } = useAuth();
   const { username } = useParams();
   const navigate = useNavigate();
 
@@ -344,6 +344,9 @@ export default function Profile() {
       );
 
       setUser((u) => (u ? { ...u, avatar: res.data.avatar } : u));
+      if (updateUser) {
+        updateUser({ avatar: res.data.avatar });
+      }
       queryClient.invalidateQueries({ queryKey: ["profile", username || authUser?.username] });
       toast.success("Profile photo updated");
     } catch {

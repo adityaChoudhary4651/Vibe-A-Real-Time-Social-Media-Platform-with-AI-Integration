@@ -46,7 +46,7 @@ interface FeedPostCardProps {
   };
   onLike: (postId: string) => void;
   onCommentClick: (postId: string) => void;
-  onShareClick: () => void;
+  onShareClick: (postId: string) => void;
   onTipClick: (post: FeedPost) => void;
   variant?: "default" | "large";
 }
@@ -126,7 +126,7 @@ export function FeedPostCard({
           e.stopPropagation();
           setShowOptions(true);
         }}
-        className={`absolute top-4 right-4 z-10 text-white hover:scale-105 active:scale-95 transition-all cursor-pointer pointer-events-auto ${variant === "large" ? "sm:hidden" : ""}`}
+        className={`absolute top-4 right-4 z-30 text-white hover:scale-105 active:scale-95 transition-all cursor-pointer pointer-events-auto ${variant === "large" ? "sm:hidden" : ""}`}
       >
         <MoreHorizontal className="h-6 w-6 opacity-80" />
       </button>
@@ -205,7 +205,7 @@ export function FeedPostCard({
             </div>
 
             <div
-              onClick={() => onShareClick()}
+              onClick={() => onShareClick(post._id)}
               className="flex flex-row items-center gap-1.5 cursor-pointer hover:opacity-85 pointer-events-auto"
             >
               <Share2 className="h-4 w-4" />
@@ -214,11 +214,11 @@ export function FeedPostCard({
           </div>
 
           <button
-            onClick={() => onTipClick(post)}
-            className={`w-full py-2.5 px-4 flex-row rounded-[16px] text-xs font-bold uppercase tracking-wider transition-colors duration-300 flex items-center justify-center gap-2 pointer-events-auto ${theme.accentButton}`}
+            disabled
+            className={`w-full py-2.5 px-4 flex-row rounded-[16px] text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 pointer-events-auto opacity-50 cursor-not-allowed bg-neutral-800 text-neutral-400`}
           >
             <DollarSign className="h-4 w-4" />
-            <span>Tip Creator</span>
+            <span>Coming Soon</span>
           </button>
         </div>
 
@@ -282,7 +282,7 @@ export function FeedPostCard({
             </button>
 
             <button
-              onClick={() => onShareClick()}
+              onClick={() => onShareClick(post._id)}
               className="flex flex-col items-center gap-1.5 group/btn"
             >
               <Share2 className="h-7 w-7 text-white drop-shadow-lg" />
@@ -292,14 +292,14 @@ export function FeedPostCard({
             </button>
 
             <button
-              onClick={() => onTipClick(post)}
-              className="flex flex-col items-center gap-1.5 group/btn mt-1"
+              disabled
+              className="flex flex-col items-center gap-1.5 group/btn mt-1 opacity-50 cursor-not-allowed"
             >
-              <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-[#6B46C1] to-[#3B82F6] shadow-lg flex items-center justify-center">
-                <IndianRupee className="h-5 w-5 text-white" />
+              <div className="h-9 w-9 rounded-full bg-neutral-800 shadow-lg flex items-center justify-center">
+                <IndianRupee className="h-5 w-5 text-neutral-400" />
               </div>
-              <span className="text-[11px] font-bold text-[#E9D8FD] drop-shadow-md">
-                Pay
+              <span className="text-[9px] font-bold text-neutral-400 drop-shadow-md whitespace-nowrap">
+                Coming Soon
               </span>
             </button>
           </div>
