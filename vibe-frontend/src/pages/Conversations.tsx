@@ -685,21 +685,21 @@ export default function Conversations() {
               </div>
             </div>
 
-            {/* Conversation Overview Card */}
-            <div className={cn("border rounded-[24px] p-4 flex flex-col md:flex-row items-center md:items-start gap-4 shadow-2xs", theme.card)}>
+            {/* Conversation Overview (No borders, transparent bg) */}
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-4 py-2">
               <img
                 src={activeConvo.thumbnailUrl}
                 alt={activeConvo.title}
-                className="w-full md:w-36 h-28 md:h-24 rounded-xl object-cover border shrink-0"
+                className="w-full md:w-44 h-32 md:h-28 rounded-[24px] object-cover border shrink-0"
               />
               <div className="flex-grow space-y-2 min-w-0">
-                <h2 className="text-lg md:text-xl font-bold leading-tight font-serif tracking-tight">
+                <h2 className={cn("text-xl md:text-2xl font-bold leading-tight font-serif tracking-tight", theme.textPrimary)}>
                   {activeConvo.title}
                 </h2>
                 <p className="text-[10px] opacity-60 font-semibold leading-none">
                   Started by <span className={cn("font-bold", theme.textSecondary)}>@{activeConvo.startedBy}</span> • 3h ago • Edited 2h ago
                 </p>
-                <p className="text-xs opacity-80 leading-relaxed">
+                <p className={cn("text-xs opacity-80 leading-relaxed", theme.textPrimary)}>
                   {activeConvo.description}
                 </p>
 
@@ -750,7 +750,7 @@ export default function Conversations() {
             </div>
 
             {/* Sub-tabs / Filters Row */}
-            <div className="flex items-center justify-between border-b border-dashed border-[#8B5E3C]/15 py-1">
+            <div className="flex items-center justify-between border-b border-[#EFE6DA] dark:border-[#3D2A1F] py-1.5">
               <div className="flex items-center gap-4 text-xs font-bold opacity-75">
                 {["Top", "Latest", "Unanswered", "Polls", "Media", "Files"].map((tab) => (
                   <button
@@ -832,7 +832,7 @@ export default function Conversations() {
                   className={cn("border rounded-[20px] p-4 flex gap-4 shadow-2xs relative", theme.card)}
                 >
                   {/* Left Column: Vote Scorers */}
-                  <div className="flex flex-col items-center gap-1.5 p-1 rounded-xl bg-black/5 dark:bg-white/5 self-start shrink-0 min-w-[32px]">
+                  <div className="flex flex-col items-center justify-center bg-black/5 dark:bg-white/5 px-2 py-2 rounded-2xl shrink-0 self-start w-10">
                     <button
                       onClick={() => handleVote(reply.id, 1)}
                       className="p-1 hover:text-green-500 transition-colors"
@@ -840,13 +840,13 @@ export default function Conversations() {
                     >
                       <ChevronUp className="h-4 w-4" />
                     </button>
-                    <span className="text-xs font-bold">{reply.score}</span>
+                    <span className="text-xs font-bold my-1 text-center">{reply.score}</span>
                     <button
                       onClick={() => handleVote(reply.id, -1)}
-                      className="p-1 hover:text-red-500 transition-colors rotate-180"
+                      className="p-1 hover:text-red-500 transition-colors"
                       aria-label="Downvote"
                     >
-                      <ChevronUp className="h-4 w-4" />
+                      <ChevronDown className="h-4 w-4" />
                     </button>
                   </div>
 
@@ -858,20 +858,20 @@ export default function Conversations() {
                           <AvatarImage src={reply.avatar} />
                           <AvatarFallback>U</AvatarFallback>
                         </Avatar>
-                        <div className="leading-tight">
+                        <div className="flex items-center flex-wrap gap-1.5">
                           <span className="text-xs font-extrabold">@{reply.author}</span>
                           {reply.isAuthor && (
-                            <span className={cn("ml-1.5 px-2 py-0.5 rounded-full text-[8px] font-bold uppercase", theme.badgeGreen)}>
+                            <span className={cn("px-2 py-0.5 rounded-full text-[8px] font-bold uppercase", theme.badgeGreen)}>
                               Author
                             </span>
                           )}
                           {reply.badgeText && (
-                            <span className={cn("ml-1.5 px-2 py-0.5 rounded-full text-[8px] font-bold uppercase", theme.badgeGreen)}>
+                            <span className="px-2 py-0.5 rounded-full text-[8px] font-bold uppercase bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400">
                               {reply.badgeText}
                             </span>
                           )}
+                          <span className="text-[10px] opacity-50 font-medium">• {reply.time}</span>
                         </div>
-                        <span className="text-[10px] opacity-50 font-medium">• {reply.time}</span>
                       </div>
 
                       <DropdownMenu>
@@ -1016,14 +1016,22 @@ export default function Conversations() {
                   { score: 128, text: "AI won't replace programmers", replies: "42 replies" },
                   { score: 97, text: "Programmers' role will evolve", replies: "28 replies" }
                 ].map((op, idx) => (
-                  <div key={idx} className="flex gap-2.5 items-start p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition cursor-pointer">
-                    <div className="flex flex-col items-center bg-black/5 dark:bg-white/5 px-1.5 py-0.5 rounded-md text-[10px] font-extrabold leading-none mt-0.5">
-                      <ChevronUp className="h-3 w-3" />
-                      <span>{op.score}</span>
+                  <div key={idx} className="flex gap-2.5 items-center p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition cursor-pointer">
+                    <div className="flex flex-col items-center bg-black/5 dark:bg-white/5 px-2 py-1 rounded-xl text-[9px] font-extrabold leading-none shrink-0">
+                      <ChevronUp className="h-3 w-3 text-gray-500" />
+                      <span className="my-0.5">{op.score}</span>
+                      <ChevronDown className="h-3 w-3 text-gray-500" />
                     </div>
-                    <div className="min-w-0 leading-tight">
+                    <div className="min-w-0 flex-1 leading-tight">
                       <p className="text-[11px] font-extrabold truncate">{op.text}</p>
                       <p className="text-[9px] opacity-60 mt-0.5">{op.replies}</p>
+                    </div>
+                    <div className="flex -space-x-1 shrink-0 ml-1">
+                      {["https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80", "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80"].map((img, i) => (
+                        <Avatar key={i} className="h-4 w-4 border border-white dark:border-[#2A1D16]">
+                          <AvatarImage src={img} />
+                        </Avatar>
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -1033,23 +1041,27 @@ export default function Conversations() {
             {/* Widget C: Active now */}
             <div className={cn("border rounded-2xl p-4 shadow-2xs space-y-3", theme.card)}>
               <div className="flex items-center justify-between">
-                <h2 className="text-xs font-extrabold uppercase tracking-wider">Active now • 23</h2>
-                <ChevronRight className="h-3.5 w-3.5 opacity-60 hover:opacity-100 cursor-pointer" />
+                <h2 className="text-xs font-extrabold uppercase tracking-wider">Active now • {activeConvo.participants}</h2>
               </div>
-              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1">
-                {[
-                  "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80",
-                  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80",
-                  "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80",
-                  "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80",
-                  "https://api.dicebear.com/7.x/initials/svg?seed=Aditya",
-                  "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80",
-                ].map((uImg, uIdx) => (
-                  <Avatar key={uIdx} className="h-7 w-7 border shrink-0">
-                    <AvatarImage src={uImg} />
-                    <AvatarFallback>U</AvatarFallback>
-                  </Avatar>
-                ))}
+              <div className="flex items-center justify-between gap-2 py-1">
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+                  {[
+                    "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80",
+                    "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80",
+                    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80",
+                    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80",
+                    "https://api.dicebear.com/7.x/initials/svg?seed=Aditya",
+                    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80",
+                  ].map((uImg, uIdx) => (
+                    <Avatar key={uIdx} className="h-7 w-7 border shrink-0">
+                      <AvatarImage src={uImg} />
+                      <AvatarFallback>U</AvatarFallback>
+                    </Avatar>
+                  ))}
+                </div>
+                <button className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5 shrink-0">
+                  <ChevronRight className="h-4 w-4 opacity-70" />
+                </button>
               </div>
             </div>
 
