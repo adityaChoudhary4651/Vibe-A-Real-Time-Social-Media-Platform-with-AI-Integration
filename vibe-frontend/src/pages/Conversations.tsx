@@ -79,6 +79,10 @@ export default function Conversations() {
   const [replyInput, setReplyInput] = useState("");
   const [voiceJoined, setVoiceJoined] = useState(false);
 
+  // Interactive UI States for right sidebar widgets
+  const [listeningRooms, setListeningRooms] = useState<Record<string, boolean>>({});
+  const [joinedCommunities, setJoinedCommunities] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     const handleThemeChange = () => {
       setIsDark(localStorage.getItem("vibe_theme") === "dark");
