@@ -13,39 +13,151 @@ export const searchAll = async (req, res) => {
       return res.json({ users: [], posts: [], reels: [], communities: [], hashtags: [] });
     }
 
-    const users = await User.find({
+    const cleanQ = q.toLowerCase();
+
+    // Query matching users (username, name, bio)
+    let users = await User.find({
       $or: [
         { username: { $regex: q, $options: "i" } },
-        { name: { $regex: q, $options: "i" } }
+        { name: { $regex: q, $options: "i" } },
+        { bio: { $regex: q, $options: "i" } }
       ]
-    }).select("_id username name avatar").limit(5);
+    }).select("_id username name avatar bio");
 
-    const posts = await Post.find({
+    users.sort((a, b) => {
+      const aUsername = a.username.toLowerCase();
+      const aName = a.name ? a.name.toLowerCase() : "";
+      const aBio = a.bio ? a.bio.toLowerCase() : "";
+      
+      const bUsername = b.username.toLowerCase();
+      const bName = b.name ? b.name.toLowerCase() : "";
+      const bBio = b.bio ? b.bio.toLowerCase() : "";
+      
+      if ((aUsername === cleanQ || aName === cleanQ) && !(bUsername === cleanQ || bName === cleanQ)) return -1;
+      if (!(aUsername === cleanQ || aName === cleanQ) && (bUsername === cleanQ || bName === cleanQ)) return 1;
+      
+      if ((aUsername.startsWith(cleanQ) || aName.startsWith(cleanQ)) && !(bUsername.startsWith(cleanQ) || bName.startsWith(cleanQ))) return -1;
+      if (!(aUsername.startsWith(cleanQ) || aName.startsWith(cleanQ)) && (bUsername.startsWith(cleanQ) || bName.startsWith(cleanQ))) return 1;
+      
+      if ((aUsername.includes(cleanQ) || aName.includes(cleanQ)) && !(bUsername.includes(cleanQ) || bName.includes(cleanQ))) return -1;
+      if (!(aUsername.includes(cleanQ) || aName.includes(cleanQ)) && (bUsername.includes(cleanQ) || bName.includes(cleanQ))) return 1;
+      
+      if (aBio.includes(cleanQ) && !bBio.includes(cleanQ)) return -1;
+      if (bBio.includes(cleanQ) && !aBio.includes(cleanQ)) return 1;
+      
+      return 0;
+    });
+    users = users.slice(0, 7);
+
+    // Query matching posts (caption)
+    let posts = await Post.find({
       type: "post",
       visibility: "Public",
       caption: { $regex: q, $options: "i" }
-    }).populate("author", "username avatar").limit(5);
+    }).populate("author", "username name avatar");
+    
+    posts.sort((a, b) => {
+      const aCaption = a.caption ? a.caption.toLowerCase() : "";
+      const bCaption = b.caption ? b.caption.toLowerCase() : "";
+      if (aCaption === cleanQ && bCaption !== cleanQ) return -1;
+      if (bCaption === cleanQ && aCaption !== cleanQ) return 1;
+      if (aCaption.startsWith(cleanQ) && !bCaption.startsWith(cleanQ)) return -1;
+      if (bCaption.startsWith(cleanQ) && !aCaption.startsWith(cleanQ)) return 1;
+      return 0;
+    });
+    posts = posts.slice(0, 7);
 
-    const reels = await Post.find({
+    // Query matching reels (caption)
+    let reels = await Post.find({
       type: "reel",
       visibility: "Public",
       caption: { $regex: q, $options: "i" }
-    }).populate("author", "username avatar").limit(5);
+    }).populate("author", "username name avatar");
+    
+    reels.sort((a, b) => {
+      const aCaption = a.caption ? a.caption.toLowerCase() : "";
+      const bCaption = b.caption ? b.caption.toLowerCase() : "";
+      if (aCaption === cleanQ && bCaption !== cleanQ) return -1;
+      if (bCaption === cleanQ && aCaption !== cleanQ) return 1;
+      if (aCaption.startsWith(cleanQ) && !bCaption.startsWith(cleanQ)) return -1;
+      if (bCaption.startsWith(cleanQ) && !aCaption.startsWith(cleanQ)) return 1;
+      return 0;
+    });
+    reels = reels.slice(0, 7);
 
-    const communities = await Community.find({
+    // Query matching communities (name, description)
+    let communities = await Community.find({
       $or: [
         { name: { $regex: q, $options: "i" } },
         { description: { $regex: q, $options: "i" } }
       ]
-    }).populate("creator", "username avatar").limit(5);
+    }).populate("creator", "username avatar");
 
-    res.json({ users, posts, reels, communities });
+    communities.sort((a, b) => {
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+      const aDesc = a.description ? a.description.toLowerCase() : "";
+      const bDesc = b.description ? b.description.toLowerCase() : "";
+      
+      if (aName === cleanQ && bName !== cleanQ) return -1;
+      if (bName === cleanQ && aName !== cleanQ) return 1;
+      
+      if (aName.startsWith(cleanQ) && !bName.startsWith(cleanQ)) return -1;
+      if (bName.startsWith(cleanQ) && !aName.startsWith(cleanQ)) return 1;
+      
+      if (aName.includes(cleanQ) && !bName.includes(cleanQ)) return -1;
+      if (bName.includes(cleanQ) && !aName.includes(cleanQ)) return 1;
+      
+      if (aDesc.includes(cleanQ) && !bDesc.includes(cleanQ)) return -1;
+      if (bDesc.includes(cleanQ) && !aDesc.includes(cleanQ)) return 1;
+      
+      return 0;
+    });
+    communities = communities.slice(0, 7);
+
+    // Query derived matching hashtags
+    const postsWithTags = await Post.find({
+      visibility: "Public",
+      caption: { $regex: "#", $options: "i" }
+    }).select("caption mediaUrl likes").lean();
+
+    const counts = {};
+    postsWithTags.forEach((p) => {
+      if (p.caption) {
+        const tags = p.caption.match(/#[a-zA-Z0-9_]+/g);
+        if (tags) {
+          tags.forEach((tag) => {
+            const cleanTag = tag.trim();
+            if (!cleanTag.toLowerCase().includes(cleanQ)) return;
+            if (!counts[cleanTag]) {
+              counts[cleanTag] = { count: 0, image: p.mediaUrl, engagement: 0 };
+            }
+            counts[cleanTag].count += 1;
+            counts[cleanTag].engagement += (p.likes?.length || 0) + 1;
+          });
+        }
+      }
+    });
+
+    const sortedTags = Object.keys(counts)
+      .map((tag) => ({
+        title: tag,
+        postsCount: counts[tag].count,
+        engagement: counts[tag].engagement,
+        image: counts[tag].image || "https://images.unsplash.com/photo-1541701494587-cb58502866ab?w=100",
+      }))
+      .sort((a, b) => b.postsCount - a.postsCount);
+
+    const hashtags = sortedTags.slice(0, 7);
+
+    res.json({ users, posts, reels, communities, hashtags });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Failed to search" });
   }
 };
 
-// 2. SEARCH USERS WITH PAGINATION
+// 2. SEARCH USERS WITH PAGINATION & RANKING
 export const searchUsers = async (req, res) => {
   try {
     const q = req.query.q?.trim();
@@ -58,19 +170,47 @@ export const searchUsers = async (req, res) => {
       filter = {
         $or: [
           { username: { $regex: q, $options: "i" } },
-          { name: { $regex: q, $options: "i" } }
+          { name: { $regex: q, $options: "i" } },
+          { bio: { $regex: q, $options: "i" } }
         ]
       };
     }
 
     const users = await User.find(filter)
-      .select("_id username name avatar bio followers following")
-      .skip(skip)
-      .limit(limit);
+      .select("_id username name avatar bio followers following");
 
-    const total = await User.countDocuments(filter);
+    if (q) {
+      const cleanQ = q.toLowerCase();
+      users.sort((a, b) => {
+        const aUsername = a.username.toLowerCase();
+        const aName = a.name ? a.name.toLowerCase() : "";
+        const aBio = a.bio ? a.bio.toLowerCase() : "";
+        
+        const bUsername = b.username.toLowerCase();
+        const bName = b.name ? b.name.toLowerCase() : "";
+        const bBio = b.bio ? b.bio.toLowerCase() : "";
+        
+        if ((aUsername === cleanQ || aName === cleanQ) && !(bUsername === cleanQ || bName === cleanQ)) return -1;
+        if (!(aUsername === cleanQ || aName === cleanQ) && (bUsername === cleanQ || bName === cleanQ)) return 1;
+        
+        if ((aUsername.startsWith(cleanQ) || aName.startsWith(cleanQ)) && !(bUsername.startsWith(cleanQ) || bName.startsWith(cleanQ))) return -1;
+        if (!(aUsername.startsWith(cleanQ) || aName.startsWith(cleanQ)) && (bUsername.startsWith(cleanQ) || bName.startsWith(cleanQ))) return 1;
+        
+        if ((aUsername.includes(cleanQ) || aName.includes(cleanQ)) && !(bUsername.includes(cleanQ) || bName.includes(cleanQ))) return -1;
+        if (!(aUsername.includes(cleanQ) || aName.includes(cleanQ)) && (bUsername.includes(cleanQ) || bName.includes(cleanQ))) return 1;
+        
+        if (aBio.includes(cleanQ) && !bBio.includes(cleanQ)) return -1;
+        if (bBio.includes(cleanQ) && !aBio.includes(cleanQ)) return 1;
+        
+        return 0;
+      });
+    }
+
+    const total = users.length;
+    const paginatedUsers = users.slice(skip, skip + limit);
+
     res.json({
-      users,
+      users: paginatedUsers,
       total,
       page,
       pages: Math.ceil(total / limit),
@@ -80,7 +220,7 @@ export const searchUsers = async (req, res) => {
   }
 };
 
-// 3. SEARCH POSTS & REELS COMBINED (PAGINATION + FLUID FILTER)
+// 3. SEARCH POSTS & REELS COMBINED (PAGINATION + FLUID FILTER + RANKING)
 export const searchPosts = async (req, res) => {
   try {
     const q = req.query.q?.trim();
@@ -112,10 +252,23 @@ export const searchPosts = async (req, res) => {
 
     const posts = await Post.find(filter)
       .populate("author", "username name avatar")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
       .lean();
+
+    if (q) {
+      const cleanQ = q.toLowerCase();
+      posts.sort((a, b) => {
+        const aCaption = a.caption ? a.caption.toLowerCase() : "";
+        const bCaption = b.caption ? b.caption.toLowerCase() : "";
+        if (aCaption === cleanQ && bCaption !== cleanQ) return -1;
+        if (bCaption === cleanQ && aCaption !== cleanQ) return 1;
+        if (aCaption.startsWith(cleanQ) && !bCaption.startsWith(cleanQ)) return -1;
+        if (bCaption.startsWith(cleanQ) && !aCaption.startsWith(cleanQ)) return 1;
+        return 0;
+      });
+    }
+
+    const total = posts.length;
+    const paginatedPosts = posts.slice(skip, skip + limit);
 
     const userObj = req.user ? await User.findById(req.user._id) : null;
     const savedSet = userObj && userObj.savedPosts 
@@ -123,7 +276,7 @@ export const searchPosts = async (req, res) => {
       : new Set();
 
     const postsWithMeta = await Promise.all(
-      posts.map(async (p) => {
+      paginatedPosts.map(async (p) => {
         const commentsCount = await Comment.countDocuments({ post: p._id });
         return {
           ...p,
@@ -135,7 +288,6 @@ export const searchPosts = async (req, res) => {
       })
     );
 
-    const total = await Post.countDocuments(filter);
     res.json({
       posts: postsWithMeta,
       total,
@@ -147,7 +299,7 @@ export const searchPosts = async (req, res) => {
   }
 };
 
-// 4. SEARCH REELS ONLY
+// 4. SEARCH REELS ONLY (RANKED)
 export const searchReels = async (req, res) => {
   try {
     const q = req.query.q?.trim();
@@ -162,10 +314,23 @@ export const searchReels = async (req, res) => {
 
     const reels = await Post.find(filter)
       .populate("author", "username name avatar")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
       .lean();
+
+    if (q) {
+      const cleanQ = q.toLowerCase();
+      reels.sort((a, b) => {
+        const aCaption = a.caption ? a.caption.toLowerCase() : "";
+        const bCaption = b.caption ? b.caption.toLowerCase() : "";
+        if (aCaption === cleanQ && bCaption !== cleanQ) return -1;
+        if (bCaption === cleanQ && aCaption !== cleanQ) return 1;
+        if (aCaption.startsWith(cleanQ) && !bCaption.startsWith(cleanQ)) return -1;
+        if (bCaption.startsWith(cleanQ) && !aCaption.startsWith(cleanQ)) return 1;
+        return 0;
+      });
+    }
+
+    const total = reels.length;
+    const paginatedReels = reels.slice(skip, skip + limit);
 
     const userObj = req.user ? await User.findById(req.user._id) : null;
     const savedSet = userObj && userObj.savedPosts 
@@ -173,7 +338,7 @@ export const searchReels = async (req, res) => {
       : new Set();
 
     const reelsWithMeta = await Promise.all(
-      reels.map(async (r) => {
+      paginatedReels.map(async (r) => {
         const commentsCount = await Comment.countDocuments({ post: r._id });
         return {
           ...r,
@@ -185,7 +350,6 @@ export const searchReels = async (req, res) => {
       })
     );
 
-    const total = await Post.countDocuments(filter);
     res.json({
       reels: reelsWithMeta,
       total,
@@ -255,7 +419,7 @@ export const searchHashtags = async (req, res) => {
   }
 };
 
-// 6. SEARCH COMMUNITIES
+// 6. SEARCH COMMUNITIES (RANKED)
 export const searchCommunities = async (req, res) => {
   try {
     const q = req.query.q?.trim();
@@ -274,13 +438,37 @@ export const searchCommunities = async (req, res) => {
     }
 
     const communities = await Community.find(filter)
-      .populate("creator", "username avatar")
-      .skip(skip)
-      .limit(limit);
+      .populate("creator", "username avatar");
 
-    const total = await Community.countDocuments(filter);
+    if (q) {
+      const cleanQ = q.toLowerCase();
+      communities.sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+        const aDesc = a.description ? a.description.toLowerCase() : "";
+        const bDesc = b.description ? b.description.toLowerCase() : "";
+        
+        if (aName === cleanQ && bName !== cleanQ) return -1;
+        if (bName === cleanQ && aName !== cleanQ) return 1;
+        
+        if (aName.startsWith(cleanQ) && !bName.startsWith(cleanQ)) return -1;
+        if (bName.startsWith(cleanQ) && !aName.startsWith(cleanQ)) return 1;
+        
+        if (aName.includes(cleanQ) && !bName.includes(cleanQ)) return -1;
+        if (bName.includes(cleanQ) && !aName.includes(cleanQ)) return 1;
+        
+        if (aDesc.includes(cleanQ) && !bDesc.includes(cleanQ)) return -1;
+        if (bDesc.includes(cleanQ) && !aDesc.includes(cleanQ)) return 1;
+        
+        return 0;
+      });
+    }
+
+    const total = communities.length;
+    const paginatedComms = communities.slice(skip, skip + limit);
+
     res.json({
-      communities,
+      communities: paginatedComms,
       total,
       page,
       pages: Math.ceil(total / limit),
@@ -336,7 +524,7 @@ export const getRecentSearches = async (req, res) => {
   try {
     const history = await SearchHistory.find({ user: req.user._id })
       .sort({ updatedAt: -1 })
-      .limit(10);
+      .limit(15);
     res.json(history);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch recent searches" });
@@ -382,23 +570,79 @@ export const clearRecentSearches = async (req, res) => {
   }
 };
 
-// 12. GET SUGGESTIONS
+// 12. GET SUGGESTIONS WITH CONSISTENT MATCHING & RANKING
 export const getSuggestions = async (req, res) => {
   try {
     const q = req.query.q?.trim();
     if (!q) return res.json([]);
 
-    const users = await User.find({ username: { $regex: q, $options: "i" } })
-      .select("username avatar")
-      .limit(5);
+    const cleanQ = q.toLowerCase();
 
-    const communities = await Community.find({ name: { $regex: q, $options: "i" } })
-      .select("name avatar")
-      .limit(5);
+    // Query matching users (username, name, bio)
+    const users = await User.find({
+      $or: [
+        { username: { $regex: q, $options: "i" } },
+        { name: { $regex: q, $options: "i" } },
+        { bio: { $regex: q, $options: "i" } }
+      ]
+    }).select("username name avatar bio");
+
+    users.sort((a, b) => {
+      const aUsername = a.username.toLowerCase();
+      const aName = a.name ? a.name.toLowerCase() : "";
+      const aBio = a.bio ? a.bio.toLowerCase() : "";
+      
+      const bUsername = b.username.toLowerCase();
+      const bName = b.name ? b.name.toLowerCase() : "";
+      const bBio = b.bio ? b.bio.toLowerCase() : "";
+      
+      if ((aUsername === cleanQ || aName === cleanQ) && !(bUsername === cleanQ || bName === cleanQ)) return -1;
+      if (!(aUsername === cleanQ || aName === cleanQ) && (bUsername === cleanQ || bName === cleanQ)) return 1;
+      
+      if ((aUsername.startsWith(cleanQ) || aName.startsWith(cleanQ)) && !(bUsername.startsWith(cleanQ) || bName.startsWith(cleanQ))) return -1;
+      if (!(aUsername.startsWith(cleanQ) || aName.startsWith(cleanQ)) && (bUsername.startsWith(cleanQ) || bName.startsWith(cleanQ))) return 1;
+      
+      if ((aUsername.includes(cleanQ) || aName.includes(cleanQ)) && !(bUsername.includes(cleanQ) || bName.includes(cleanQ))) return -1;
+      if (!(aUsername.includes(cleanQ) || aName.includes(cleanQ)) && (bUsername.includes(cleanQ) || bName.includes(cleanQ))) return 1;
+      
+      if (aBio.includes(cleanQ) && !bBio.includes(cleanQ)) return -1;
+      if (bBio.includes(cleanQ) && !aBio.includes(cleanQ)) return 1;
+      
+      return 0;
+    });
+
+    // Query matching communities (name, description)
+    const communities = await Community.find({
+      $or: [
+        { name: { $regex: q, $options: "i" } },
+        { description: { $regex: q, $options: "i" } }
+      ]
+    }).select("name avatar description");
+
+    communities.sort((a, b) => {
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+      const aDesc = a.description ? a.description.toLowerCase() : "";
+      const bDesc = b.description ? b.description.toLowerCase() : "";
+      
+      if (aName === cleanQ && bName !== cleanQ) return -1;
+      if (bName === cleanQ && aName !== cleanQ) return 1;
+      
+      if (aName.startsWith(cleanQ) && !bName.startsWith(cleanQ)) return -1;
+      if (bName.startsWith(cleanQ) && !aName.startsWith(cleanQ)) return 1;
+      
+      if (aName.includes(cleanQ) && !bName.includes(cleanQ)) return -1;
+      if (bName.includes(cleanQ) && !aName.includes(cleanQ)) return 1;
+      
+      if (aDesc.includes(cleanQ) && !bDesc.includes(cleanQ)) return -1;
+      if (bDesc.includes(cleanQ) && !aDesc.includes(cleanQ)) return 1;
+      
+      return 0;
+    });
 
     const list = [
-      ...users.map((u) => ({ text: u.username, type: "user", avatar: u.avatar })),
-      ...communities.map((c) => ({ text: c.name, type: "community", avatar: c.avatar })),
+      ...users.slice(0, 5).map((u) => ({ text: u.username, type: "user", avatar: u.avatar })),
+      ...communities.slice(0, 5).map((c) => ({ text: c.name, type: "community", avatar: c.avatar })),
     ];
     res.json(list);
   } catch (error) {

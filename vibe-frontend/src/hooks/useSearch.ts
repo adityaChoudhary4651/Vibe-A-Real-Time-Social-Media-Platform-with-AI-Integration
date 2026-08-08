@@ -5,9 +5,10 @@ import api from "@/lib/axios";
 export const useSearchAll = (query: string) => {
   return useQuery({
     queryKey: ["search-all", query],
-    queryFn: () =>
-      api.get("/search", { params: { q: query } }).then((res) => res.data),
+    queryFn: ({ signal }) =>
+      api.get("/search", { params: { q: query }, signal }).then((res) => res.data),
     enabled: !!query,
+    staleTime: 30000,
   });
 };
 
@@ -15,14 +16,15 @@ export const useSearchAll = (query: string) => {
 export const useSearchUsers = (query: string) => {
   return useInfiniteQuery({
     queryKey: ["search-users", query],
-    queryFn: ({ pageParam = 1 }) =>
+    queryFn: ({ pageParam = 1, signal }) =>
       api
-        .get("/search/users", { params: { q: query, page: pageParam, limit: 12 } })
+        .get("/search/users", { params: { q: query, page: pageParam, limit: 12 }, signal })
         .then((res) => res.data),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       return lastPage.page < lastPage.pages ? lastPage.page + 1 : undefined;
     },
+    staleTime: 30000,
   });
 };
 
@@ -30,14 +32,15 @@ export const useSearchUsers = (query: string) => {
 export const useSearchPosts = (query: string, media: string = "All") => {
   return useInfiniteQuery({
     queryKey: ["search-posts", query, media],
-    queryFn: ({ pageParam = 1 }) =>
+    queryFn: ({ pageParam = 1, signal }) =>
       api
-        .get("/search/posts", { params: { q: query, media, page: pageParam, limit: 12 } })
+        .get("/search/posts", { params: { q: query, media, page: pageParam, limit: 12 }, signal })
         .then((res) => res.data),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       return lastPage.page < lastPage.pages ? lastPage.page + 1 : undefined;
     },
+    staleTime: 30000,
   });
 };
 
@@ -45,14 +48,15 @@ export const useSearchPosts = (query: string, media: string = "All") => {
 export const useSearchReels = (query: string) => {
   return useInfiniteQuery({
     queryKey: ["search-reels", query],
-    queryFn: ({ pageParam = 1 }) =>
+    queryFn: ({ pageParam = 1, signal }) =>
       api
-        .get("/search/reels", { params: { q: query, page: pageParam, limit: 12 } })
+        .get("/search/reels", { params: { q: query, page: pageParam, limit: 12 }, signal })
         .then((res) => res.data),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       return lastPage.page < lastPage.pages ? lastPage.page + 1 : undefined;
     },
+    staleTime: 30000,
   });
 };
 
@@ -60,14 +64,15 @@ export const useSearchReels = (query: string) => {
 export const useSearchHashtags = (query: string) => {
   return useInfiniteQuery({
     queryKey: ["search-hashtags", query],
-    queryFn: ({ pageParam = 1 }) =>
+    queryFn: ({ pageParam = 1, signal }) =>
       api
-        .get("/search/hashtags", { params: { q: query, page: pageParam, limit: 12 } })
+        .get("/search/hashtags", { params: { q: query, page: pageParam, limit: 12 }, signal })
         .then((res) => res.data),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       return lastPage.page < lastPage.pages ? lastPage.page + 1 : undefined;
     },
+    staleTime: 30000,
   });
 };
 
@@ -75,14 +80,15 @@ export const useSearchHashtags = (query: string) => {
 export const useSearchCommunities = (query: string) => {
   return useInfiniteQuery({
     queryKey: ["search-communities", query],
-    queryFn: ({ pageParam = 1 }) =>
+    queryFn: ({ pageParam = 1, signal }) =>
       api
-        .get("/search/communities", { params: { q: query, page: pageParam, limit: 12 } })
+        .get("/search/communities", { params: { q: query, page: pageParam, limit: 12 }, signal })
         .then((res) => res.data),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
       return lastPage.page < lastPage.pages ? lastPage.page + 1 : undefined;
     },
+    staleTime: 30000,
   });
 };
 
@@ -142,9 +148,10 @@ export const useDeleteRecentSearchItem = () => {
 export const useSearchSuggestions = (query: string) => {
   return useQuery({
     queryKey: ["search-suggestions", query],
-    queryFn: () =>
-      api.get("/search/suggestions", { params: { q: query } }).then((res) => res.data),
+    queryFn: ({ signal }) =>
+      api.get("/search/suggestions", { params: { q: query }, signal }).then((res) => res.data),
     enabled: !!query,
+    staleTime: 10000,
   });
 };
 

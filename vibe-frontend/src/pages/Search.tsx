@@ -32,6 +32,7 @@ import PostDetailModal from "@/components/post/PostDetailModal";
 
 // Import all search React Query hooks
 import {
+  useSearchAll,
   useSearchUsers,
   useSearchPosts,
   useSearchReels,
@@ -129,6 +130,7 @@ export default function Search() {
   const [activeTab, setActiveTab] = useState<"All" | "People" | "Posts" | "Reels" | "Topics" | "Communities">("All");
   const [mediaFilter, setMediaFilter] = useState<"All" | "Photos" | "Reels">("All");
   const [isFocused, setIsFocused] = useState(false);
+  const [activeSuggestionIdx, setActiveSuggestionIdx] = useState(-1);
 
   // Modal / Form states
   const [selectedPost, setSelectedPost] = useState<any>(null);
@@ -194,6 +196,7 @@ export default function Search() {
   const reelsQuery = useSearchReels(debouncedQuery);
   const hashtagsQuery = useSearchHashtags(debouncedQuery);
   const communitiesQuery = useSearchCommunities(debouncedQuery);
+  const searchAllQuery = useSearchAll(activeTab === "All" ? debouncedQuery : "");
 
   /* ================= ACTION HANDLERS ================= */
 
@@ -209,6 +212,32 @@ export default function Search() {
     e.preventDefault();
     if (searchQuery.trim()) {
       triggerSearch(searchQuery.trim());
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveSuggestionIdx((prev) => 
+        prev < suggestions.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveSuggestionIdx((prev) => (prev > -1 ? prev - 1 : -1));
+    } else if (e.key === "Escape") {
+      setIsFocused(false);
+      (e.target as HTMLInputElement).blur();
+    } else if (e.key === "Enter") {
+      if (activeSuggestionIdx > -1 && suggestions[activeSuggestionIdx]) {
+        e.preventDefault();
+        const selected = suggestions[activeSuggestionIdx];
+        if (selected.type === "user") {
+          addRecentSearchMutation.mutate("@" + selected.text);
+          navigate(`/profile/${selected.text}`);
+        } else {
+          triggerSearch(selected.text);
+        }
+      }
     }
   };
 
@@ -328,6 +357,18 @@ export default function Search() {
 
   const itemsList = getItemsList();
 
+  const { users = [], posts = [], reels = [], communities = [], hashtags = [] } = searchAllQuery.data || {};
+  const allResultsCount = users.length + posts.length + reels.length + communities.length + hashtags.length;
+
+  const queryHistory = recentSearches.filter((h: any) => !h.term.startsWith("@") && !h.term.startsWith("#"));
+  const profileHistory = recentSearches.filter((h: any) => h.term.startsWith("@"));
+  const hashtagHistory = recentSearches.filter((h: any) => h.term.startsWith("#"));
+
+  const isSearchLoading = activeTab === "All" && debouncedQuery ? searchAllQuery.isLoading : activeQuery.isLoading;
+  const isSearchEmpty = !!debouncedQuery && !isSearchLoading && (
+    activeTab === "All" ? allResultsCount === 0 : itemsList.length === 0
+  );
+
   return (
     <div className={cn("flex w-full min-h-screen p-3 sm:p-6 gap-6 font-sans transition-colors duration-500", theme.bg, theme.textPrimary)}>
       {/* 1. MAIN CONTENT AREA */}
@@ -342,7 +383,11 @@ export default function Search() {
                 type="text"
                 value={searchQuery}
                 onFocus={() => setIsFocused(true)}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setActiveSuggestionIdx(-1);
+                }}
+                onKeyDown={handleKeyDown}
                 placeholder="Search for people, posts, reels, topics, communities..."
                 className={cn("bg-transparent border-none text-base outline-none ring-0 w-full focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-none focus-visible:border-none shadow-none h-9 p-0", theme.textPrimary)}
               />
@@ -373,25 +418,38 @@ export default function Search() {
                 <div className="space-y-2">
                   <h4 className="text-xs font-bold text-[#8B5E3C] uppercase tracking-wider">Suggestions</h4>
                   <div className="space-y-1">
-                    {suggestions.map((item: any, idx: number) => (
-                      <button
-                        key={idx}
-                        onClick={() => triggerSearch(item.text)}
-                        className="flex items-center gap-3 w-full p-2 hover:bg-[#EFE6DA]/40 rounded-xl text-left transition"
-                      >
-                        <Avatar className={cn("h-8 w-8 border", theme.cardBorder)}>
-                          <AvatarImage src={resolveUrl(item.avatar)} />
-                          <AvatarFallback className="bg-[#EFE6DA] text-[#8B5E3C] text-xs">
-                            {item.text.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm">{item.text}</p>
-                          <p className="text-xs text-[#8B5E3C]/70 capitalize">{item.type}</p>
-                        </div>
-                        <Compass className="h-4 w-4 text-[#8B5E3C]/50" />
-                      </button>
-                    ))}
+                    {suggestions.map((item: any, idx: number) => {
+                      const isActive = idx === activeSuggestionIdx;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            if (item.type === "user") {
+                              addRecentSearchMutation.mutate("@" + item.text);
+                              navigate(`/profile/${item.text}`);
+                            } else {
+                              triggerSearch(item.text);
+                            }
+                          }}
+                          className={cn(
+                            "flex items-center gap-3 w-full p-2 rounded-xl text-left transition",
+                            isActive ? "bg-[#8B5E3C]/20 border border-[#8B5E3C]/35" : "hover:bg-[#EFE6DA]/40"
+                          )}
+                        >
+                          <Avatar className={cn("h-8 w-8 border", theme.cardBorder)}>
+                            <AvatarImage src={resolveUrl(item.avatar)} />
+                            <AvatarFallback className="bg-[#EFE6DA] text-[#8B5E3C] text-xs">
+                              {item.text.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="font-semibold text-sm">{item.text}</p>
+                            <p className="text-xs text-[#8B5E3C]/70 capitalize">{item.type}</p>
+                          </div>
+                          <Compass className="h-4 w-4 text-[#8B5E3C]/50" />
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -489,7 +547,7 @@ export default function Search() {
         )}
 
         {/* LOADING STATE */}
-        {activeQuery.isLoading && (
+        {isSearchLoading && (
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
             <Loader2 className="h-10 w-10 text-[#8B5E3C] animate-spin" />
             <p className="text-sm font-semibold text-[#8B5E3C]">Fetching actual MongoDB results...</p>
@@ -497,7 +555,7 @@ export default function Search() {
         )}
 
         {/* EMPTY STATE */}
-        {!activeQuery.isLoading && itemsList.length === 0 && (
+        {isSearchEmpty && (
           <div className="bg-[#EFE6DA]/30 border border-[#E3D8C8] rounded-3xl p-12 text-center space-y-3">
             <p className="text-xl font-bold text-[#8B5E3C]">No results found</p>
             <p className="text-sm text-[#8B5E3C]/80">
@@ -512,272 +570,455 @@ export default function Search() {
           </div>
         )}
 
-        {/* 2. MASONRY PINTEREST GRID */}
-        {!activeQuery.isLoading && itemsList.length > 0 && (
+        {/* RESULTS AND DEFAULT CONTENT VIEWER */}
+        {!isSearchLoading && !isSearchEmpty && (
           <div className="space-y-6">
-            
-            {/* GRID CONDITIONAL ON TAB */}
-            {activeTab === "People" ? (
-              // People List / Grid
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {itemsList.map((user: any) => (
-                  <div
-                    key={user._id}
-                    className={cn("border p-4 rounded-2xl flex flex-col items-center text-center space-y-3", theme.widgetCard)}
-                  >
-                    <Avatar className={cn("h-16 w-16 border-2", theme.cardBorder)}>
-                      <AvatarImage src={resolveUrl(user.avatar)} />
-                      <AvatarFallback className="bg-[#5C3E2F] text-[#F5F0E8] text-lg font-bold">
-                        {user.username.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h4 className={cn("font-bold text-base line-clamp-1", theme.textPrimary)}>{user.name}</h4>
-                      <p className={cn("text-xs font-semibold", theme.textSecondary)}>@{user.username}</p>
-                    </div>
-                    {user.bio && <p className={cn("text-xs line-clamp-2 h-8", theme.textSecondary)}>{user.bio}</p>}
-                    
-                    <div className={cn("flex gap-4 text-xs font-semibold", theme.textSecondary)}>
-                      <p>{formatCount(user.followers?.length)} Followers</p>
-                      <p>{formatCount(user.following?.length)} Following</p>
-                    </div>
-
-                    <div className="flex gap-2 w-full pt-1">
-                      <Button
-                        onClick={() => navigate(`/profile/${user.username}`)}
-                        className={cn("flex-1 rounded-xl text-xs py-1.5 h-auto font-semibold border transition", theme.filterBgSolid, theme.tabHover, theme.cardBorder, theme.textSecondary)}
-                      >
-                        Profile
-                      </Button>
-                      {currentUser?.username !== user.username && (
-                        <Button
-                          onClick={(e) => handleFollowUser(e, user.username)}
-                          className={cn(
-                            "flex-1 rounded-xl text-xs py-1.5 h-auto font-bold transition",
-                            user.followers?.includes(currentUser?.id)
-                              ? cn(theme.filterBgSolid, theme.textSecondary, theme.cardBorder, "hover:bg-destructive/10 hover:text-destructive border border-destructive/20")
-                              : "bg-[#8B5E3C] hover:bg-[#5C3E2F] text-[#F5F0E8]"
-                          )}
+            {/* case 1: Aggregated multi-category view under All tab (only when search query exists) */}
+            {activeTab === "All" && debouncedQuery ? (
+              <div className="space-y-8">
+                {/* PEOPLE SECTION */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Users className="h-4 w-4 text-[#8B5E3C]" />
+                    <span>People ({Math.min(6, users.length)})</span>
+                  </h3>
+                  {users.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      {users.slice(0, 6).map((user: any) => (
+                        <div
+                          key={user._id}
+                          className={cn("border p-4 rounded-2xl flex flex-col items-center text-center space-y-3", theme.widgetCard)}
                         >
-                          {user.followers?.includes(currentUser?.id) ? "Following" : "Follow"}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : activeTab === "Topics" ? (
-              // Hashtags / Topics Grid
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {itemsList.map((tag: any, idx: number) => (
-                  <button
-                    key={idx}
-                    onClick={() => triggerSearch(tag.title)}
-                    className={cn("border p-4 rounded-2xl text-left space-y-3 transition flex flex-col justify-between", theme.widgetCard, theme.hoverRow)}
-                  >
-                    <div className="h-10 w-10 bg-[#5C3E2F]/10 rounded-xl flex items-center justify-center text-[#5C3E2F]">
-                      <Tag className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className={cn("font-bold text-base line-clamp-1", theme.textPrimary)}>{tag.title}</h4>
-                      <p className={cn("text-xs font-semibold mt-1", theme.textSecondary)}>
-                        {formatCount(tag.postsCount)} posts
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : activeTab === "Communities" ? (
-              // Communities Grid
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {itemsList.map((c: any) => (
-                  <div
-                    key={c._id}
-                    className={cn("border p-4 rounded-2xl flex flex-col justify-between space-y-4", theme.widgetCard)}
-                  >
-                    <div className="flex gap-3">
-                      <Avatar className={cn("h-12 w-12 rounded-xl border", theme.cardBorder)}>
-                        <AvatarImage src={resolveUrl(c.avatar)} />
-                        <AvatarFallback className={cn("font-bold rounded-xl", theme.card, theme.textSecondary)}>
-                          {c.name.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <h4 className={cn("font-bold text-base line-clamp-1", theme.textPrimary)}>{c.name}</h4>
-                        <p className={cn("text-xs font-semibold mt-0.5", theme.textSecondary)}>
-                          {formatCount(c.memberCount || c.members?.length)} Members
-                        </p>
-                      </div>
-                    </div>
-                    <p className={cn("text-xs line-clamp-2 h-8", theme.textSecondary)}>{c.description}</p>
-                    <Button
-                      onClick={() => navigate(`/communities`)} // Navigate to communities page
-                      className="w-full bg-[#8B5E3C] hover:bg-[#5C3E2F] text-[#F5F0E8] rounded-xl text-xs py-2 font-bold"
-                    >
-                      View Community
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              // Main Posts & Reels - Pinterest Masonry Grid
-              <div className="columns-2 md:columns-3 gap-4 space-y-4">
-                {itemsList.map((post: any, idx: number) => {
-                  // Let's insert the custom Quote Card inside the feed stream at index 3 for the "All" view
-                  const showEmbedQuote = activeTab === "All" && idx === 3;
-                  
-                  return (
-                    <div key={post._id} className="break-inside-avoid">
-                      
-                      {/* Quote block inserted inline */}
-                      {showEmbedQuote && (
-                        <div className={cn("p-6 rounded-2xl border flex flex-col justify-between aspect-square mb-4", theme.card, theme.cardBorder)}>
-                          <span className={cn("text-5xl font-serif leading-none", theme.textSecondary)}>“</span>
-                          <p className={cn("text-base font-semibold leading-relaxed my-2", theme.textPrimary)}>
-                            {quoteData?.text || "Collect moments, not things."}
-                          </p>
-                          <div className={cn("flex justify-between items-end border-t pt-3", theme.cardBorder)}>
-                            <span className={cn("text-[10px] font-bold uppercase tracking-wider", theme.textSecondary)}>
-                              — {quoteData?.author || "Vibe"}
-                            </span>
-                            <span className="text-lg opacity-40">🌱</span>
+                          <Avatar className={cn("h-12 w-12 border-2", theme.cardBorder)}>
+                            <AvatarImage src={resolveUrl(user.avatar)} />
+                            <AvatarFallback className="bg-[#5C3E2F] text-[#F5F0E8] text-sm font-bold">
+                              {user.username.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h4 className={cn("font-bold text-sm line-clamp-1", theme.textPrimary)}>{user.name}</h4>
+                            <p className={cn("text-xs font-semibold", theme.textSecondary)}>@{user.username}</p>
+                          </div>
+                          {user.bio && <p className={cn("text-[11px] line-clamp-1 h-4 text-center w-full", theme.textSecondary)}>{user.bio}</p>}
+                          
+                          <div className="flex gap-2 w-full pt-1">
+                            <Button
+                              onClick={() => {
+                                addRecentSearchMutation.mutate("@" + user.username);
+                                navigate(`/profile/${user.username}`);
+                              }}
+                              className={cn("flex-1 rounded-xl text-xs py-1.5 h-auto font-semibold border transition", theme.filterBgSolid, theme.tabHover, theme.cardBorder, theme.textSecondary)}
+                            >
+                              Profile
+                            </Button>
                           </div>
                         </div>
-                      )}
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#8B5E3C]/60 italic pl-1">No matching people</p>
+                  )}
+                  {users.length > 6 && (
+                    <Button
+                      onClick={() => setActiveTab("People")}
+                      className={cn("text-xs font-bold uppercase tracking-wider", theme.textSecondary, "hover:underline bg-transparent hover:bg-transparent shadow-none p-0 flex items-center gap-1")}
+                    >
+                      Meet more people <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
 
-                      {/* Main Post Card */}
-                      <div
-                        onClick={() => {
-                          if (post.type === "reel") {
-                            navigate(`/reels?reelId=${post._id}`);
-                          } else {
-                            setSelectedPost(post);
-                          }
-                        }}
-                        className={cn("relative overflow-hidden rounded-2xl group cursor-pointer shadow-sm border transition-all duration-300 group-hover:shadow-md", theme.cardBorder, isDark ? "bg-[#2A1D16]/40" : "bg-[#EFE6DA]/40")}
-                      >
-                        {/* Post image/video static preview */}
-                        {post.type === "reel" || post.mediaType === "video" || (post.mediaUrl && (post.mediaUrl.endsWith(".mp4") || post.mediaUrl.endsWith(".mov") || post.mediaUrl.includes("/video/upload/"))) ? (
-                          <video
-                            src={resolveUrl(post.mediaUrl)}
-                            className="w-full object-cover rounded-2xl max-h-[380px] min-h-[160px]"
-                            preload="metadata"
-                            muted
-                            playsInline
-                          />
-                        ) : (
-                          <img
-                            src={resolveUrl(post.mediaUrl || post.imageUrl)}
-                            alt={post.caption || "Vibe Post"}
-                            className="w-full object-cover rounded-2xl max-h-[380px] min-h-[160px]"
-                            loading="lazy"
-                          />
-                        )}
-
-                        {/* Top right icon badge (Photos vs Reels) */}
-                        <div className="absolute top-3 right-3 p-1.5 bg-black/40 backdrop-blur-xs rounded-lg text-white">
-                          {post.type === "reel" ? (
-                            <Play className="h-4.5 w-4.5 fill-white text-white" />
+                {/* POSTS SECTION */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                    <SlidersHorizontal className="h-4 w-4 text-[#8B5E3C]" />
+                    <span>Posts ({Math.min(6, posts.length)})</span>
+                  </h3>
+                  {posts.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {posts.slice(0, 6).map((post: any) => (
+                        <div
+                          key={post._id}
+                          onClick={() => setSelectedPost(post)}
+                          className={cn("relative overflow-hidden rounded-2xl group cursor-pointer shadow-xs border h-40", theme.cardBorder, theme.card)}
+                        >
+                          {post.mediaUrl && (post.mediaUrl.endsWith(".mp4") || post.mediaUrl.endsWith(".mov") || post.mediaUrl.includes("/video/upload/")) ? (
+                            <video src={resolveUrl(post.mediaUrl)} className="w-full h-full object-cover rounded-2xl animate-pulse" muted playsInline />
                           ) : (
-                            <Bookmark className="h-4.5 w-4.5" />
+                            <img src={resolveUrl(post.mediaUrl || post.imageUrl)} alt={post.caption} className="w-full h-full object-cover rounded-2xl" />
                           )}
+                          <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition flex flex-col justify-end p-2 text-white">
+                            <p className="text-[10px] line-clamp-2 leading-snug">{post.caption}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#8B5E3C]/60 italic pl-1">No matching posts</p>
+                  )}
+                  {posts.length > 6 && (
+                    <Button
+                      onClick={() => setActiveTab("Posts")}
+                      className={cn("text-xs font-bold uppercase tracking-wider", theme.textSecondary, "hover:underline bg-transparent hover:bg-transparent shadow-none p-0 flex items-center gap-1")}
+                    >
+                      See more posts <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* REELS SECTION */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Play className="h-4 w-4 text-[#8B5E3C]" />
+                    <span>Reels ({Math.min(6, reels.length)})</span>
+                  </h3>
+                  {reels.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {reels.slice(0, 6).map((reel: any) => (
+                        <div
+                          key={reel._id}
+                          onClick={() => navigate(`/reels?reelId=${reel._id}`)}
+                          className={cn("relative overflow-hidden rounded-2xl group cursor-pointer shadow-xs border h-40", theme.cardBorder, theme.card)}
+                        >
+                          <video src={resolveUrl(reel.mediaUrl)} className="w-full h-full object-cover rounded-2xl" muted playsInline />
+                          <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition flex flex-col justify-end p-2 text-white">
+                            <p className="text-[10px] line-clamp-2 leading-snug">{reel.caption}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#8B5E3C]/60 italic pl-1">No matching reels</p>
+                  )}
+                  {reels.length > 6 && (
+                    <Button
+                      onClick={() => setActiveTab("Reels")}
+                      className={cn("text-xs font-bold uppercase tracking-wider", theme.textSecondary, "hover:underline bg-transparent hover:bg-transparent shadow-none p-0 flex items-center gap-1")}
+                    >
+                      Explore more reels <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* TOPICS SECTION */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-[#8B5E3C]" />
+                    <span>Topics ({Math.min(6, hashtags.length)})</span>
+                  </h3>
+                  {hashtags.length > 0 ? (
+                    <div className="flex flex-wrap gap-2.5">
+                      {hashtags.slice(0, 6).map((tag: any, idx: number) => (
+                        <button
+                          key={idx}
+                          onClick={() => triggerSearch(tag.title)}
+                          className={cn("px-4 py-2 border rounded-xl font-semibold transition text-xs flex items-center gap-1.5", theme.widgetCard, theme.hoverRow)}
+                        >
+                          <Tag className="h-3.5 w-3.5 text-[#8B5E3C]" />
+                          <span>{tag.title}</span>
+                          <span className="text-[10px] opacity-60">({tag.postsCount})</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#8B5E3C]/60 italic pl-1">No matching topics</p>
+                  )}
+                  {hashtags.length > 6 && (
+                    <Button
+                      onClick={() => setActiveTab("Topics")}
+                      className={cn("text-xs font-bold uppercase tracking-wider", theme.textSecondary, "hover:underline bg-transparent hover:bg-transparent shadow-none p-0 flex items-center gap-1")}
+                    >
+                      See more topics <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* COMMUNITIES SECTION */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-2">
+                    <Users className="h-4 w-4 text-[#8B5E3C]" />
+                    <span>Communities ({Math.min(6, communities.length)})</span>
+                  </h3>
+                  {communities.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      {communities.slice(0, 6).map((c: any) => (
+                        <div
+                          key={c._id}
+                          className={cn("border p-4 rounded-2xl flex flex-col justify-between space-y-3", theme.widgetCard)}
+                        >
+                          <div className="flex gap-2">
+                            <Avatar className={cn("h-10 w-10 rounded-xl border", theme.cardBorder)}>
+                              <AvatarImage src={resolveUrl(c.avatar)} />
+                              <AvatarFallback className={cn("font-bold rounded-xl", theme.card, theme.textSecondary)}>
+                                {c.name.charAt(0).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0 leading-tight">
+                              <h4 className={cn("font-bold text-sm truncate", theme.textPrimary)}>{c.name}</h4>
+                              <p className="text-[10px] opacity-60 mt-0.5">{c.members?.length || 0} Members</p>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => navigate(`/communities`)}
+                            className="w-full bg-[#8B5E3C] hover:bg-[#5C3E2F] text-white rounded-xl text-xs py-1.5 h-auto font-bold"
+                          >
+                            View Community
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#8B5E3C]/60 italic pl-1">No matching communities</p>
+                  )}
+                  {communities.length > 6 && (
+                    <Button
+                      onClick={() => setActiveTab("Communities")}
+                      className={cn("text-xs font-bold uppercase tracking-wider", theme.textSecondary, "hover:underline bg-transparent hover:bg-transparent shadow-none p-0 flex items-center gap-1")}
+                    >
+                      Discover more communities <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* case 2: Individual tab content (e.g. People, Posts, Reels, Topics, Communities, or All without active query) */
+              <div className="space-y-6">
+                {activeTab === "People" ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {itemsList.map((user: any) => (
+                      <div
+                        key={user._id}
+                        className={cn("border p-4 rounded-2xl flex flex-col items-center text-center space-y-3", theme.widgetCard)}
+                      >
+                        <Avatar className={cn("h-16 w-16 border-2", theme.cardBorder)}>
+                          <AvatarImage src={resolveUrl(user.avatar)} />
+                          <AvatarFallback className="bg-[#5C3E2F] text-[#F5F0E8] text-lg font-bold">
+                            {user.username.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h4 className={cn("font-bold text-base line-clamp-1", theme.textPrimary)}>{user.name}</h4>
+                          <p className={cn("text-xs font-semibold", theme.textSecondary)}>@{user.username}</p>
+                        </div>
+                        {user.bio && <p className={cn("text-xs line-clamp-2 h-8", theme.textSecondary)}>{user.bio}</p>}
+                        
+                        <div className={cn("flex gap-4 text-xs font-semibold", theme.textSecondary)}>
+                          <p>{formatCount(user.followers?.length)} Followers</p>
+                          <p>{formatCount(user.following?.length)} Following</p>
                         </div>
 
-                        {/* Bottom Info overlay on Hover */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#2A1D16]/90 via-[#2A1D16]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 text-[#F5F0E8]">
-                          
-                          {/* Caption */}
-                          {post.caption && (
-                            <p className="text-xs font-medium line-clamp-2 mb-3 leading-relaxed">
-                              {post.caption}
+                        <div className="flex gap-2 w-full pt-1">
+                          <Button
+                            onClick={() => {
+                              addRecentSearchMutation.mutate("@" + user.username);
+                              navigate(`/profile/${user.username}`);
+                            }}
+                            className={cn("flex-1 rounded-xl text-xs py-1.5 h-auto font-semibold border transition", theme.filterBgSolid, theme.tabHover, theme.cardBorder, theme.textSecondary)}
+                          >
+                            Profile
+                          </Button>
+                          {currentUser?.username !== user.username && (
+                            <Button
+                              onClick={(e) => handleFollowUser(e, user.username)}
+                              className={cn(
+                                "flex-1 rounded-xl text-xs py-1.5 h-auto font-bold transition",
+                                user.followers?.includes(currentUser?.id)
+                                  ? cn(theme.filterBgSolid, theme.textSecondary, theme.cardBorder, "hover:bg-destructive/10 hover:text-destructive border border-destructive/20")
+                                  : "bg-[#8B5E3C] hover:bg-[#5C3E2F] text-[#F5F0E8]"
+                              )}
+                            >
+                              {user.followers?.includes(currentUser?.id) ? "Following" : "Follow"}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : activeTab === "Topics" ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {itemsList.map((tag: any, idx: number) => (
+                      <button
+                        key={idx}
+                        onClick={() => triggerSearch(tag.title)}
+                        className={cn("border p-4 rounded-2xl text-left space-y-3 transition flex flex-col justify-between", theme.widgetCard, theme.hoverRow)}
+                      >
+                        <div className="h-10 w-10 bg-[#5C3E2F]/10 rounded-xl flex items-center justify-center text-[#5C3E2F]">
+                          <Tag className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h4 className={cn("font-bold text-base line-clamp-1", theme.textPrimary)}>{tag.title}</h4>
+                          <p className={cn("text-xs font-semibold mt-1", theme.textSecondary)}>
+                            {formatCount(tag.postsCount)} posts
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : activeTab === "Communities" ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {itemsList.map((c: any) => (
+                      <div
+                        key={c._id}
+                        className={cn("border p-4 rounded-2xl flex flex-col justify-between space-y-4", theme.widgetCard)}
+                      >
+                        <div className="flex gap-3">
+                          <Avatar className={cn("h-12 w-12 rounded-xl border", theme.cardBorder)}>
+                            <AvatarImage src={resolveUrl(c.avatar)} />
+                            <AvatarFallback className={cn("font-bold rounded-xl", theme.card, theme.textSecondary)}>
+                              {c.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <h4 className={cn("font-bold text-base line-clamp-1", theme.textPrimary)}>{c.name}</h4>
+                            <p className={cn("text-xs font-semibold mt-0.5", theme.textSecondary)}>
+                              {formatCount(c.memberCount || c.members?.length)} Members
                             </p>
+                          </div>
+                        </div>
+                        <p className={cn("text-xs line-clamp-2 h-8", theme.textSecondary)}>{c.description}</p>
+                        <Button
+                          onClick={() => navigate(`/communities`)}
+                          className="w-full bg-[#8B5E3C] hover:bg-[#5C3E2F] text-[#F5F0E8] rounded-xl text-xs py-2 font-bold"
+                        >
+                          View Community
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="columns-2 md:columns-3 gap-4 space-y-4">
+                    {itemsList.map((post: any, idx: number) => {
+                      const showEmbedQuote = activeTab === "All" && idx === 3;
+                      return (
+                        <div key={post._id} className="break-inside-avoid">
+                          {showEmbedQuote && (
+                            <div className={cn("p-6 rounded-2xl border flex flex-col justify-between aspect-square mb-4", theme.card, theme.cardBorder)}>
+                              <span className={cn("text-5xl font-serif leading-none", theme.textSecondary)}>“</span>
+                              <p className={cn("text-base font-semibold leading-relaxed my-2", theme.textPrimary)}>
+                                {quoteData?.text || "Collect moments, not things."}
+                              </p>
+                              <div className={cn("flex justify-between items-end border-t pt-3", theme.cardBorder)}>
+                                <span className={cn("text-[10px] font-bold uppercase tracking-wider", theme.textSecondary)}>
+                                  — {quoteData?.author || "Vibe"}
+                                </span>
+                                <span className="text-lg opacity-40">🌱</span>
+                              </div>
+                            </div>
                           )}
 
-                          <div className="flex items-center justify-between">
-                            
-                            {/* Author */}
-                            <div className="flex items-center gap-2">
-                              <Avatar className="h-7 w-7 border border-[#F5F0E8]/40">
-                                <AvatarImage src={resolveUrl(post.author?.avatar)} />
-                                <AvatarFallback className="bg-[#5C3E2F] text-[#F5F0E8] text-[10px] font-bold">
-                                  {post.author?.username?.charAt(0).toUpperCase() || "U"}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-xs font-semibold truncate max-w-[80px]">
-                                @{post.author?.username || "unknown"}
-                              </span>
-                            </div>
+                          <div
+                            onClick={() => {
+                              if (post.type === "reel") {
+                                navigate(`/reels?reelId=${post._id}`);
+                              } else {
+                                setSelectedPost(post);
+                              }
+                            }}
+                            className={cn("relative overflow-hidden rounded-2xl group cursor-pointer shadow-sm border transition-all duration-300 group-hover:shadow-md", theme.cardBorder, isDark ? "bg-[#2A1D16]/40" : "bg-[#EFE6DA]/40")}
+                          >
+                            {post.type === "reel" || post.mediaType === "video" || (post.mediaUrl && (post.mediaUrl.endsWith(".mp4") || post.mediaUrl.endsWith(".mov") || post.mediaUrl.includes("/video/upload/"))) ? (
+                              <video
+                                src={resolveUrl(post.mediaUrl)}
+                                className="w-full object-cover rounded-2xl max-h-[380px] min-h-[160px]"
+                                preload="metadata"
+                                muted
+                                playsInline
+                              />
+                            ) : (
+                              <img
+                                src={resolveUrl(post.mediaUrl || post.imageUrl)}
+                                alt={post.caption || "Vibe Post"}
+                                className="w-full object-cover rounded-2xl max-h-[380px] min-h-[160px]"
+                                loading="lazy"
+                              />
+                            )}
 
-                            {/* Engagement icons */}
-                            <div className="flex items-center gap-2">
+                            <div className="absolute top-3 right-3 p-1.5 bg-black/40 backdrop-blur-xs rounded-lg text-white">
                               {post.type === "reel" ? (
-                                <div className="flex items-center gap-1 text-[11px] font-semibold bg-white/20 px-2 py-0.5 rounded-md">
-                                  <Eye className="h-3.5 w-3.5" />
-                                  <span>{formatCount(post.views || 0)}</span>
-                                </div>
+                                <Play className="h-4.5 w-4.5 fill-white text-white" />
                               ) : (
-                                <>
-                                  <button
-                                    onClick={(e) => handleLikePost(e, post)}
-                                    className="hover:scale-110 transition active:scale-95"
-                                  >
-                                    <Heart
-                                      className={cn(
-                                        "h-4 w-4",
-                                        post.isLiked ? "fill-red-500 text-red-500" : "text-white"
-                                      )}
-                                    />
-                                  </button>
-                                  <span className="text-[11px] font-semibold">{formatCount(post.likesCount || post.likes?.length)}</span>
-
-                                  <button
-                                    onClick={(e) => handleSavePost(e, post)}
-                                    className="hover:scale-110 transition ml-1"
-                                  >
-                                    <Bookmark
-                                      className={cn(
-                                        "h-4 w-4",
-                                        post.isSaved ? "fill-[#8B5E3C] text-[#8B5E3C]" : "text-white"
-                                      )}
-                                    />
-                                  </button>
-                                </>
+                                <Bookmark className="h-4.5 w-4.5" />
                               )}
                             </div>
 
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#2A1D16]/90 via-[#2A1D16]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 text-[#F5F0E8]">
+                              {post.caption && (
+                                <p className="text-xs font-medium line-clamp-2 mb-3 leading-relaxed">
+                                  {post.caption}
+                                </p>
+                              )}
+
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="h-7 w-7 border border-[#F5F0E8]/40">
+                                    <AvatarImage src={resolveUrl(post.author?.avatar)} />
+                                    <AvatarFallback className="bg-[#5C3E2F] text-[#F5F0E8] text-[10px] font-bold">
+                                      {post.author?.username?.charAt(0).toUpperCase() || "U"}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="text-xs font-semibold truncate max-w-[80px]">
+                                    @{post.author?.username || "unknown"}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  {post.type === "reel" ? (
+                                    <div className="flex items-center gap-1 text-[11px] font-semibold bg-white/20 px-2 py-0.5 rounded-md">
+                                      <Eye className="h-3.5 w-3.5" />
+                                      <span>{formatCount(post.views || 0)}</span>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <button
+                                        onClick={(e) => handleLikePost(e, post)}
+                                        className="hover:scale-110 transition active:scale-95"
+                                      >
+                                        <Heart className={cn("h-4 w-4", post.isLiked ? "fill-red-500 text-red-500" : "text-white")} />
+                                      </button>
+                                      <span className="text-[11px] font-semibold">{formatCount(post.likesCount || post.likes?.length)}</span>
+
+                                      <button
+                                        onClick={(e) => handleSavePost(e, post)}
+                                        className="hover:scale-110 transition ml-1"
+                                      >
+                                        <Bookmark className={cn("h-4 w-4", post.isSaved ? "fill-[#8B5E3C] text-[#8B5E3C]" : "text-white")} />
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
+                )}
 
-                      </div>
-                    </div>
-                  );
-                })}
+                {/* FETCHING NEXT PAGE LOADER */}
+                {isFetchingNextPage && (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-6 w-6 text-[#8B5E3C] animate-spin" />
+                  </div>
+                )}
+
+                {/* Observer target */}
+                <div ref={observerRef} className="h-4" />
+
+                {/* Clickable Load More CTA */}
+                {hasNextPage && !isFetchingNextPage && (
+                  <div className="flex justify-center mt-6">
+                    <Button
+                      onClick={() => fetchNextPage()}
+                      className="bg-[#EFE6DA] hover:bg-[#8B5E3C] hover:text-[#F5F0E8] text-[#8B5E3C] border border-[#E3D8C8] px-6 py-2 rounded-full text-sm font-semibold transition flex items-center gap-2 h-auto"
+                    >
+                      Load more
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
-
-            {/* FETCHING NEXT PAGE LOADER */}
-            {isFetchingNextPage && (
-              <div className="flex justify-center py-4">
-                <Loader2 className="h-6 w-6 text-[#8B5E3C] animate-spin" />
-              </div>
-            )}
-
-            {/* Observer target */}
-            <div ref={observerRef} className="h-4" />
-
-            {/* Clickable Load More CTA */}
-            {hasNextPage && !isFetchingNextPage && (
-              <div className="flex justify-center mt-6">
-                <Button
-                  onClick={() => fetchNextPage()}
-                  className="bg-[#EFE6DA] hover:bg-[#8B5E3C] hover:text-[#F5F0E8] text-[#8B5E3C] border border-[#E3D8C8] px-6 py-2 rounded-full text-sm font-semibold transition flex items-center gap-2 h-auto"
-                >
-                  Load more
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-
           </div>
         )}
 
