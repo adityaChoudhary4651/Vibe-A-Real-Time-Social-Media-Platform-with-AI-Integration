@@ -14,8 +14,6 @@ import {
   MoreVertical,
   ArrowRight,
   TrendingUp,
-  Radio,
-  Play,
   Share2,
   Trash2,
 } from "lucide-react";
@@ -83,8 +81,10 @@ export default function Conversations() {
     inputBg: isDark ? "bg-[#2A1D16] text-[#F5F0E8]" : "bg-[#FAF6F0] text-[#4A3428]",
     pillActive: "bg-[#5C3E2F] text-white hover:bg-[#4A3225]",
     pillInactive: isDark ? "bg-[#2A1D16] text-[#D2C5B4] hover:bg-[#3D2A1F]" : "bg-[#F5F0E8] text-[#8B5E3C] hover:bg-[#EFE6DA]",
-    btnPrimary: "bg-[#5C3E2F] text-white hover:bg-[#4A3225]",
-    btnOutline: "border-[#8B5E3C] text-[#8B5E3C] hover:bg-[#8B5E3C]/10",
+    btnPrimary: "bg-[#5C3E2F] text-white hover:bg-[#4A3225] transition-colors",
+    btnOutline: isDark 
+      ? "border-[#E8AC7D] text-[#E8AC7D] hover:bg-[#E8AC7D]/10 bg-transparent transition-colors" 
+      : "border-[#8B5E3C] text-[#8B5E3C] hover:bg-[#8B5E3C]/10 bg-transparent transition-colors",
   };
 
   // Mock initial conversations data matching the provided screenshot
@@ -227,12 +227,12 @@ export default function Conversations() {
   });
 
   return (
-    <div className={cn("flex w-full h-full p-3 sm:p-6 gap-6 font-sans transition-colors duration-500 overflow-y-auto scrollbar-hide", theme.bg, theme.textPrimary)}>
+    <div className={cn("flex w-full h-full p-3 sm:p-6 gap-6 font-sans transition-colors duration-500 overflow-hidden", theme.bg, theme.textPrimary)}>
       
       {/* ====================================================
-          1. MAIN FEED AREA (MIDDLE COLUMN)
+          1. MAIN FEED AREA (MIDDLE COLUMN) - Independent Scroll
          ==================================================== */}
-      <div className="flex-1 space-y-5 min-w-0">
+      <div className="flex-1 h-full overflow-y-auto pr-1 pb-16 lg:pb-6 space-y-5 scrollbar-hide">
         
         {/* Search and Action Bar */}
         <div className="flex flex-col sm:flex-row gap-3 items-center">
@@ -367,12 +367,12 @@ export default function Conversations() {
               <div
                 key={convo.id}
                 className={cn(
-                  "border rounded-2xl p-4 shadow-2xs hover:shadow-xs transition flex flex-col md:flex-row items-start gap-4 relative",
+                  "border rounded-2xl p-4 shadow-2xs hover:shadow-xs transition flex flex-col md:flex-row items-center md:items-start gap-4 relative",
                   theme.card
                 )}
               >
                 {/* Thumbnail Image */}
-                <div className="w-full md:w-36 h-24 rounded-xl overflow-hidden shrink-0 border relative">
+                <div className="w-full md:w-36 h-28 md:h-24 rounded-xl overflow-hidden shrink-0 border relative">
                   <img
                     src={convo.thumbnailUrl}
                     alt={convo.title}
@@ -381,7 +381,7 @@ export default function Conversations() {
                   {convo.badgeText && (
                     <span
                       className={cn(
-                        "absolute top-2 left-2 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider",
+                        "absolute top-2 left-2 text-[8px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider",
                         convo.badgeType === "active" && "bg-red-500 text-white",
                         convo.badgeType === "hot" && "bg-[#8B5E3C] text-white",
                         convo.badgeType === "active-green" && "bg-green-500 text-white",
@@ -441,7 +441,7 @@ export default function Conversations() {
                 </div>
 
                 {/* Right Side Options & Actions */}
-                <div className="flex md:flex-col justify-between items-end h-full self-stretch shrink-0 pt-1">
+                <div className="flex md:flex-col justify-between items-center md:items-end h-full self-stretch shrink-0 pt-1">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition opacity-60 hover:opacity-100">
@@ -481,9 +481,9 @@ export default function Conversations() {
       </div>
 
       {/* ====================================================
-          2. WIDGETS SIDEBAR (RIGHT COLUMN)
+          2. WIDGETS SIDEBAR (RIGHT COLUMN) - Independent Scroll
          ==================================================== */}
-      <div className="hidden xl:block w-76 space-y-5 flex-shrink-0">
+      <div className="hidden xl:block w-76 h-full overflow-y-auto pr-1 pb-16 space-y-5 flex-shrink-0 scrollbar-hide">
         
         {/* Widget 1 — Trending Topics */}
         <div className={cn("border rounded-2xl p-4 shadow-2xs space-y-3", theme.card)}>
