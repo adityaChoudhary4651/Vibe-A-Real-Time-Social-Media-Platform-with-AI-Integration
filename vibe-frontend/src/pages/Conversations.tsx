@@ -17,6 +17,7 @@ import {
   Share2,
   Trash2,
   ChevronLeft,
+  ChevronRight,
   Bookmark,
   ChevronUp,
   MessageCircle,
