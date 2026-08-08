@@ -15,7 +15,7 @@ import Reels from "./pages/Reels";
 import Profile from "./pages/Profile";
 import Messages from "./pages/Messages";
 import Notifications from "./pages/Notifications";
-import Discover from "./pages/Discover";
+import Conversations from "./pages/Conversations";
 import Communities from "./pages/Communities";
 import Create from "./pages/Create";
 import Login from "./pages/Login";
@@ -69,7 +69,7 @@ const App = () => (
 
                 <Route path="/messages" element={<Messages />} />
                 <Route path="/notifications" element={<Notifications />} />
-                <Route path="/discover" element={<Discover />} />
+                <Route path="/conversations" element={<Conversations />} />
                 <Route path="/communities" element={<Communities />} />
                 <Route path="/create" element={<Create />} />
                 <Route path="/vibe-ai" element={<VibeAI />} />

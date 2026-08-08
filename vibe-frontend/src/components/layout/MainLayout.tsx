@@ -14,7 +14,7 @@ export function MainLayout() {
   // Hide nav on reels (full-screen)
   const isReelsPage = location.pathname === "/reels";
   const isMessagesPage = location.pathname === "/messages";
-  const isDiscoverPage = location.pathname === "/discover";
+  const isConversationsPage = location.pathname === "/conversations";
   const isCreatePage = location.pathname === "/create";
   const isCommunitiesPage = location.pathname === "/communities";
   const isNotificationsPage = location.pathname === "/notifications";
@@ -38,17 +38,17 @@ export function MainLayout() {
   return (
     <div className={`min-h-screen w-full max-w-full transition-colors duration-300 ${
       isDark ? "bg-[#1F140E] text-[#F5F0E8]" : "bg-[#F5F0E8] text-[#4A3428]"
-    } ${isCustomStaticPage || isDiscoverPage ? "h-screen overflow-hidden" : ""}`}>
+    } ${isCustomStaticPage || isConversationsPage ? "h-screen overflow-hidden" : ""}`}>
       <SocketNotificationListener />
       <div className="flex w-full h-full">
         <DesktopSidebar />
 
         <main className={`flex-1 w-full max-w-full ${
-          isDiscoverPage || isCustomStaticPage ? "h-screen overflow-hidden flex flex-col" : "min-h-screen"
+          isConversationsPage || isCustomStaticPage ? "h-screen overflow-hidden flex flex-col" : "min-h-screen"
         }`}>
           {/* Hide header on reels, messages, and discover (full-screen) */}
-          {!isReelsPage && !isMessagesPage && !isDiscoverPage && !isCustomStaticPage && <MobileHeader />}
-          <div className={isReelsPage || isDiscoverPage || isCustomStaticPage ? "h-full flex-1 min-h-0" : "pb-20 lg:pb-8"}>
+          {!isReelsPage && !isMessagesPage && !isConversationsPage && !isCustomStaticPage && <MobileHeader />}
+          <div className={isReelsPage || isConversationsPage || isCustomStaticPage ? "h-full flex-1 min-h-0" : "pb-20 lg:pb-8"}>
             <Outlet context={outletContext} />
           </div>
         </main>

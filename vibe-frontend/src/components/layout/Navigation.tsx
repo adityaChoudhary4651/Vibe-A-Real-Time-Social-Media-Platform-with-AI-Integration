@@ -7,7 +7,7 @@ import {
   Bell,
   User,
   PlusSquare,
-  Compass,
+  MessageSquare,
   Users,
   Sparkles,
   Plus,
@@ -27,7 +27,7 @@ import { useSocket } from "@/contexts/SocketContext";
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
   { icon: Search, label: "Search", path: "/search" },
-  { icon: Compass, label: "Discover", path: "/discover" },
+  { icon: MessageSquare, label: "Conversations", path: "/conversations" },
   { icon: Film, label: "Reels", path: "/reels" },
   { icon: PlusSquare, label: "Create", path: "/create" },
   { icon: MessageCircle, label: "Messages", path: "/messages" },
@@ -128,7 +128,7 @@ export function DesktopSidebar() {
   const sidebarNavItems = [
     { icon: Home, label: "Home", path: "/" },
     { icon: Search, label: "Search", path: "/search" },
-    { icon: Compass, label: "Discover", path: "/discover" },
+    { icon: MessageSquare, label: "Conversations", path: "/conversations" },
     { icon: Film, label: "Reels", path: "/reels" },
     { icon: PlusSquare, label: "Create", path: "/create" },
     { icon: MessageCircle, label: "Messages", path: "/messages", badge: unreadMsgCount },
@@ -311,7 +311,7 @@ export function MobileBottomNav() {
     { icon: Home, path: "/" },
     { icon: Users, path: "/communities" },
     { icon: Film, path: "/reels" },
-    { icon: Compass, path: "/discover" },
+    { icon: MessageSquare, path: "/conversations" },
     { icon: User, path: "/profile" },
   ];
 
@@ -453,7 +453,7 @@ export function MobileHeader() {
     switch (location.pathname) {
       case "/": return "VIBE";
       case "/search": return "Search";
-      case "/discover": return "Discover";
+      case "/conversations": return "Conversations";
       case "/reels": return "Reels";
       case "/messages": return "Messages";
       case "/notifications": return "Notifications";
